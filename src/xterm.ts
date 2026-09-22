@@ -16,9 +16,13 @@
  * constructed with `allowProposedApi: true`.
  */
 import { createRequire } from 'node:module';
-import type { Terminal as XtermTerminal, ITerminalOptions } from '@xterm/headless';
+import type {
+  Terminal as XtermTerminal,
+  ITerminalOptions,
+  ITerminalInitOnlyOptions,
+} from '@xterm/headless';
 
-type XtermModule = { Terminal: new (options?: ITerminalOptions) => XtermTerminal };
+type XtermModule = { Terminal: new (options?: ITerminalOptions & ITerminalInitOnlyOptions) => XtermTerminal };
 
 const require = createRequire(import.meta.url);
 const xterm = require('@xterm/headless') as XtermModule;
@@ -28,6 +32,14 @@ export type { XtermTerminal };
 /** Options AgentTerm always requires, regardless of caller intent. */
 const BASE_OPTIONS = { allowProposedApi: true } as const;
 
-export function createTerminal(options?: ITerminalOptions): XtermTerminal {
+/**
+ * `cols` and `rows` are init-only (`ITerminalInitOnlyOptions`), not part of
+ * `ITerminalOptions` -- they can only be set at construction, and afterwards
+ * only via `resize()`. Accept both halves of the constructor's real
+ * parameter type so callers can size a terminal as they create it.
+ */
+export type TerminalOptions = ITerminalOptions & ITerminalInitOnlyOptions;
+
+export function createTerminal(options?: TerminalOptions): XtermTerminal {
   return new xterm.Terminal({ ...BASE_OPTIONS, ...options });
 }
