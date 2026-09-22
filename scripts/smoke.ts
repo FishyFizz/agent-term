@@ -110,12 +110,22 @@ async function main(): Promise<void> {
     ? '$r = [Console]::IsOutputRedirected; Write-Output "TTYIS:$r"'
     : 'if [ -t 1 ]; then echo TTYIS:True; else echo TTYIS:False; fi';
   session.write(`${ttyProbe}\r\n`);
-  const ttyAnswer = await waitFor(() => seen().includes('TTYIS:'), {
+
+  // Wait on the *value*, not on the marker. PowerShell echoes the command
+  // being typed with ANSI colour codes interleaved, so the echoed literal
+  // `TTYIS:$r` also contains `TTYIS:` -- but no True/False follows it.
+  // Waiting on the bare marker returns after ~25ms against the echo, and the
+  // regex then runs on a buffer that holds only the echo: `undefined`.
+  // Measured: the echo satisfies `includes('TTYIS:')` before any output
+  // arrives. One predicate for waiting and for reading, so they cannot
+  // disagree about what "answered" means.
+  const VALUE = /TTYIS:(True|False)/;
+  const readValue = () => VALUE.exec(seen())?.[1] ?? undefined;
+  const ttyAnswer = await waitFor(() => readValue() !== undefined, {
     label: 'tty probe result',
   });
-  const ttyText = seen();
-  const ttyValue = /TTYIS:(\w+)/.exec(ttyText)?.[1];
-  check('tty probe answered', ttyAnswer, `raw=${JSON.stringify(ttyText.slice(0, 60))}`);
+  const ttyValue = readValue();
+  check('tty probe answered', ttyAnswer, `raw=${JSON.stringify(seen().slice(0, 60))}`);
   check('program is NOT output-redirected (real tty)', ttyValue === 'False', `TTYIS:${ttyValue}`);
 
   // Exit reporting.
