@@ -131,5 +131,3 @@ export class ScreenModel {
     this.terminal.dispose();
   }
 }
-
-export type { Op };

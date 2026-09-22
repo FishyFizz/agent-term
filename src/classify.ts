@@ -121,8 +121,13 @@ export function classify(params: {
  * so a single screen update arrives as a run of same-kind ops. Reporting one
  * segment per op is noise for the agent; the meaningful unit is the run.
  * Different kinds are never merged -- that boundary is the whole point.
+ *
+ * Exported because replaying a corpus trace has the same need: a trace is
+ * delivered in chunks, so classifying produces one batch per chunk and the
+ * batches have to be joined. That is `merge` in test/helpers/corpus.ts, and
+ * it routes the common case through here rather than re-deriving it.
  */
-function coalesce(segments: readonly Segment[]): Segment[] {
+export function coalesce(segments: readonly Segment[]): Segment[] {
   const out: Segment[] = [];
   for (const seg of segments) {
     const prev = out[out.length - 1];

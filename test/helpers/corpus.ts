@@ -1,7 +1,7 @@
 /**
  * Measure the classifier against the corpus.
  *
- * The corpus (`corpus/`, a submodule) is the regression suite for L0.1: 22
+ * The corpus (`corpus/`, in-tree) is the regression suite for L0.1: 22
  * programmes, 44 recorded traces, each with expected verdicts over byte
  * ranges. This replays each trace's `raw` bytes through the real screen model
  * and classifier and scores the result.
@@ -9,25 +9,18 @@
  * Only `direct` traces are scored. On a pty feed ConPTY rewrites escape
  * sequences (corpus/OPS.md), so the same programme's expectations do not hold;
  * those traces say whether reality diverges, not whether the logic is right.
+ *
+ * The `Trace` shape is the corpus's own (corpus/src/types.ts): the corpus owns
+ * the format it records, and this harness reads it.
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ScreenModel } from '../../src/screen.js';
-import { classify, frameOf } from '../../src/classify.js';
+import { classify, coalesce, frameOf } from '../../src/classify.js';
+import type { Trace } from '../../corpus/src/types.js';
 import type { Segment } from '../../src/classify.js';
 
-export interface Trace {
-  version: 1;
-  id: string;
-  category: string;
-  summary: string;
-  feed: 'direct' | 'pty';
-  cols: number;
-  rows: number;
-  expectations: { from: number; to: number; kind: 'writing' | 'drawing'; why: string; ambiguous?: boolean }[];
-  raw: string;
-  bytes: number;
-}
+export type { Trace };
 
 export const TRACE_DIR = join(process.cwd(), 'corpus', 'traces');
 
@@ -40,14 +33,6 @@ export function loadTraces(feed: 'direct' | 'pty' | 'both' = 'direct'): Trace[] 
     out.push(trace);
   }
   return out;
-}
-
-/** Run one trace through the classifier, in a single logical delivery. */
-export async function classifyTrace(trace: Trace): Promise<Segment[]> {
-  const screen = new ScreenModel(trace.cols, trace.rows);
-  const before = frameOf(screen);
-  await feedBytes(screen, trace.raw);
-  return collect(screen, before);
 }
 
 /**
@@ -175,79 +160,55 @@ export function splitOnDrawOps(raw: string): string[] {
   return out.filter((c) => c.length > 0);
 }
 
-/** Merge adjacent segments that share a kind, like the classifier's own coalescing. */
+/**
+ * Join the segments produced across a trace's deliveries.
+ *
+ * A replay classifies one batch per delivery, so the batches need joining
+ * before they can be scored against expectations that span several of them.
+ *
+ * Two rules on top of the classifier's own coalescing, both about replay
+ * artifacts rather than about meaning:
+ *
+ *  - a zero-width segment is dropped. A control byte delivered on its own
+ *    produces one, and merging it in flips the verdict of the run around it.
+ *  - op-less text immediately following a drawing segment is part of that
+ *    repaint. A repaint is `CUP` + erase + text, and the text carries no op
+ *    of its own, so it reads as an append.
+ *
+ * The second is bounded by adjacency, so a later append after a pause is its
+ * own segment: a selector draws its list and then stops.
+ */
 function merge(segments: readonly Segment[]): Segment[] {
-  const out: Segment[] = [];
-  for (const seg of segments) {
-    // Skip empty segments. A control byte delivered on its own produces a
-    // zero-width segment, and merging those in flips the verdict of the run
-    // around them on a delivery artifact.
-    if (seg.toByte <= seg.fromByte) continue;
+  // Zero-width segments first: a control byte delivered on its own produces
+  // one, and merging one in flips the verdict of the run around it on a
+  // delivery artifact.
+  const kept = segments.filter((s) => s.toByte > s.fromByte);
 
-    const prev = out[out.length - 1];
-
-    // A repaint is `CUP` + erase + text, but the text arrives with no control
-    // op of its own, so it reads as an append. Text that continues a drawing
-    // segment is part of that repaint -- but only while the repaint is still
-    // actually repainting. A selector draws its list and then stops; the next
-    // plain output is not part of the redraw.
-    //
-    // Bounded by adjacency: the text must start exactly where the drawing
-    // segment ended, so a later append after a pause is its own segment.
+  // Repaint absorption runs *before* coalescing, and that order is load
+  // bearing: absorbing afterwards lets coalesce() join the op segment to the
+  // op-less one first, and the op-less text then lands under the op segment
+  // instead of extending the repaint. Measured on the corpus: the other
+  // order loses `complex.resize-during-tui` (19/22 vs 20/22).
+  const absorbed: Segment[] = [];
+  for (const seg of kept) {
+    const prev = absorbed[absorbed.length - 1];
     const continuesRepaint =
       prev?.kind === 'drawing' &&
       seg.evidence.ops.length === 0 &&
+      // Adjacency: the text must start exactly where the drawing segment
+      // ended, so a later append after a pause is its own segment.
       seg.fromByte === prev.toByte &&
-      seg.toByte - seg.fromByte <= 2; // one CRLF-sized step, not a run of new lines
+      // One CRLF-sized step, not a run of new lines.
+      seg.toByte - seg.fromByte <= 2;
+
     if (continuesRepaint) {
       prev.toByte = Math.max(prev.toByte, seg.toByte);
       continue;
     }
-
-    if (prev && prev.kind === seg.kind && prev.fromByte <= seg.fromByte) {
-      prev.toByte = Math.max(prev.toByte, seg.toByte);
-      prev.evidence.erased ||= seg.evidence.erased;
-      prev.evidence.overwrote ||= seg.evidence.overwrote;
-      prev.evidence.reachedBack ||= seg.evidence.reachedBack;
-      prev.evidence.scrolledBy += seg.evidence.scrolledBy;
-      for (const op of seg.evidence.ops) {
-        if (!prev.evidence.ops.includes(op)) prev.evidence.ops.push(op);
-      }
-      if (seg.confidence === 'low') prev.confidence = 'low';
-      continue;
-    }
-    out.push({
-      kind: seg.kind,
-      confidence: seg.confidence,
-      fromByte: seg.fromByte,
-      toByte: seg.toByte,
-      evidence: { ...seg.evidence, ops: [...seg.evidence.ops] },
-    });
+    absorbed.push({ ...seg, evidence: { ...seg.evidence, ops: [...seg.evidence.ops] } });
   }
-  return out;
-}
 
-/**
- * Feed byte by byte.
- *
- * An op's byte offset is only meaningful if the byte counter has advanced to
- * it by the time the handler runs. Handing the emulator a whole trace at once
- * makes every op in it carry the same offset -- the end of the batch -- so
- * segments cannot be located in the byte stream and every expectation that
- * depends on an offset collapses. Emulator writes are async, so this awaits.
- */
-async function feedBytes(screen: ScreenModel, raw: string): Promise<void> {
-  for (const ch of raw) await screen.feed(ch);
-}
-
-function collect(screen: ScreenModel, before: ReturnType<typeof frameOf>): Segment[] {
-  const after = frameOf(screen);
-  // Copy before clearing: `recorded` is the live array, so clearing first
-  // would leave classify() with nothing to segment on.
-  const ops = [...screen.ops.recorded];
-  const toByte = screen.ops.bytesFed;
-  screen.ops.clear();
-  return classify({ before, after, ops, fromByte: 0, toByte }).segments;
+  return coalesce(absorbed);
 }
 
 /**

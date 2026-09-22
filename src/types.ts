@@ -1,22 +1,4 @@
 /**
- * Event names emitted by a PtySession.
- *
- * Kept as a small closed set rather than a generic string index so callers get
- * compile-time checking.
- */
-export interface PtySessionEvents {
-  /**
-   * Raw bytes read from the pty, in order.
-   *
-   * Bytes, not a string: L1.3 requires byte watermarks, and a decoded string
-   * silently miscounts bytes for non-ASCII output.
-   */
-  data: (chunk: Buffer) => void;
-  /** Process exited. `code` is null when killed by a signal. */
-  exit: (info: { exitCode: number | null; signal: number | null }) => void;
-}
-
-/**
  * Opaque handle identifying a hosted terminal session.
  *
  * Callers treat this as an unforgeable key; its shape is an implementation
