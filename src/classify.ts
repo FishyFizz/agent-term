@@ -13,7 +13,7 @@
  * "without special-casing any program".
  */
 import type { ScreenModel } from './screen.js';
-import type { Op, OpName } from './edit-record.js';
+import { OP, type Op, type OpName } from './edit-record.js';
 
 export type Verdict = 'writing' | 'drawing';
 export type Confidence = 'high' | 'low';
@@ -49,40 +49,6 @@ export interface ClassifiedUpdate {
   fromByte: number;
   toByte: number;
 }
-
-/** Ops that mean "the program is redrawing", i.e. that end a writing run. */
-const DRAWING_OPS: ReadonlySet<OpName> = new Set<OpName>([
-  'CUP',
-  'CUU',
-  'CUD',
-  'CUF',
-  'CUB',
-  'EL',
-  'ED',
-  'IL',
-  'DL',
-  'DCH',
-  'ICH',
-  'DECSC',
-  'DECRC',
-]);
-
-/** Ops that are structural events: they change the screen's shape, not its content. */
-const STRUCTURAL_OPS: ReadonlySet<OpName> = new Set<OpName>(['RIS', 'DECSET', 'DECRST']);
-
-/** DEC private modes that change which buffer is active. */
-const ALT_SCREEN_MODES: ReadonlySet<number> = new Set([47, 1047, 1049]);
-
-const OP = {
-  isDrawing: (n: OpName) => DRAWING_OPS.has(n),
-  isStructural: (n: OpName) => STRUCTURAL_OPS.has(n),
-  /** Alt-screen enter/exit: a buffer switch, which is a timeline boundary. */
-  isAltScreenSwitch: (op: Op): boolean =>
-    (op.name === 'DECSET' || op.name === 'DECRST') &&
-    op.params.some((p) => ALT_SCREEN_MODES.has(p)),
-};
-
-export { OP };
 
 /**
  * A screen captured before and after a segment, used to answer structural
@@ -123,15 +89,19 @@ export function classify(params: {
   const segments: Segment[] = [inferSegment(before, after, fromByte, toByte)];
 
   for (const op of ops) {
-    // Mode changes are evidence, not segments -- except a buffer switch,
-    // which is a timeline boundary even though it draws nothing (L0.3,
-    // GOAL.md criterion 3). It is neither drawing (it erased nothing) nor
-    // swallowed by the repaint that follows it.
-    if (OP.isStructural(op.name) && !OP.isAltScreenSwitch(op)) continue;
+    // Most ops are evidence, not segments: a mode change alters shape or
+    // behaviour, and a structural event is the emulator reporting what it did
+    // in response. Neither is a segment of its own.
+    //
+    // A buffer switch is the exception. It draws nothing and erases nothing,
+    // but content on the alt screen is destroyed when the program leaves it
+    // (L0.3), so the boundary has to survive into the stream -- neither
+    // swallowed by the repaint that follows nor lost as mode-change noise.
+    if (!OP.isDrawing(op.name) && !(OP.isModeChange(op.name) && OP.isAltScreenSwitch(op))) continue;
 
     segments.push(
       buildSegment({
-        kind: OP.isDrawing(op.name) ? 'drawing' : 'writing',
+        kind: OP.isAltScreenSwitch(op) ? 'writing' : 'drawing',
         before,
         after,
         op,

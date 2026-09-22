@@ -9,16 +9,28 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ScreenModel } from '../src/screen.js';
-import { modeKind } from '../src/edit-record.js';
+import { modeKind, OP } from '../src/edit-record.js';
 import type { OpName } from '../src/edit-record.js';
 
-const names = (s: ScreenModel): OpName[] => s.ops.recorded.map((o) => o.name);
+/**
+ * Op names, with structural events filtered out.
+ *
+ * Events are the emulator reporting what it did, not the program stating what
+ * it wants, so a test about the program's ops asks for the sequences alone.
+ */
+const names = (s: ScreenModel): OpName[] => s.ops.recorded.filter((o) => !OP.isEvent(o.name)).map((o) => o.name);
 
-test('plain text produces no ops', async () => {
+test('plain text produces no sequences, but does move the screen', async () => {
   const s = new ScreenModel(20, 5);
   await s.feed('hello world\r\nmore text\r\n');
-  assert.deepEqual(names(s), [], 'printable text does not pass through the handlers');
+  assert.deepEqual(names(s), [], 'printable text does not pass through the sequence handlers');
   assert.ok(s.ops.bytesFed > 0, 'bytes are still counted');
+  // The screen moved though, and that is recorded as events rather than lost.
+  assert.deepEqual(
+    s.ops.recorded.filter((o) => OP.isEvent(o.name)).map((o) => o.name),
+    ['LINEFEED', 'LINEFEED'],
+    'each linefeed the emulator performed is recorded',
+  );
 });
 
 test('cursor addressing, erase and insert ops are recorded with params', async () => {
@@ -69,7 +81,7 @@ test('DEC private modes are recorded and alt-screen is flagged', async () => {
   await s.feed('\x1b[?25l');
   await s.feed('\x1b[?1049l');
 
-  const ops = s.ops.recorded;
+  const ops = s.ops.recorded.filter((o) => !OP.isEvent(o.name));
   assert.deepEqual(
     ops.map((o) => o.name),
     ['DECSET', 'DECRST', 'DECRST'],
@@ -141,6 +153,43 @@ test('the npm trace: draw, append, redraw is recoverable in order', async () => 
     snap.filter((l) => l.startsWith('[')).length,
     2,
     'two bar-looking rows, no spatial evidence they are related',
+  );
+});
+
+test('structural events are recorded alongside the sequences', async () => {
+  // The two sources: what the program sent, and what the emulator did in
+  // response. A trace that claims "20 lines were appended" or "the buffer
+  // changed twice" has to be able to count them, so both are in the stream,
+  // tagged by `source`.
+  const s = new ScreenModel(20, 5);
+  await s.feed('a\r\n');
+  await s.feed('\x1b[?1049h');
+  await s.feed('\x1b[?1049l');
+
+  // Entering the alt screen also scrolls: xterm clears the alt buffer as it
+  // switches in, and that fires the scroll event. Verified, not assumed --
+  // it is the emulator's account, and a trace should not hide it.
+  const named = s.ops.recorded.map((o) => `${o.source}:${o.name}`);
+  assert.deepEqual(named, [
+    'event:LINEFEED',
+    'csi:DECSET',
+    'event:SCROLL',
+    'event:BUFFERCHANGE',
+    'csi:DECRST',
+    'event:SCROLL',
+    'event:BUFFERCHANGE',
+  ]);
+
+  // The classifier asks for events as a set; this is the predicate it uses.
+  assert.deepEqual(
+    s.ops.recorded.filter((o) => OP.isEvent(o.name)).map((o) => o.name),
+    ['LINEFEED', 'SCROLL', 'BUFFERCHANGE', 'SCROLL', 'BUFFERCHANGE'],
+  );
+  // And a buffer enter/exit is the boundary it segments on (L0.3).
+  assert.equal(
+    s.ops.recorded.filter((o) => OP.isAltScreenSwitch(o)).length,
+    2,
+    'entering and leaving the alt screen are both flagged',
   );
 });
 

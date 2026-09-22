@@ -1,5 +1,5 @@
 /**
- * The edit record: the program's control operations, in order.
+ * The edit record: everything the emulator saw that was not printable text.
  *
  * CLASSIFIER.md §3.1 — the op stream supplies *where the segment boundaries
  * are*; the screen model supplies *what each segment did*. Neither alone is
@@ -7,33 +7,69 @@
  * everything (§4), and an op alone says a cursor moved, not whether content
  * was destroyed.
  *
- * This is a second view of the same parser that produces the screen, not a
+ * It is a second view of the same parser that produces the screen, not a
  * second parser. Printable text does not pass through these handlers, so runs
  * of text between ops are implicit.
+ *
+ * Two kinds of op are recorded, and the distinction matters:
+ *
+ *  - **sequences** (`source: 'csi' | 'esc'`) — control operations the program
+ *    actually sent. These are the program stating its intent.
+ *  - **events** (`source: 'event'`) — structural things the emulator did in
+ *    response: a linefeed, a scroll, a resize, a buffer switch, a title
+ *    change. No program wrote them; they are inferred from the state change.
+ *
+ * The classifier treats events as evidence rather than segments. The corpus
+ * asserts on them, because a trace that claims "20 lines were appended" has
+ * to be able to count them.
  */
 import type { XtermTerminal } from './xterm.js';
 
-/** Control operations that end a segment. */
+/**
+ * Control operations, plus the structural events the emulator reports.
+ *
+ * One closed vocabulary for the whole repo: the classifier picks its policy
+ * sets from this, and the corpus records all of it.
+ */
 export type OpName =
+  // Cursor movement.
   | 'CUP' // CSI H / f    — cursor position
   | 'CUU' // CSI A       — cursor up
   | 'CUD' // CSI B       — cursor down
   | 'CUF' // CSI C       — cursor forward
   | 'CUB' // CSI D       — cursor back
+  // Erase and edit.
   | 'EL' //  CSI K       — erase in line
   | 'ED' //  CSI J       — erase in display
   | 'IL' //  CSI L       — insert lines
   | 'DL' //  CSI M       — delete lines
   | 'DCH' // CSI P       — delete characters
   | 'ICH' // CSI @       — insert characters
-  | 'DECSC' // ESC 7     — save cursor
-  | 'DECRC' // ESC 8     — restore cursor
+  // Scrolling.
+  | 'SU' //  CSI S       — scroll up
+  | 'SD' //  CSI T       — scroll down
+  // Appearance.
+  | 'SGR' // CSI m       — select graphic rendition
+  // DEC private modes.
   | 'DECSET' // CSI ? X h
   | 'DECRST' // CSI ? X l
-  | 'RIS'; //  ESC c      — full reset
+  // State save/restore and reset.
+  | 'DECSC' // ESC 7      — save cursor
+  | 'DECRC' // ESC 8      — restore cursor
+  | 'RIS' //  ESC c      — full reset
+  // Structural events, fired by the emulator rather than written by the
+  // program. Boundaries and shape changes, never content.
+  | 'LINEFEED'
+  | 'SCROLL'
+  | 'RESIZE'
+  | 'BUFFERCHANGE'
+  | 'TITLECHANGE';
+
+/** Where an op came from: a sequence the program sent, or an emulator event. */
+export type OpSource = 'csi' | 'esc' | 'event';
 
 /**
- * One control operation, with the state that makes it interpretable.
+ * One op, with the state that makes it interpretable.
  *
  * `byteOffset` is the count of pty bytes consumed *before* this op, so a
  * segment boundary can be located in the byte stream and in history (L0.3)
@@ -41,6 +77,7 @@ export type OpName =
  */
 export interface Op {
   name: OpName;
+  source: OpSource;
   /** Bytes fed to the emulator before this op. Monotonic across a session. */
   byteOffset: number;
   /** Cursor position when the op ran. */
@@ -54,19 +91,58 @@ export interface Op {
   at: number;
 }
 
-/** Operations that change which buffer is active or how the screen behaves. */
-const MODE_OPS: Record<number, string> = {
-  47: 'alt-screen',
-  1047: 'alt-screen',
-  1049: 'alt-screen',
-  1048: 'save-cursor',
-  2026: 'synchronized-output',
-  2004: 'bracketed-paste',
-  25: 'cursor-visibility',
-  1000: 'mouse-tracking',
-  1002: 'mouse-tracking',
-  1003: 'mouse-tracking',
+/** DEC private modes that change which buffer is active. */
+const ALT_SCREEN_MODES: ReadonlySet<number> = new Set([47, 1047, 1049]);
+
+/** Ops that are structural events rather than sequences the program sent. */
+const EVENT_OPS: ReadonlySet<OpName> = new Set<OpName>([
+  'LINEFEED',
+  'SCROLL',
+  'RESIZE',
+  'BUFFERCHANGE',
+  'TITLECHANGE',
+]);
+
+/**
+ * Predicates over the op vocabulary.
+ *
+ * They live next to the vocabulary they interpret rather than in the
+ * classifier, so the corpus can ask the same questions the classifier does.
+ */
+export const OP = {
+  /** An op that means "the program is redrawing". */
+  isDrawing: (n: OpName): boolean => DRAWING_OPS.has(n),
+  /** A DEC private mode change: shape or behaviour, not content. */
+  isModeChange: (n: OpName): boolean => n === 'DECSET' || n === 'DECRST' || n === 'RIS',
+  /** A structural event, fired by the emulator rather than written. */
+  isEvent: (n: OpName): boolean => EVENT_OPS.has(n),
+  /**
+   * An alt-screen enter/exit: a buffer switch, which is a timeline boundary.
+   *
+   * It draws nothing and erases nothing, but content on the alt screen is
+   * destroyed when the program leaves it (L0.3), so the boundary has to be
+   * visible in the stream.
+   */
+  isAltScreenSwitch: (op: Op): boolean =>
+    (op.name === 'DECSET' || op.name === 'DECRST') && op.params.some((p) => ALT_SCREEN_MODES.has(p)),
 };
+
+/** Ops that mean "the program is redrawing", i.e. that end a writing run. */
+const DRAWING_OPS: ReadonlySet<OpName> = new Set<OpName>([
+  'CUP',
+  'CUU',
+  'CUD',
+  'CUF',
+  'CUB',
+  'EL',
+  'ED',
+  'IL',
+  'DL',
+  'DCH',
+  'ICH',
+  'DECSC',
+  'DECRC',
+]);
 
 /**
  * Records the op stream for one terminal.
@@ -110,10 +186,11 @@ export class EditRecord {
     this.disposables.length = 0;
   }
 
-  private push(name: OpName, params: number[] = []): void {
+  private push(name: OpName, source: OpSource, params: number[] = []): void {
     const buf = this.terminal.buffer.active;
     this.ops.push({
       name,
+      source,
       byteOffset: this._bytesFed,
       cursorX: buf.cursorX,
       cursorY: buf.cursorY,
@@ -125,15 +202,19 @@ export class EditRecord {
 
   private install(): void {
     const parser = this.terminal.parser;
-    const csi = (
-      final: string,
-      name: OpName,
-      intermediates?: string,
-    ): void => {
+    const csi = (final: string, name: OpName): void => {
       this.disposables.push(
-        parser.registerCsiHandler({ final, ...(intermediates ? { intermediates } : {}) }, (params) => {
-          this.push(name, flatten(params));
+        parser.registerCsiHandler({ final }, (params) => {
+          this.push(name, 'csi', flatten(params));
           // Return false: we observe, we do not handle. xterm still applies it.
+          return false;
+        }),
+      );
+    };
+    const esc = (final: string, name: OpName): void => {
+      this.disposables.push(
+        parser.registerEscHandler({ final }, () => {
+          this.push(name, 'esc');
           return false;
         }),
       );
@@ -151,6 +232,9 @@ export class EditRecord {
     csi('M', 'DL');
     csi('P', 'DCH');
     csi('@', 'ICH');
+    csi('S', 'SU');
+    csi('T', 'SD');
+    csi('m', 'SGR');
 
     // DEC private modes: CSI ? Pm h / l.
     // '?' is a *prefix* (0x3f), not an intermediate (0x20..0x2f) -- xterm
@@ -158,26 +242,30 @@ export class EditRecord {
     // 0x20 .. 0x2f".
     this.disposables.push(
       parser.registerCsiHandler({ prefix: '?', final: 'h' }, (params) => {
-        this.push('DECSET', flatten(params));
+        this.push('DECSET', 'csi', flatten(params));
         return false;
       }),
       parser.registerCsiHandler({ prefix: '?', final: 'l' }, (params) => {
-        this.push('DECRST', flatten(params));
+        this.push('DECRST', 'csi', flatten(params));
         return false;
       }),
     );
 
-    const esc = (final: string, name: OpName): void => {
-      this.disposables.push(
-        parser.registerEscHandler({ final }, () => {
-          this.push(name);
-          return false;
-        }),
-      );
-    };
     esc('7', 'DECSC');
     esc('8', 'DECRC');
     esc('c', 'RIS');
+
+    // Structural events. `onScroll` reports the new viewport position, and
+    // `onResize` the new size, so both carry their value as a param.
+    this.disposables.push(
+      this.terminal.onLineFeed(() => this.push('LINEFEED', 'event')),
+      this.terminal.onScroll((position) => this.push('SCROLL', 'event', [position])),
+      this.terminal.onResize(({ cols, rows }) => this.push('RESIZE', 'event', [cols, rows])),
+      this.terminal.onTitleChange(() => this.push('TITLECHANGE', 'event')),
+      this.terminal.buffer.onBufferChange?.(() => this.push('BUFFERCHANGE', 'event')) ?? {
+        dispose() {},
+      },
+    );
   }
 }
 
@@ -190,7 +278,26 @@ function flatten(params: (number | number[])[]): number[] {
   return out;
 }
 
-/** Human-readable mode grouping, for evidence attached to a verdict. */
+/**
+ * Human-readable mode grouping, for evidence attached to a verdict.
+ *
+ * Kept beside the vocabulary because it is the same question in another form:
+ * what did this mode number mean.
+ */
 export function modeKind(param: number): string | undefined {
   return MODE_OPS[param];
 }
+
+/** Operations that change which buffer is active or how the screen behaves. */
+const MODE_OPS: Record<number, string> = {
+  47: 'alt-screen',
+  1047: 'alt-screen',
+  1049: 'alt-screen',
+  1048: 'save-cursor',
+  2026: 'synchronized-output',
+  2004: 'bracketed-paste',
+  25: 'cursor-visibility',
+  1000: 'mouse-tracking',
+  1002: 'mouse-tracking',
+  1003: 'mouse-tracking',
+};
