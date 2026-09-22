@@ -22,3 +22,17 @@ export interface SessionOptions {
 
 export const DEFAULT_COLS = 80;
 export const DEFAULT_ROWS = 24;
+
+/**
+ * Reject a terminal size that is not a usable grid.
+ *
+ * Shared because a session resizes a pty and an emulator that must never
+ * disagree. If each validated on its own, `TerminalSession.resize` could
+ * accept the size for one, throw for the other, and leave them out of step --
+ * and a caller that caught the error would see a half-applied resize.
+ */
+export function assertGridSize(cols: number, rows: number): void {
+  if (!Number.isInteger(cols) || !Number.isInteger(rows) || cols < 1 || rows < 1) {
+    throw new RangeError(`invalid terminal size ${cols}x${rows}`);
+  }
+}

@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { spawn, type IPty, type IDisposable } from 'node-pty';
-import { DEFAULT_COLS, DEFAULT_ROWS, type SessionOptions } from './types.js';
+import { DEFAULT_COLS, DEFAULT_ROWS, assertGridSize, type SessionOptions } from './types.js';
 import { defaultShell, sanitizeEnv } from './env.js';
 
 export interface PtyExitInfo {
@@ -129,9 +129,7 @@ export class PtySession implements PtyEventTarget {
   /** Resize the pty; the program inside is told via SIGWINCH / ConPTY. */
   resize(cols: number, rows: number): void {
     if (!this._alive) return;
-    if (!Number.isInteger(cols) || !Number.isInteger(rows) || cols < 1 || rows < 1) {
-      throw new RangeError(`invalid terminal size ${cols}x${rows}`);
-    }
+    assertGridSize(cols, rows);
     this.pty.resize(cols, rows);
     this._cols = cols;
     this._rows = rows;

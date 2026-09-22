@@ -18,6 +18,7 @@
  */
 import { createTerminal, type XtermTerminal } from './xterm.js';
 import { EditRecord, type Op } from './edit-record.js';
+import { assertGridSize } from './types.js';
 
 /** One row of the screen, as text. */
 export type ScreenRow = string;
@@ -88,9 +89,7 @@ export class ScreenModel {
 
   /** Resize the grid. Content reflows; callers treat this as an event, not a change. */
   resize(cols: number, rows: number): void {
-    if (!Number.isInteger(cols) || !Number.isInteger(rows) || cols < 1 || rows < 1) {
-      throw new RangeError(`invalid terminal size ${cols}x${rows}`);
-    }
+    assertGridSize(cols, rows);
     this.terminal.resize(cols, rows);
     this._cols = cols;
     this._rows = rows;

@@ -18,6 +18,7 @@ import { ScreenModel } from './screen.js';
 import { classify, frameOf } from './classify.js';
 import type { Segment } from './classify.js';
 import type { SessionOptions } from './types.js';
+import { assertGridSize } from './types.js';
 
 /** One classified change to a session. */
 export interface SessionUpdate {
@@ -149,8 +150,15 @@ export class TerminalSession {
     return this._seq;
   }
 
-  /** Resize the pty and the screen together, so they never disagree. */
+  /**
+   * Resize the pty and the screen together, so they never disagree.
+   *
+   * Validated once here, before either is touched: if each half validated on
+   * its own, one could accept the size and the other throw, leaving a session
+   * with a pty at one size and a screen at another.
+   */
   resize(cols: number, rows: number): void {
+    assertGridSize(cols, rows);
     this.pty.resize(cols, rows);
     this.screen.resize(cols, rows);
   }
