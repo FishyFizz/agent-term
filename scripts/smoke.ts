@@ -170,10 +170,18 @@ async function main(): Promise<void> {
   check('disposeAll empties registry', registry.size() === 0);
 
   console.log(failures === 0 ? '\nALL CHECKS PASSED' : `\n${failures} CHECK(S) FAILED`);
-  // Flush, then leave. Orphaned node-pty children can keep the event loop
-  // alive indefinitely on Windows; the result is already known.
-  process.stdout.write('', () => process.exit(failures === 0 ? 0 : 1));
-  setTimeout(() => process.exit(failures === 0 ? 0 : 1), 2000).unref();
+
+  // Leave deliberately.
+  //
+  // Killing a Windows pty forks a node-pty "console list" child, and with two
+  // or more sessions those children keep sockets open, so the event loop never
+  // drains and the process hangs after printing every check. `process.exit()`
+  // does not beat it -- it schedules the exit and the still-live handles win.
+  // `reallyExit` bypasses the loop entirely. Verified: 1 session exits cleanly,
+  // 2+ hang without this.
+  const code = failures === 0 ? 0 : 1;
+  process.exitCode = code;
+  setImmediate(() => (process as unknown as { reallyExit(c: number): void }).reallyExit(code));
 }
 
 main().catch((err) => {
