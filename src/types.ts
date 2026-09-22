@@ -5,7 +5,12 @@
  * compile-time checking.
  */
 export interface PtySessionEvents {
-  /** Raw bytes read from the pty, in order. */
+  /**
+   * Raw bytes read from the pty, in order.
+   *
+   * Bytes, not a string: L1.3 requires byte watermarks, and a decoded string
+   * silently miscounts bytes for non-ASCII output.
+   */
   data: (chunk: Buffer) => void;
   /** Process exited. `code` is null when killed by a signal. */
   exit: (info: { exitCode: number | null; signal: number | null }) => void;

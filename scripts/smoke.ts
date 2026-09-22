@@ -46,24 +46,34 @@ async function main(): Promise<void> {
   check('session created', session.alive, `pid=${session.pid} id=${session.id.slice(0, 8)}`);
   check('size defaults applied', session.cols === 80 && session.rows === 24);
 
-  const chunks: string[] = [];
+  const chunks: Buffer[] = [];
   session.on('data', (c) => chunks.push(c));
+  const seen = () => Buffer.concat(chunks).toString('utf8');
 
   // Wait for the shell to actually be ready rather than assuming a delay.
   const promptSeen = await waitFor(
-    () => chunks.join('').includes('>') || chunks.join('').includes('$'),
+    () => seen().includes('>') || seen().includes('$'),
     { label: 'shell prompt' },
   );
   check('shell produced a prompt', promptSeen);
 
+  // L1.3: the watermark is a byte count, and it must be a real byte count --
+  // a decoded string would undercount non-ASCII output.
+  const watermarkAfterPrompt = session.bytesRead;
+  check('watermark counts bytes, not characters',
+    watermarkAfterPrompt === Buffer.concat(chunks).length,
+    `bytesRead=${watermarkAfterPrompt} concat=${Buffer.concat(chunks).length}`);
+  check('data events deliver Buffers', chunks.length > 0 && Buffer.isBuffer(chunks[0]));
+
   // L0.5: a real program runs and its output comes back.
   chunks.length = 0;
   session.write(`echo ${marker}\r\n`);
-  const echoed = await waitFor(() => chunks.join('').includes(marker), {
+  const echoed = await waitFor(() => seen().includes(marker), {
     label: `echo of ${marker}`,
   });
   check('program output returns through the pty', echoed);
-  check('output is a string, in order', typeof chunks[0] === 'string');
+  check('watermark advanced after output', session.bytesRead > watermarkAfterPrompt,
+    `${watermarkAfterPrompt} -> ${session.bytesRead}`);
 
   // Resize is reported to the program, not just tracked locally.
   let resizeError: unknown = null;
@@ -94,10 +104,10 @@ async function main(): Promise<void> {
     ? '$r = [Console]::IsOutputRedirected; Write-Output "TTYIS:$r"'
     : 'if [ -t 1 ]; then echo TTYIS:True; else echo TTYIS:False; fi';
   session.write(`${ttyProbe}\r\n`);
-  const ttyAnswer = await waitFor(() => chunks.join('').includes('TTYIS:'), {
+  const ttyAnswer = await waitFor(() => seen().includes('TTYIS:'), {
     label: 'tty probe result',
   });
-  const ttyText = chunks.join('');
+  const ttyText = seen();
   const ttyValue = /TTYIS:(\w+)/.exec(ttyText)?.[1];
   check('tty probe answered', ttyAnswer, `raw=${JSON.stringify(ttyText.slice(0, 60))}`);
   check('program is NOT output-redirected (real tty)', ttyValue === 'False', `TTYIS:${ttyValue}`);
@@ -131,21 +141,23 @@ async function main(): Promise<void> {
   // Two sessions at once must not interfere: L0.4 independence.
   const a = registry.create({ command, args });
   const b = registry.create({ command, args });
-  const aChunks: string[] = [];
-  const bChunks: string[] = [];
+  const aChunks: Buffer[] = [];
+  const bChunks: Buffer[] = [];
   a.on('data', (c) => aChunks.push(c));
   b.on('data', (c) => bChunks.push(c));
+  const aSeen = () => Buffer.concat(aChunks).toString('utf8');
+  const bSeen = () => Buffer.concat(bChunks).toString('utf8');
 
-  await waitFor(() => aChunks.join('').includes('>') || aChunks.join('').includes('$'), {
+  await waitFor(() => aSeen().includes('>') || aSeen().includes('$'), {
     label: 'session a prompt',
   });
   aChunks.length = 0;
   bChunks.length = 0;
   a.write('echo ONLY-A\r\n');
-  const aGot = await waitFor(() => aChunks.join('').includes('ONLY-A'), { label: 'ONLY-A' });
+  const aGot = await waitFor(() => aSeen().includes('ONLY-A'), { label: 'ONLY-A' });
   await delay(300);
   check('session a received its own output', aGot);
-  check('session b did not receive it', !bChunks.join('').includes('ONLY-A'));
+  check('session b did not receive it', !bSeen().includes('ONLY-A'));
   check('distinct ids', a.id !== b.id);
 
   registry.disposeAll();

@@ -9,8 +9,15 @@ export interface PtyExitInfo {
 }
 
 export interface PtySessionEvents {
-  /** Chunks of output, in the order the pty produced them. */
-  data: (chunk: string) => void;
+  /**
+   * Chunks of output, in the order the pty produced them.
+   *
+   * Bytes, not a string. L1.3 requires byte watermarks so a caller can
+   * distinguish "quiet" from "not read yet", and a decoded string miscounts
+   * bytes for non-ASCII output. The pty is spawned with `encoding: null` to
+   * get raw buffers rather than lossily re-encoding a decoded string.
+   */
+  data: (chunk: Buffer) => void;
   /** The process exited. Emitted at most once. */
   exit: (info: PtyExitInfo) => void;
 }
@@ -41,6 +48,12 @@ export class PtySession implements PtyEventTarget {
   private _exitInfo: PtyExitInfo | null = null;
   private _cols: number;
   private _rows: number;
+  /**
+   * Total bytes read from the pty. Monotonic, never reset. L1.3's watermark:
+   * comparing an earlier value against this one tells a caller whether
+   * anything arrived since — the difference between "quiet" and "not read yet".
+   */
+  private _bytesRead = 0;
 
   constructor(id: string, options: SessionOptions = {}) {
     const shell = defaultShell();
@@ -58,13 +71,18 @@ export class PtySession implements PtyEventTarget {
       rows: this._rows,
       cwd: options.cwd ?? process.cwd(),
       env: options.env ?? sanitizeEnv(process.env),
+      // Raw bytes. The default 'utf8' decodes to a string, which loses the
+      // byte counts L1.3's watermarks depend on.
+      encoding: null,
     });
 
     this.pid = this.pty.pid;
 
     this.disposables.push(
       this.pty.onData((chunk) => {
-        this.emitter.emit('data', chunk);
+        const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, 'utf8');
+        this._bytesRead += bytes.length;
+        this.emitter.emit('data', bytes);
       }),
       this.pty.onExit(({ exitCode, signal }) => {
         this._alive = false;
@@ -92,6 +110,11 @@ export class PtySession implements PtyEventTarget {
 
   get rows(): number {
     return this._rows;
+  }
+
+  /** Total bytes read from the pty so far. Monotonic; never reset or wrapped. */
+  get bytesRead(): number {
+    return this._bytesRead;
   }
 
   /**
