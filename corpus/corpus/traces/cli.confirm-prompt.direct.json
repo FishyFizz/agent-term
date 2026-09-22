@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "id": "cli.confirm-prompt",
+  "category": "cli",
+  "summary": "A blocking confirm prompt — output stops with a pending prompt.",
+  "feed": "direct",
+  "cols": 60,
+  "rows": 6,
+  "platform": "win32",
+  "recordedAt": "2026-09-22T05:28:05.593Z",
+  "expectations": [
+    {
+      "from": 0,
+      "to": 27,
+      "kind": "writing",
+      "why": "the notice line is appended before the program blocks"
+    },
+    {
+      "from": 27,
+      "to": 43,
+      "kind": "writing",
+      "why": "the prompt is written without a newline and the program then blocks; nothing is erased or redrawn, so it is still append-only text — the interesting property is that output *stops*, which is L1.4, not a classification question"
+    }
+  ],
+  "ops": [
+    {
+      "seq": 0,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 32,
+      "cursorY": 1,
+      "cursorX": 0,
+      "buffer": "normal"
+    }
+  ],
+  "frames": [
+    {
+      "index": 0,
+      "label": "end",
+      "at": 43,
+      "cursorY": 1,
+      "cursorX": 16,
+      "buffer": "normal",
+      "viewportY": 0,
+      "lines": [
+        "About to delete 12 files.",
+        "Continue? [y/N] ",
+        "",
+        "",
+        "",
+        ""
+      ]
+    }
+  ],
+  "textLog": [],
+  "bytes": 43,
+  "raw": "About to delete 12 files.\r\nContinue? [y/N] "
+}

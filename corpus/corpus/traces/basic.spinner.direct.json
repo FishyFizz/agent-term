@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "id": "basic.spinner",
+  "category": "basic",
+  "summary": "Spins one character in place — continuous drawing that must collapse.",
+  "feed": "direct",
+  "cols": 80,
+  "rows": 4,
+  "platform": "win32",
+  "recordedAt": "2026-09-22T05:28:03.058Z",
+  "expectations": [
+    {
+      "from": 9,
+      "to": 165,
+      "kind": "drawing",
+      "why": "same row rewritten 12 times; intermediate frames carry no information, so this collapses to the latest (CLASSIFIER.md §6)"
+    }
+  ],
+  "ops": [
+    {
+      "seq": 0,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 32,
+      "cursorY": 1,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 1,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 173,
+      "cursorY": 2,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 2,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 173,
+      "cursorY": 3,
+      "cursorX": 0,
+      "buffer": "normal"
+    }
+  ],
+  "frames": [
+    {
+      "index": 0,
+      "label": "end",
+      "at": 173,
+      "cursorY": 3,
+      "cursorX": 0,
+      "buffer": "normal",
+      "viewportY": 0,
+      "lines": [
+        "working",
+        "\\ working...",
+        "done",
+        ""
+      ]
+    }
+  ],
+  "textLog": [],
+  "bytes": 173,
+  "raw": "working\r\n\r| working...\r/ working...\r- working...\r\\ working...\r| working...\r/ working...\r- working...\r\\ working...\r| working...\r/ working...\r- working...\r\\ working...\r\ndone\r\n"
+}

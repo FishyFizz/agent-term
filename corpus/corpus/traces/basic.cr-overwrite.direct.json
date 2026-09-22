@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "id": "basic.cr-overwrite",
+  "category": "basic",
+  "summary": "Rewrites the current row with \\r and no erase — drawing by overwrite.",
+  "feed": "direct",
+  "cols": 80,
+  "rows": 6,
+  "platform": "win32",
+  "recordedAt": "2026-09-22T05:28:02.669Z",
+  "expectations": [
+    {
+      "from": 0,
+      "to": 14,
+      "kind": "writing",
+      "why": "one plain line: \"progress: 0%\" plus its newline"
+    },
+    {
+      "from": 14,
+      "to": 43,
+      "kind": "drawing",
+      "why": "\\r returns to column 0 and text lands on cells that were already non-blank; no erase op is emitted, so this must be caught by the screen model (CLASSIFIER.md §9 open item 2)"
+    }
+  ],
+  "ops": [
+    {
+      "seq": 0,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 32,
+      "cursorY": 1,
+      "cursorX": 0,
+      "buffer": "normal"
+    }
+  ],
+  "frames": [
+    {
+      "index": 0,
+      "label": "end",
+      "at": 43,
+      "cursorY": 1,
+      "cursorX": 14,
+      "buffer": "normal",
+      "viewportY": 0,
+      "lines": [
+        "progress: 0%",
+        "progress: 100%",
+        "",
+        "",
+        "",
+        ""
+      ]
+    }
+  ],
+  "textLog": [],
+  "bytes": 43,
+  "raw": "progress: 0%\r\n\rprogress: 50%\rprogress: 100%"
+}

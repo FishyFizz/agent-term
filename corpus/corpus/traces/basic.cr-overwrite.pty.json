@@ -1,0 +1,110 @@
+{
+  "version": 1,
+  "id": "basic.cr-overwrite",
+  "category": "basic",
+  "summary": "Rewrites the current row with \\r and no erase — drawing by overwrite.",
+  "feed": "pty",
+  "cols": 80,
+  "rows": 6,
+  "platform": "win32",
+  "recordedAt": "2026-09-22T05:27:15.295Z",
+  "expectations": [
+    {
+      "from": 0,
+      "to": 0,
+      "kind": "writing",
+      "why": "one plain line: \"progress: 0%\" plus its newline"
+    },
+    {
+      "from": 0,
+      "to": 0,
+      "kind": "drawing",
+      "why": "\\r returns to column 0 and text lands on cells that were already non-blank; no erase op is emitted, so this must be caught by the screen model (CLASSIFIER.md §9 open item 2)"
+    }
+  ],
+  "ops": [
+    {
+      "seq": 0,
+      "kind": "csi",
+      "name": "ED",
+      "final": "J",
+      "params": [
+        2
+      ],
+      "offset": 109,
+      "cursorY": 0,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 1,
+      "kind": "csi",
+      "name": "SGR",
+      "final": "m",
+      "params": [
+        0
+      ],
+      "offset": 109,
+      "cursorY": 0,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 2,
+      "kind": "csi",
+      "name": "CUP",
+      "final": "H",
+      "params": [
+        0
+      ],
+      "offset": 109,
+      "cursorY": 0,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 3,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 109,
+      "cursorY": 1,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 4,
+      "kind": "event",
+      "name": "TITLECHANGE",
+      "final": "",
+      "params": [],
+      "offset": 109,
+      "cursorY": 1,
+      "cursorX": 0,
+      "buffer": "normal"
+    }
+  ],
+  "frames": [
+    {
+      "index": 0,
+      "label": "end",
+      "at": 137,
+      "cursorY": 1,
+      "cursorX": 14,
+      "buffer": "normal",
+      "viewportY": 0,
+      "lines": [
+        "progress: 0%",
+        "progress: 100%",
+        "",
+        "",
+        "",
+        ""
+      ]
+    }
+  ],
+  "textLog": [],
+  "bytes": 137,
+  "raw": "\u001b[?9001h\u001b[?1004h\u001b[?25l\u001b[2J\u001b[m\u001b[Hprogress: 0%\r\n\u001b]0;C:\\Users\\finnywxu\\AppData\\Local\\hermes\\node\\node.exe\u0007\u001b[?25hprogress: 50%\rprogress: 100%"
+}

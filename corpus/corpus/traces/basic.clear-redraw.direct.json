@@ -1,0 +1,119 @@
+{
+  "version": 1,
+  "id": "basic.clear-redraw",
+  "category": "basic",
+  "summary": "Clears the screen and redraws — ED is a structural event, not a repaint verdict.",
+  "feed": "direct",
+  "cols": 80,
+  "rows": 6,
+  "platform": "win32",
+  "recordedAt": "2026-09-22T05:28:03.089Z",
+  "expectations": [
+    {
+      "from": 0,
+      "to": 10,
+      "kind": "writing",
+      "why": "two plain lines appended, no control ops involved"
+    },
+    {
+      "from": 10,
+      "to": 39,
+      "kind": "drawing",
+      "why": "ED erases the whole display; the frame is a repaint of the surface"
+    }
+  ],
+  "ops": [
+    {
+      "seq": 0,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 32,
+      "cursorY": 1,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 1,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 32,
+      "cursorY": 2,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 2,
+      "kind": "csi",
+      "name": "ED",
+      "final": "J",
+      "params": [
+        2
+      ],
+      "offset": 32,
+      "cursorY": 2,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 3,
+      "kind": "csi",
+      "name": "CUP",
+      "final": "H",
+      "params": [
+        0
+      ],
+      "offset": 32,
+      "cursorY": 2,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 4,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 32,
+      "cursorY": 1,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 5,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 39,
+      "cursorY": 2,
+      "cursorX": 0,
+      "buffer": "normal"
+    }
+  ],
+  "frames": [
+    {
+      "index": 0,
+      "label": "end",
+      "at": 39,
+      "cursorY": 2,
+      "cursorX": 0,
+      "buffer": "normal",
+      "viewportY": 0,
+      "lines": [
+        "redrawn A",
+        "redrawn B",
+        "",
+        "",
+        "",
+        ""
+      ]
+    }
+  ],
+  "textLog": [],
+  "bytes": 39,
+  "raw": "one\r\ntwo\r\n\u001b[2J\u001b[Hredrawn A\r\nredrawn B\r\n"
+}

@@ -1,0 +1,135 @@
+{
+  "version": 1,
+  "id": "complex.unclean-tui-exit",
+  "category": "complex",
+  "summary": "A TUI killed while on the alt screen — last live frame must be preserved.",
+  "feed": "direct",
+  "cols": 50,
+  "rows": 6,
+  "platform": "win32",
+  "recordedAt": "2026-09-22T05:28:25.782Z",
+  "expectations": [
+    {
+      "from": 0,
+      "to": 55,
+      "kind": "drawing",
+      "why": "alt-screen TUI output; the final state is only recoverable if it was captured while live (L0.3 capture urgency)"
+    }
+  ],
+  "ops": [
+    {
+      "seq": 0,
+      "kind": "mode",
+      "name": "ALT_ENTER",
+      "final": "h",
+      "params": [
+        1049
+      ],
+      "offset": 32,
+      "cursorY": 0,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 1,
+      "kind": "event",
+      "name": "SCROLL",
+      "final": "",
+      "params": [],
+      "offset": 32,
+      "cursorY": 0,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 2,
+      "kind": "event",
+      "name": "BUFFERCHANGE",
+      "final": "",
+      "params": [],
+      "offset": 32,
+      "cursorY": 0,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 3,
+      "kind": "csi",
+      "name": "CUP",
+      "final": "H",
+      "params": [
+        0
+      ],
+      "offset": 32,
+      "cursorY": 0,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 4,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 32,
+      "cursorY": 1,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 5,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 55,
+      "cursorY": 2,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 6,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 55,
+      "cursorY": 3,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 7,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 55,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "alternate"
+    }
+  ],
+  "frames": [
+    {
+      "index": 0,
+      "label": "end",
+      "at": 55,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "alternate",
+      "viewportY": 0,
+      "lines": [
+        "tui row 0",
+        "tui row 1",
+        "tui row 2",
+        "tui row 3",
+        "",
+        ""
+      ]
+    }
+  ],
+  "textLog": [],
+  "bytes": 55,
+  "raw": "\u001b[?1049h\u001b[Htui row 0\r\ntui row 1\r\ntui row 2\r\ntui row 3\r\n"
+}

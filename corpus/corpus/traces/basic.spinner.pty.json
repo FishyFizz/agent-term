@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "id": "basic.spinner",
+  "category": "basic",
+  "summary": "Spins one character in place — continuous drawing that must collapse.",
+  "feed": "pty",
+  "cols": 80,
+  "rows": 4,
+  "platform": "win32",
+  "recordedAt": "2026-09-22T05:27:16.822Z",
+  "expectations": [
+    {
+      "from": 0,
+      "to": 0,
+      "kind": "drawing",
+      "why": "same row rewritten 12 times; intermediate frames carry no information, so this collapses to the latest (CLASSIFIER.md §6)"
+    }
+  ],
+  "ops": [
+    {
+      "seq": 0,
+      "kind": "csi",
+      "name": "ED",
+      "final": "J",
+      "params": [
+        2
+      ],
+      "offset": 104,
+      "cursorY": 0,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 1,
+      "kind": "csi",
+      "name": "SGR",
+      "final": "m",
+      "params": [
+        0
+      ],
+      "offset": 104,
+      "cursorY": 0,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 2,
+      "kind": "csi",
+      "name": "CUP",
+      "final": "H",
+      "params": [
+        0
+      ],
+      "offset": 104,
+      "cursorY": 0,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 3,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 104,
+      "cursorY": 1,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 4,
+      "kind": "event",
+      "name": "TITLECHANGE",
+      "final": "",
+      "params": [],
+      "offset": 104,
+      "cursorY": 1,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 5,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 267,
+      "cursorY": 2,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 6,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 267,
+      "cursorY": 3,
+      "cursorX": 0,
+      "buffer": "normal"
+    }
+  ],
+  "frames": [
+    {
+      "index": 0,
+      "label": "end",
+      "at": 267,
+      "cursorY": 3,
+      "cursorX": 0,
+      "buffer": "normal",
+      "viewportY": 0,
+      "lines": [
+        "working",
+        "\\ working...",
+        "done",
+        ""
+      ]
+    }
+  ],
+  "textLog": [],
+  "bytes": 267,
+  "raw": "\u001b[?9001h\u001b[?1004h\u001b[?25l\u001b[2J\u001b[m\u001b[Hworking\r\n\u001b]0;C:\\Users\\finnywxu\\AppData\\Local\\hermes\\node\\node.exe\u0007\u001b[?25h| working...\r/ working...\r- working...\r\\ working...\r| working...\r/ working...\r- working...\r\\ working...\r| working...\r/ working...\r- working...\r\\ working...\r\ndone\r\n"
+}

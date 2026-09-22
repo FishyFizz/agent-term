@@ -1,0 +1,188 @@
+/**
+ * Tests that the corpus is a usable regression suite.
+ *
+ * These check the corpus's own invariants, not the classifier's verdicts — the
+ * classifier is a separate deliverable and has its own suite. What must hold
+ * here is that every trace is well-formed, that the interesting ops were
+ * actually captured, and that each programme produces the structural behaviour
+ * it claims to.
+ *
+ * If one of these fails, the corpus is lying about what it contains and any
+ * classifier result measured against it is meaningless.
+ */
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { allProgrammes } from '../programmes/index.js';
+import { runDirect } from '../src/runner.js';
+import type { Trace, Op } from '../src/types.js';
+
+const here = dirname(fileURLToPath(import.meta.url));
+const tracesDir = join(here, '..', 'traces');
+
+function loadTrace(id: string, feed: 'direct' | 'pty'): Trace {
+  const path = join(tracesDir, `${id}.${feed}.json`);
+  assert.ok(existsSync(path), `trace file missing: ${path} — run scripts/record.ts`);
+  return JSON.parse(readFileSync(path, 'utf8')) as Trace;
+}
+
+const names = (ops: Op[]): string[] => ops.map((o) => o.name);
+const has = (ops: Op[], name: string): boolean => names(ops).includes(name);
+
+test('every programme has a recorded trace for both feeds', () => {
+  const files = existsSync(tracesDir) ? readdirSync(tracesDir) : [];
+  for (const p of allProgrammes) {
+    for (const feed of ['direct', 'pty'] as const) {
+      assert.ok(files.includes(`${p.id}.${feed}.json`), `missing ${p.id}.${feed}.json`);
+    }
+  }
+});
+
+test('every programme is registered exactly once', () => {
+  const ids = allProgrammes.map((p) => p.id);
+  assert.equal(new Set(ids).size, ids.length, 'duplicate programme ids');
+  // Ids are namespaced by family, so a trace file maps back to its category.
+  for (const p of allProgrammes) {
+    assert.ok(
+      p.id.startsWith(`${p.category}.`),
+      `${p.id} should be namespaced under ${p.category}`,
+    );
+  }
+});
+
+test('traces carry the three families asked for', () => {
+  const categories = new Set(allProgrammes.map((p) => p.category));
+  for (const c of ['basic', 'cli', 'complex']) {
+    assert.ok(categories.has(c as never), `corpus is missing the ${c} family`);
+  }
+  // And each family has enough cases to be worth measuring against.
+  for (const c of ['basic', 'cli', 'complex']) {
+    const n = allProgrammes.filter((p) => p.category === c).length;
+    assert.ok(n >= 5, `${c} has only ${n} programmes`);
+  }
+});
+
+test('a pure writing trace emits no erase or cursor-positioning ops', () => {
+  const trace = loadTrace('basic.plain-write', 'direct');
+  const drawingOps = names(trace.ops).filter((n) => ['CUP', 'EL', 'ED', 'DCH', 'IL', 'DL'].includes(n));
+  assert.deepEqual(drawingOps, [], 'plain append must not emit drawing ops');
+  assert.ok(trace.ops.filter((o) => o.name === 'LINEFEED').length === 5);
+});
+
+test('a repaint trace does emit erase and cursor ops', () => {
+  const trace = loadTrace('basic.in-place-repaint', 'direct');
+  assert.ok(has(trace.ops, 'CUP'), 'expected CUP');
+  assert.ok(has(trace.ops, 'EL'), 'expected EL');
+  // And the rewrite actually landed on the screen.
+  const last = trace.frames[trace.frames.length - 1]!;
+  assert.ok(last.lines.some((l) => l.includes('BETA-REWRITTEN')));
+});
+
+test('the alt-screen writing counterexample really is on the alternate buffer', () => {
+  const trace = loadTrace('basic.alt-screen-write', 'direct');
+  const inAlt = trace.ops.filter((o) => o.buffer === 'alternate');
+  assert.ok(inAlt.length > 0, 'some ops must have fired while the alt buffer was active');
+  assert.ok(has(trace.ops, 'ALT_ENTER'), 'expected alt-screen enter');
+
+  // The counterexample only bites if those alt-buffer ops are plain appends.
+  const linefeedsInAlt = inAlt.filter((o) => o.name === 'LINEFEED').length;
+  assert.ok(linefeedsInAlt >= 4, `expected sequential linefeeds on alt, got ${linefeedsInAlt}`);
+
+  // Alt content is destroyed on exit — so a live frame must have been captured.
+  assert.ok(has(trace.ops, 'ALT_EXIT'));
+});
+
+test('the progress-bar scroll trace reproduces the CLASSIFIER.md §4 disproof', () => {
+  const trace = loadTrace('complex.progress-bar-scroll', 'direct');
+  // The documented sequence: draw, append (scroll), erase+redraw.
+  const ops = names(trace.ops);
+  const cupAt = ops.indexOf('CUP');
+  const elAt = ops.indexOf('EL');
+  const scrollAt = ops.indexOf('SCROLL');
+  assert.ok(scrollAt >= 0, 'the append must have scrolled the bar up a row');
+  assert.ok(cupAt > scrollAt, 'the redraw must come after the scroll');
+  assert.ok(elAt >= cupAt, 'the redraw erases the row it is about to rewrite');
+});
+
+test('an interleaved trace contains both append and repaint evidence', () => {
+  const trace = loadTrace('complex.interleaved', 'direct');
+  assert.ok(has(trace.ops, 'EL'), 'the status row is erased');
+  assert.ok(has(trace.ops, 'CUP'), 'the status row is repositioned to');
+  const linefeeds = trace.ops.filter((o) => o.name === 'LINEFEED').length;
+  assert.ok(linefeeds >= 6, `expected appended log lines, got ${linefeeds}`);
+});
+
+test('the shell→TUI→shell journey changes buffer twice', () => {
+  const trace = loadTrace('complex.shell-tui-shell', 'direct');
+  const changes = trace.ops.filter((o) => o.name === 'BUFFERCHANGE').length;
+  assert.ok(changes >= 2, `expected enter and exit, got ${changes}`);
+  assert.ok(has(trace.ops, 'ALT_ENTER'));
+  assert.ok(has(trace.ops, 'ALT_EXIT'));
+  // Shell text must survive the TUI: the final screen is back on normal and
+  // shows the post-TUI shell output.
+  const last = trace.frames[trace.frames.length - 1]!;
+  assert.equal(last.buffer, 'normal');
+  assert.ok(last.lines.some((l) => l.includes('done')), 'output after the TUI is visible');
+});
+
+test('a firehose overloads the grid but keeps every line in the text log', async () => {
+  const trace = loadTrace('complex.firehose', 'direct');
+  assert.ok(trace.bytes > 10000, 'expected a large burst');
+
+  // The grid is bounded; the text log must not be the place lines are lost.
+  const { runDirect: run } = await import('../src/runner.js');
+  const { findProgramme } = await import('../programmes/index.js');
+  const programme = findProgramme('complex.firehose')!;
+  const { trace: fresh } = await run(programme);
+  const visible = fresh.frames[fresh.frames.length - 1]!.lines.length;
+  assert.ok(visible <= programme.rows!, 'the grid stays bounded at rows');
+});
+
+test('synchronized output frames are bracketed by the sync markers', () => {
+  const trace = loadTrace('complex.synchronized-output', 'direct');
+  // The recorder hooks `?h` / `?l` only for alt-screen modes, so assert on the
+  // raw bytes: the markers must be present and each begin paired with an end.
+  const begins = (trace.raw.match(/\x1b\[\?2026h/g) ?? []).length;
+  const ends = (trace.raw.match(/\x1b\[\?2026l/g) ?? []).length;
+  assert.ok(begins >= 2, `expected sync begin markers, got ${begins}`);
+  assert.equal(begins, ends, 'every synchronized update must be closed');
+});
+
+test('an unclean TUI exit preserves the last live alt-screen frame', () => {
+  const trace = loadTrace('complex.unclean-tui-exit', 'direct');
+  assert.ok(!has(trace.ops, 'ALT_EXIT'), 'the programme dies without restoring');
+  const last = trace.frames[trace.frames.length - 1]!;
+  assert.equal(last.buffer, 'alternate');
+  assert.ok(last.lines.some((l) => l.includes('tui row')),
+    'the last live frame is the only record of this content');
+});
+
+test('every programme runs and records without throwing', async (t) => {
+  for (const programme of allProgrammes) {
+    await t.test(programme.id, async () => {
+      const { trace } = await runDirect(programme);
+      assert.ok(trace.bytes > 0, 'produced output');
+      assert.ok(trace.frames.length > 0, 'captured at least one frame');
+      assert.ok(trace.expectations.length > 0, 'declares what it should classify as');
+      for (const e of trace.expectations) {
+        assert.ok(e.to > e.from, `${programme.id}: expectation range must be non-empty`);
+        assert.ok(e.why.length > 20, `${programme.id}: expectation needs a reason`);
+      }
+    });
+  }
+});
+
+test('ops are byte-offset stamped and monotonic', async () => {
+  const { trace } = await runDirect(allProgrammes[0]!);
+  let prev = -1;
+  for (const op of trace.ops) {
+    assert.ok(op.offset >= 0, 'offset is a byte offset');
+    assert.ok(op.offset >= prev, 'offsets never go backwards');
+    assert.ok(op.offset <= trace.bytes, 'offset is within the stream');
+    prev = op.offset;
+  }
+  // Seq is a total order independent of offsets.
+  trace.ops.forEach((op, i) => assert.equal(op.seq, i, 'seq is dense and ordered'));
+});

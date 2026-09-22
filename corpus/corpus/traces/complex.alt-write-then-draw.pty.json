@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "id": "complex.alt-write-then-draw",
+  "category": "complex",
+  "summary": "Sequential append on the alt screen, then a repaint on the same screen.",
+  "feed": "pty",
+  "cols": 50,
+  "rows": 6,
+  "platform": "win32",
+  "recordedAt": "2026-09-22T05:27:27.843Z",
+  "expectations": [
+    {
+      "from": 0,
+      "to": 0,
+      "kind": "writing",
+      "why": "sequential append on the alt screen — the §3.4 counterexample; writing despite the alt screen"
+    },
+    {
+      "from": 0,
+      "to": 0,
+      "kind": "drawing",
+      "why": "still on the alt screen, but now erasing and rewriting a row; the alt-screen prior is overridden by positive evidence in the same segment"
+    }
+  ],
+  "ops": [],
+  "frames": [
+    {
+      "index": 0,
+      "label": "end",
+      "at": 16,
+      "cursorY": 0,
+      "cursorX": 0,
+      "buffer": "normal",
+      "viewportY": 0,
+      "lines": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    }
+  ],
+  "textLog": [],
+  "bytes": 16,
+  "raw": "\u001b[?9001h\u001b[?1004h"
+}

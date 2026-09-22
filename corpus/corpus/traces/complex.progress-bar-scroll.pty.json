@@ -1,0 +1,189 @@
+{
+  "version": 1,
+  "id": "complex.progress-bar-scroll",
+  "category": "complex",
+  "summary": "Draw bar, append a line, redraw bar — the trace that disproved spatial bands.",
+  "feed": "pty",
+  "cols": 40,
+  "rows": 5,
+  "platform": "win32",
+  "recordedAt": "2026-09-22T05:27:26.586Z",
+  "expectations": [
+    {
+      "from": 0,
+      "to": 0,
+      "kind": "writing",
+      "why": "three initial log lines"
+    },
+    {
+      "from": 0,
+      "to": 0,
+      "kind": "writing",
+      "why": "the first bar is a new line"
+    },
+    {
+      "from": 0,
+      "to": 0,
+      "kind": "writing",
+      "why": "log5 appends and scrolls the bar up"
+    },
+    {
+      "from": 0,
+      "to": 0,
+      "kind": "drawing",
+      "why": "erase + redraw of the bar row. The old bar and the new bar sit at different rows with a log line between them, so no spatial clustering links them — only the op stream does (CLASSIFIER.md §4)"
+    }
+  ],
+  "ops": [
+    {
+      "seq": 0,
+      "kind": "csi",
+      "name": "ED",
+      "final": "J",
+      "params": [
+        2
+      ],
+      "offset": 113,
+      "cursorY": 0,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 1,
+      "kind": "csi",
+      "name": "SGR",
+      "final": "m",
+      "params": [
+        0
+      ],
+      "offset": 113,
+      "cursorY": 0,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 2,
+      "kind": "csi",
+      "name": "CUP",
+      "final": "H",
+      "params": [
+        0
+      ],
+      "offset": 113,
+      "cursorY": 0,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 3,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 113,
+      "cursorY": 1,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 4,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 113,
+      "cursorY": 2,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 5,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 113,
+      "cursorY": 3,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 6,
+      "kind": "event",
+      "name": "TITLECHANGE",
+      "final": "",
+      "params": [],
+      "offset": 113,
+      "cursorY": 3,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 7,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 127,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 8,
+      "kind": "event",
+      "name": "SCROLL",
+      "final": "",
+      "params": [],
+      "offset": 133,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 9,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 133,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 10,
+      "kind": "csi",
+      "name": "EL",
+      "final": "K",
+      "params": [
+        0
+      ],
+      "offset": 148,
+      "cursorY": 4,
+      "cursorX": 12,
+      "buffer": "normal"
+    }
+  ],
+  "frames": [
+    {
+      "index": 0,
+      "label": "end",
+      "at": 148,
+      "cursorY": 4,
+      "cursorX": 12,
+      "buffer": "normal",
+      "viewportY": 1,
+      "lines": [
+        "log1",
+        "log2",
+        "log3",
+        "[#####-----]",
+        "log5"
+      ]
+    }
+  ],
+  "textLog": [],
+  "bytes": 148,
+  "raw": "\u001b[?9001h\u001b[?1004h\u001b[?25l\u001b[2J\u001b[m\u001b[Hlog1\r\nlog2\r\nlog3\r\n\u001b]0;C:\\Users\\finnywxu\\AppData\\Local\\hermes\\node\\node.exe\u0007\u001b[?25h[#####-----]\r\nlog5\r\n[##########]\u001b[K"
+}
