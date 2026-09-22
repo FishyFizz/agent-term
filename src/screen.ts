@@ -17,6 +17,7 @@
  *    screen, so capturing it while live is mandatory, not optional.
  */
 import { createTerminal, type XtermTerminal } from './xterm.js';
+import { EditRecord, type Op } from './edit-record.js';
 
 /** One row of the screen, as text. */
 export type ScreenRow = string;
@@ -47,6 +48,8 @@ export interface ScreenSnapshot {
  */
 export class ScreenModel {
   readonly terminal: XtermTerminal;
+  /** The op stream: control operations, in order, with byte offsets. */
+  readonly ops: EditRecord;
 
   private _cols: number;
   private _rows: number;
@@ -55,6 +58,8 @@ export class ScreenModel {
     this._cols = cols;
     this._rows = rows;
     this.terminal = createTerminal({ cols, rows });
+    // Installed immediately so no bytes can reach the parser unobserved.
+    this.ops = new EditRecord(this.terminal);
   }
 
   get cols(): number {
@@ -69,11 +74,15 @@ export class ScreenModel {
    * Feed raw pty bytes to the emulator.
    *
    * Resolves once the emulator has parsed them, which is the only point at
-   * which `snapshot()` reflects this input.
+   * which `snapshot()` and `ops` reflect this input.
    */
   feed(data: Buffer | string): Promise<void> {
+    const bytes = typeof data === 'string' ? Buffer.from(data, 'utf8') : data;
+    // Counted before the write: handlers run during it, and by then the
+    // offset must already include the bytes that produced them.
+    this.ops.noteBytes(bytes.length);
     return new Promise((resolve) => {
-      this.terminal.write(typeof data === 'string' ? data : new Uint8Array(data), () => resolve());
+      this.terminal.write(new Uint8Array(bytes), () => resolve());
     });
   }
 
@@ -118,6 +127,9 @@ export class ScreenModel {
   }
 
   dispose(): void {
+    this.ops.dispose();
     this.terminal.dispose();
   }
 }
+
+export type { Op };
