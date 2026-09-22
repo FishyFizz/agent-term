@@ -1,0 +1,246 @@
+{
+  "version": 1,
+  "id": "complex.alt-write-then-draw",
+  "category": "complex",
+  "summary": "Sequential append on the alt screen, then a repaint on the same screen.",
+  "feed": "direct",
+  "cols": 50,
+  "rows": 6,
+  "platform": "win32",
+  "recordedAt": "2026-09-22T05:28:25.720Z",
+  "expectations": [
+    {
+      "from": 11,
+      "to": 35,
+      "kind": "writing",
+      "why": "sequential append on the alt screen — the §3.4 counterexample; writing despite the alt screen"
+    },
+    {
+      "from": 35,
+      "to": 92,
+      "kind": "drawing",
+      "why": "still on the alt screen, but now erasing and rewriting a row; the alt-screen prior is overridden by positive evidence in the same segment"
+    }
+  ],
+  "ops": [
+    {
+      "seq": 0,
+      "kind": "mode",
+      "name": "ALT_ENTER",
+      "final": "h",
+      "params": [
+        1049
+      ],
+      "offset": 32,
+      "cursorY": 0,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 1,
+      "kind": "event",
+      "name": "SCROLL",
+      "final": "",
+      "params": [],
+      "offset": 32,
+      "cursorY": 0,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 2,
+      "kind": "event",
+      "name": "BUFFERCHANGE",
+      "final": "",
+      "params": [],
+      "offset": 32,
+      "cursorY": 0,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 3,
+      "kind": "csi",
+      "name": "CUP",
+      "final": "H",
+      "params": [
+        0
+      ],
+      "offset": 32,
+      "cursorY": 0,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 4,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 32,
+      "cursorY": 1,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 5,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 32,
+      "cursorY": 2,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 6,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 64,
+      "cursorY": 3,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 7,
+      "kind": "csi",
+      "name": "CUP",
+      "final": "H",
+      "params": [
+        3,
+        1
+      ],
+      "offset": 64,
+      "cursorY": 3,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 8,
+      "kind": "csi",
+      "name": "EL",
+      "final": "K",
+      "params": [
+        2
+      ],
+      "offset": 64,
+      "cursorY": 2,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 9,
+      "kind": "csi",
+      "name": "CUP",
+      "final": "H",
+      "params": [
+        3,
+        1
+      ],
+      "offset": 64,
+      "cursorY": 2,
+      "cursorX": 9,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 10,
+      "kind": "csi",
+      "name": "EL",
+      "final": "K",
+      "params": [
+        2
+      ],
+      "offset": 64,
+      "cursorY": 2,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 11,
+      "kind": "csi",
+      "name": "CUP",
+      "final": "H",
+      "params": [
+        3,
+        1
+      ],
+      "offset": 96,
+      "cursorY": 2,
+      "cursorX": 9,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 12,
+      "kind": "csi",
+      "name": "EL",
+      "final": "K",
+      "params": [
+        2
+      ],
+      "offset": 96,
+      "cursorY": 2,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 13,
+      "kind": "mode",
+      "name": "ALT_EXIT",
+      "final": "l",
+      "params": [
+        1049
+      ],
+      "offset": 100,
+      "cursorY": 2,
+      "cursorX": 9,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 14,
+      "kind": "event",
+      "name": "SCROLL",
+      "final": "",
+      "params": [],
+      "offset": 100,
+      "cursorY": 2,
+      "cursorX": 9,
+      "buffer": "normal"
+    },
+    {
+      "seq": 15,
+      "kind": "event",
+      "name": "BUFFERCHANGE",
+      "final": "",
+      "params": [],
+      "offset": 100,
+      "cursorY": 2,
+      "cursorX": 9,
+      "buffer": "normal"
+    }
+  ],
+  "frames": [
+    {
+      "index": 0,
+      "label": "end",
+      "at": 100,
+      "cursorY": 0,
+      "cursorX": 0,
+      "buffer": "normal",
+      "viewportY": 0,
+      "lines": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    }
+  ],
+  "textLog": [],
+  "bytes": 100,
+  "raw": "\u001b[?1049h\u001b[Hboot 1\r\nboot 2\r\nboot 3\r\n\u001b[3;1H\u001b[2Kstatus: 1\u001b[3;1H\u001b[2Kstatus: 2\u001b[3;1H\u001b[2Kstatus: 3\u001b[?1049l"
+}

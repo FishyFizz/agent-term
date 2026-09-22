@@ -1,0 +1,438 @@
+{
+  "version": 1,
+  "id": "basic.scroll-write",
+  "category": "basic",
+  "summary": "Appends more lines than the screen holds — writing that scrolls.",
+  "feed": "direct",
+  "cols": 80,
+  "rows": 5,
+  "platform": "win32",
+  "recordedAt": "2026-09-22T05:28:02.560Z",
+  "expectations": [
+    {
+      "from": 0,
+      "to": 782,
+      "kind": "writing",
+      "why": "every row changes, but only because of scroll; normalized against the scroll event it is N new lines at the bottom (CLASSIFIER.md §3.3)"
+    }
+  ],
+  "ops": [
+    {
+      "seq": 0,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 64,
+      "cursorY": 1,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 1,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 96,
+      "cursorY": 2,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 2,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 128,
+      "cursorY": 3,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 3,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 160,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 4,
+      "kind": "event",
+      "name": "SCROLL",
+      "final": "",
+      "params": [],
+      "offset": 192,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 5,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 192,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 6,
+      "kind": "event",
+      "name": "SCROLL",
+      "final": "",
+      "params": [],
+      "offset": 256,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 7,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 256,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 8,
+      "kind": "event",
+      "name": "SCROLL",
+      "final": "",
+      "params": [],
+      "offset": 288,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 9,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 288,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 10,
+      "kind": "event",
+      "name": "SCROLL",
+      "final": "",
+      "params": [],
+      "offset": 320,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 11,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 320,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 12,
+      "kind": "event",
+      "name": "SCROLL",
+      "final": "",
+      "params": [],
+      "offset": 352,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 13,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 352,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 14,
+      "kind": "event",
+      "name": "SCROLL",
+      "final": "",
+      "params": [],
+      "offset": 384,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 15,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 384,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 16,
+      "kind": "event",
+      "name": "SCROLL",
+      "final": "",
+      "params": [],
+      "offset": 448,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 17,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 448,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 18,
+      "kind": "event",
+      "name": "SCROLL",
+      "final": "",
+      "params": [],
+      "offset": 480,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 19,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 480,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 20,
+      "kind": "event",
+      "name": "SCROLL",
+      "final": "",
+      "params": [],
+      "offset": 512,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 21,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 512,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 22,
+      "kind": "event",
+      "name": "SCROLL",
+      "final": "",
+      "params": [],
+      "offset": 544,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 23,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 544,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 24,
+      "kind": "event",
+      "name": "SCROLL",
+      "final": "",
+      "params": [],
+      "offset": 608,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 25,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 608,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 26,
+      "kind": "event",
+      "name": "SCROLL",
+      "final": "",
+      "params": [],
+      "offset": 640,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 27,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 640,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 28,
+      "kind": "event",
+      "name": "SCROLL",
+      "final": "",
+      "params": [],
+      "offset": 672,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 29,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 672,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 30,
+      "kind": "event",
+      "name": "SCROLL",
+      "final": "",
+      "params": [],
+      "offset": 704,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 31,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 704,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 32,
+      "kind": "event",
+      "name": "SCROLL",
+      "final": "",
+      "params": [],
+      "offset": 768,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 33,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 768,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 34,
+      "kind": "event",
+      "name": "SCROLL",
+      "final": "",
+      "params": [],
+      "offset": 782,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 35,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 782,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    }
+  ],
+  "frames": [
+    {
+      "index": 0,
+      "label": "end",
+      "at": 782,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal",
+      "viewportY": 16,
+      "lines": [
+        "build step 1: compiling module_1.cpp",
+        "build step 2: compiling module_2.cpp",
+        "build step 3: compiling module_3.cpp",
+        "build step 4: compiling module_4.cpp",
+        "build step 5: compiling module_5.cpp"
+      ]
+    }
+  ],
+  "textLog": [],
+  "bytes": 782,
+  "raw": "build step 1: compiling module_1.cpp\r\nbuild step 2: compiling module_2.cpp\r\nbuild step 3: compiling module_3.cpp\r\nbuild step 4: compiling module_4.cpp\r\nbuild step 5: compiling module_5.cpp\r\nbuild step 6: compiling module_6.cpp\r\nbuild step 7: compiling module_7.cpp\r\nbuild step 8: compiling module_8.cpp\r\nbuild step 9: compiling module_9.cpp\r\nbuild step 10: compiling module_10.cpp\r\nbuild step 11: compiling module_11.cpp\r\nbuild step 12: compiling module_12.cpp\r\nbuild step 13: compiling module_13.cpp\r\nbuild step 14: compiling module_14.cpp\r\nbuild step 15: compiling module_15.cpp\r\nbuild step 16: compiling module_16.cpp\r\nbuild step 17: compiling module_17.cpp\r\nbuild step 18: compiling module_18.cpp\r\nbuild step 19: compiling module_19.cpp\r\nbuild step 20: compiling module_20.cpp\r\n"
+}

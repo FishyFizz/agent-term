@@ -1,0 +1,100 @@
+{
+  "version": 1,
+  "id": "basic.plain-write",
+  "category": "basic",
+  "summary": "Appends lines with no control operations — pure writing.",
+  "feed": "direct",
+  "cols": 80,
+  "rows": 8,
+  "platform": "win32",
+  "recordedAt": "2026-09-22T05:28:01.892Z",
+  "expectations": [
+    {
+      "from": 0,
+      "to": 40,
+      "kind": "writing",
+      "why": "text + linefeed only; cursor advances monotonically; nothing erased"
+    }
+  ],
+  "ops": [
+    {
+      "seq": 0,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 32,
+      "cursorY": 1,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 1,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 32,
+      "cursorY": 2,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 2,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 32,
+      "cursorY": 3,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 3,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 32,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 4,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 40,
+      "cursorY": 5,
+      "cursorX": 0,
+      "buffer": "normal"
+    }
+  ],
+  "frames": [
+    {
+      "index": 0,
+      "label": "end",
+      "at": 40,
+      "cursorY": 5,
+      "cursorX": 0,
+      "buffer": "normal",
+      "viewportY": 0,
+      "lines": [
+        "line 1",
+        "line 2",
+        "line 3",
+        "line 4",
+        "line 5",
+        "",
+        "",
+        ""
+      ]
+    }
+  ],
+  "textLog": [],
+  "bytes": 40,
+  "raw": "line 1\r\nline 2\r\nline 3\r\nline 4\r\nline 5\r\n"
+}

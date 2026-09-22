@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "id": "basic.in-place-repaint",
+  "category": "basic",
+  "summary": "Repositions the cursor, erases a row, and rewrites it — drawing.",
+  "feed": "direct",
+  "cols": 80,
+  "rows": 6,
+  "platform": "win32",
+  "recordedAt": "2026-09-22T05:28:02.607Z",
+  "expectations": [
+    {
+      "from": 0,
+      "to": 20,
+      "kind": "writing",
+      "why": "three plain lines appended"
+    },
+    {
+      "from": 20,
+      "to": 46,
+      "kind": "drawing",
+      "why": "CUP + EL reaches back above the cursor and erases non-blank cells"
+    }
+  ],
+  "ops": [
+    {
+      "seq": 0,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 32,
+      "cursorY": 1,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 1,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 32,
+      "cursorY": 2,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 2,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 32,
+      "cursorY": 3,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 3,
+      "kind": "csi",
+      "name": "CUP",
+      "final": "H",
+      "params": [
+        2,
+        1
+      ],
+      "offset": 32,
+      "cursorY": 3,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 4,
+      "kind": "csi",
+      "name": "EL",
+      "final": "K",
+      "params": [
+        2
+      ],
+      "offset": 32,
+      "cursorY": 1,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 5,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 46,
+      "cursorY": 2,
+      "cursorX": 0,
+      "buffer": "normal"
+    }
+  ],
+  "frames": [
+    {
+      "index": 0,
+      "label": "end",
+      "at": 46,
+      "cursorY": 2,
+      "cursorX": 0,
+      "buffer": "normal",
+      "viewportY": 0,
+      "lines": [
+        "alpha",
+        "BETA-REWRITTEN",
+        "gamma",
+        "",
+        "",
+        ""
+      ]
+    }
+  ],
+  "textLog": [],
+  "bytes": 46,
+  "raw": "alpha\r\nbeta\r\ngamma\r\n\u001b[2;1H\u001b[2KBETA-REWRITTEN\r\n"
+}

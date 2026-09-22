@@ -1,0 +1,418 @@
+{
+  "version": 1,
+  "id": "complex.shell-tui-shell",
+  "category": "complex",
+  "summary": "Shell output, then a full-screen TUI on the alt screen, then back to shell output.",
+  "feed": "direct",
+  "cols": 60,
+  "rows": 8,
+  "platform": "win32",
+  "recordedAt": "2026-09-22T05:28:06.076Z",
+  "expectations": [
+    {
+      "from": 0,
+      "to": 60,
+      "kind": "writing",
+      "why": "shell output before the TUI"
+    },
+    {
+      "from": 60,
+      "to": 280,
+      "kind": "drawing",
+      "why": "a full-screen TUI on the alt screen; its content is destroyed on exit, so capture while live is mandatory (L0.3)"
+    },
+    {
+      "from": 288,
+      "to": 307,
+      "kind": "writing",
+      "why": "shell output resumes after the TUI exits"
+    }
+  ],
+  "ops": [
+    {
+      "seq": 0,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 32,
+      "cursorY": 1,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 1,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 64,
+      "cursorY": 2,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 2,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 64,
+      "cursorY": 3,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 3,
+      "kind": "mode",
+      "name": "ALT_ENTER",
+      "final": "h",
+      "params": [
+        1049
+      ],
+      "offset": 96,
+      "cursorY": 3,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 4,
+      "kind": "event",
+      "name": "SCROLL",
+      "final": "",
+      "params": [],
+      "offset": 96,
+      "cursorY": 3,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 5,
+      "kind": "event",
+      "name": "BUFFERCHANGE",
+      "final": "",
+      "params": [],
+      "offset": 96,
+      "cursorY": 3,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 6,
+      "kind": "csi",
+      "name": "CUP",
+      "final": "H",
+      "params": [
+        0
+      ],
+      "offset": 96,
+      "cursorY": 3,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 7,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 96,
+      "cursorY": 1,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 8,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 128,
+      "cursorY": 2,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 9,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 128,
+      "cursorY": 3,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 10,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 160,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 11,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 160,
+      "cursorY": 5,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 12,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 192,
+      "cursorY": 6,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 13,
+      "kind": "csi",
+      "name": "CUP",
+      "final": "H",
+      "params": [
+        0
+      ],
+      "offset": 192,
+      "cursorY": 6,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 14,
+      "kind": "csi",
+      "name": "EL",
+      "final": "K",
+      "params": [
+        2
+      ],
+      "offset": 192,
+      "cursorY": 0,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 15,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 192,
+      "cursorY": 1,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 16,
+      "kind": "csi",
+      "name": "EL",
+      "final": "K",
+      "params": [
+        2
+      ],
+      "offset": 192,
+      "cursorY": 1,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 17,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 224,
+      "cursorY": 2,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 18,
+      "kind": "csi",
+      "name": "EL",
+      "final": "K",
+      "params": [
+        2
+      ],
+      "offset": 224,
+      "cursorY": 2,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 19,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 224,
+      "cursorY": 3,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 20,
+      "kind": "csi",
+      "name": "EL",
+      "final": "K",
+      "params": [
+        2
+      ],
+      "offset": 256,
+      "cursorY": 3,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 21,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 256,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 22,
+      "kind": "csi",
+      "name": "EL",
+      "final": "K",
+      "params": [
+        2
+      ],
+      "offset": 256,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 23,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 288,
+      "cursorY": 5,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 24,
+      "kind": "csi",
+      "name": "EL",
+      "final": "K",
+      "params": [
+        2
+      ],
+      "offset": 288,
+      "cursorY": 5,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 25,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 288,
+      "cursorY": 6,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 26,
+      "kind": "mode",
+      "name": "ALT_EXIT",
+      "final": "l",
+      "params": [
+        1049
+      ],
+      "offset": 288,
+      "cursorY": 6,
+      "cursorX": 0,
+      "buffer": "alternate"
+    },
+    {
+      "seq": 27,
+      "kind": "event",
+      "name": "SCROLL",
+      "final": "",
+      "params": [],
+      "offset": 288,
+      "cursorY": 6,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 28,
+      "kind": "event",
+      "name": "BUFFERCHANGE",
+      "final": "",
+      "params": [],
+      "offset": 288,
+      "cursorY": 6,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 29,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 307,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 30,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 307,
+      "cursorY": 5,
+      "cursorX": 0,
+      "buffer": "normal"
+    }
+  ],
+  "frames": [
+    {
+      "index": 0,
+      "label": "end",
+      "at": 307,
+      "cursorY": 5,
+      "cursorX": 0,
+      "buffer": "normal",
+      "viewportY": 0,
+      "lines": [
+        "$ git log --oneline",
+        "a1b2c3d fix parser",
+        "d4e5f6g add tests",
+        "$ echo done",
+        "done",
+        "",
+        "",
+        ""
+      ]
+    }
+  ],
+  "textLog": [],
+  "bytes": 307,
+  "raw": "$ git log --oneline\r\na1b2c3d fix parser\r\nd4e5f6g add tests\r\n\u001b[?1049h\u001b[Hcommit line 0\r\ncommit line 1\r\ncommit line 2\r\ncommit line 3\r\ncommit line 4\r\ncommit line 5\r\n\u001b[H\u001b[2Kcommit line 6\r\n\u001b[2Kcommit line 7\r\n\u001b[2Kcommit line 8\r\n\u001b[2Kcommit line 9\r\n\u001b[2Kcommit line 10\r\n\u001b[2Kcommit line 11\r\n\u001b[?1049l$ echo done\r\ndone\r\n"
+}

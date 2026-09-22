@@ -1,0 +1,284 @@
+{
+  "version": 1,
+  "id": "complex.interleaved",
+  "category": "complex",
+  "summary": "A log line and a repainted status bar interleaved in the same update, repeatedly.",
+  "feed": "direct",
+  "cols": 60,
+  "rows": 8,
+  "platform": "win32",
+  "recordedAt": "2026-09-22T05:28:06.449Z",
+  "expectations": [
+    {
+      "from": 0,
+      "to": 363,
+      "kind": "drawing",
+      "why": "contains both kinds: appending log lines and repainting the status row. \"Mixed\" is the structural fact that there are segments of both kinds in one update, not a third verdict (CLASSIFIER.md §2)"
+    }
+  ],
+  "ops": [
+    {
+      "seq": 0,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 32,
+      "cursorY": 1,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 1,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 64,
+      "cursorY": 2,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 2,
+      "kind": "csi",
+      "name": "CUP",
+      "final": "H",
+      "params": [
+        8,
+        1
+      ],
+      "offset": 64,
+      "cursorY": 2,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 3,
+      "kind": "csi",
+      "name": "EL",
+      "final": "K",
+      "params": [
+        2
+      ],
+      "offset": 64,
+      "cursorY": 7,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 4,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 96,
+      "cursorY": 3,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 5,
+      "kind": "csi",
+      "name": "CUP",
+      "final": "H",
+      "params": [
+        8,
+        1
+      ],
+      "offset": 128,
+      "cursorY": 3,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 6,
+      "kind": "csi",
+      "name": "EL",
+      "final": "K",
+      "params": [
+        2
+      ],
+      "offset": 128,
+      "cursorY": 7,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 7,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 160,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 8,
+      "kind": "csi",
+      "name": "CUP",
+      "final": "H",
+      "params": [
+        8,
+        1
+      ],
+      "offset": 192,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 9,
+      "kind": "csi",
+      "name": "EL",
+      "final": "K",
+      "params": [
+        2
+      ],
+      "offset": 192,
+      "cursorY": 7,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 10,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 224,
+      "cursorY": 5,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 11,
+      "kind": "csi",
+      "name": "CUP",
+      "final": "H",
+      "params": [
+        8,
+        1
+      ],
+      "offset": 224,
+      "cursorY": 5,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 12,
+      "kind": "csi",
+      "name": "EL",
+      "final": "K",
+      "params": [
+        2
+      ],
+      "offset": 224,
+      "cursorY": 7,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 13,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 288,
+      "cursorY": 6,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 14,
+      "kind": "csi",
+      "name": "CUP",
+      "final": "H",
+      "params": [
+        8,
+        1
+      ],
+      "offset": 288,
+      "cursorY": 6,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 15,
+      "kind": "csi",
+      "name": "EL",
+      "final": "K",
+      "params": [
+        2
+      ],
+      "offset": 288,
+      "cursorY": 7,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 16,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 352,
+      "cursorY": 7,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 17,
+      "kind": "csi",
+      "name": "CUP",
+      "final": "H",
+      "params": [
+        8,
+        1
+      ],
+      "offset": 352,
+      "cursorY": 7,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 18,
+      "kind": "csi",
+      "name": "EL",
+      "final": "K",
+      "params": [
+        2
+      ],
+      "offset": 352,
+      "cursorY": 7,
+      "cursorX": 0,
+      "buffer": "normal"
+    }
+  ],
+  "frames": [
+    {
+      "index": 0,
+      "label": "end",
+      "at": 363,
+      "cursorY": 7,
+      "cursorX": 0,
+      "buffer": "normal",
+      "viewportY": 0,
+      "lines": [
+        "deploying...",
+        "  uploaded shard 1/6",
+        "  uploaded shard 2/6",
+        "  uploaded shard 3/6",
+        "  uploaded shard 4/6",
+        "  uploaded shard 5/6",
+        "  uploaded shard 6/6",
+        "status: 100% complete"
+      ]
+    }
+  ],
+  "textLog": [],
+  "bytes": 363,
+  "raw": "deploying...\r\n  uploaded shard 1/6\r\n\u001b[s\u001b[8;1H\u001b[2Kstatus: 17% complete\u001b[u  uploaded shard 2/6\r\n\u001b[s\u001b[8;1H\u001b[2Kstatus: 33% complete\u001b[u  uploaded shard 3/6\r\n\u001b[s\u001b[8;1H\u001b[2Kstatus: 50% complete\u001b[u  uploaded shard 4/6\r\n\u001b[s\u001b[8;1H\u001b[2Kstatus: 67% complete\u001b[u  uploaded shard 5/6\r\n\u001b[s\u001b[8;1H\u001b[2Kstatus: 83% complete\u001b[u  uploaded shard 6/6\r\n\u001b[s\u001b[8;1H\u001b[2Kstatus: 100% complete\u001b[u"
+}

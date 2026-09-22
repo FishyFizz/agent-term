@@ -1,0 +1,153 @@
+{
+  "version": 1,
+  "id": "complex.progress-bar-scroll",
+  "category": "complex",
+  "summary": "Draw bar, append a line, redraw bar — the trace that disproved spatial bands.",
+  "feed": "direct",
+  "cols": 40,
+  "rows": 5,
+  "platform": "win32",
+  "recordedAt": "2026-09-22T05:28:25.363Z",
+  "expectations": [
+    {
+      "from": 0,
+      "to": 18,
+      "kind": "writing",
+      "why": "three initial log lines"
+    },
+    {
+      "from": 18,
+      "to": 32,
+      "kind": "writing",
+      "why": "the first bar is a new line"
+    },
+    {
+      "from": 32,
+      "to": 38,
+      "kind": "writing",
+      "why": "log5 appends and scrolls the bar up"
+    },
+    {
+      "from": 38,
+      "to": 60,
+      "kind": "drawing",
+      "why": "erase + redraw of the bar row. The old bar and the new bar sit at different rows with a log line between them, so no spatial clustering links them — only the op stream does (CLASSIFIER.md §4)"
+    }
+  ],
+  "ops": [
+    {
+      "seq": 0,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 32,
+      "cursorY": 1,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 1,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 32,
+      "cursorY": 2,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 2,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 32,
+      "cursorY": 3,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 3,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 32,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 4,
+      "kind": "event",
+      "name": "SCROLL",
+      "final": "",
+      "params": [],
+      "offset": 60,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 5,
+      "kind": "event",
+      "name": "LINEFEED",
+      "final": "",
+      "params": [],
+      "offset": 60,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 6,
+      "kind": "csi",
+      "name": "CUP",
+      "final": "H",
+      "params": [
+        5,
+        1
+      ],
+      "offset": 60,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    },
+    {
+      "seq": 7,
+      "kind": "csi",
+      "name": "EL",
+      "final": "K",
+      "params": [
+        2
+      ],
+      "offset": 60,
+      "cursorY": 4,
+      "cursorX": 0,
+      "buffer": "normal"
+    }
+  ],
+  "frames": [
+    {
+      "index": 0,
+      "label": "end",
+      "at": 60,
+      "cursorY": 4,
+      "cursorX": 12,
+      "buffer": "normal",
+      "viewportY": 1,
+      "lines": [
+        "log1",
+        "log2",
+        "log3",
+        "[#####-----]",
+        "log5"
+      ]
+    }
+  ],
+  "textLog": [],
+  "bytes": 60,
+  "raw": "log1\r\nlog2\r\nlog3\r\n[#####-----]\r\nlog5\r\n\u001b[5;1H\u001b[2K[##########]"
+}
