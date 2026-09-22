@@ -160,11 +160,20 @@ async function main(): Promise<void> {
   check('session b did not receive it', !bSeen().includes('ONLY-A'));
   check('distinct ids', a.id !== b.id);
 
+  // End the shell explicitly before disposing. `dispose()` alone only
+  // releases listeners, and `kill()` on Windows forks a ConPTY helper that
+  // can outlive us and hold the stdio pipe open -- the process then never
+  // exits even though every check passed.
+  a.kill();
+  b.kill();
   registry.disposeAll();
   check('disposeAll empties registry', registry.size() === 0);
 
   console.log(failures === 0 ? '\nALL CHECKS PASSED' : `\n${failures} CHECK(S) FAILED`);
-  process.exit(failures === 0 ? 0 : 1);
+  // Flush, then leave. Orphaned node-pty children can keep the event loop
+  // alive indefinitely on Windows; the result is already known.
+  process.stdout.write('', () => process.exit(failures === 0 ? 0 : 1));
+  setTimeout(() => process.exit(failures === 0 ? 0 : 1), 2000).unref();
 }
 
 main().catch((err) => {

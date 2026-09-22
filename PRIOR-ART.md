@@ -78,6 +78,24 @@ under load `vim` had not processed `G` by the time `o` arrived — nothing was i
 run failed with no useful diagnosis. A driver that cannot tell "done" from "haven't looked"
 silently succeeds at nothing.
 
+### Emulator facts verified here (not from their docs)
+
+Measured against `@xterm/headless` v6.0.0 in this repo, because two of them decide the
+classifier's design:
+
+- **The alt buffer has no scrollback.** `length` stays fixed at `rows` while the normal buffer
+  grows with its scrollback setting, and content written on alt is **destroyed on exit**
+  (`\x1b[?1049l` restores the normal buffer with its prior content intact).
+- **Writing on the alt screen is observationally identical to writing on the normal screen** —
+  `onLineFeed` fires, content scrolls, no control ops required. So alt-screen membership carries
+  no information about writing vs drawing.
+- **Control ops are observable in order, with cursor position at the time**, via
+  `parser.registerCsiHandler` / `registerEscHandler`. Printable text does not pass through those
+  handlers.
+- **`terminal.write()` is asynchronous** — the buffer does not reflect a write until its callback
+  runs.
+- **`buffer` is proposed API** and throws unless constructed with `allowProposedApi: true`.
+
 ### terminal-bench — the crude ancestor of the writing/drawing split
 
 `terminal_bench/terminal/tmux_session.py` implements `get_incremental_output()`: it captures
@@ -86,6 +104,14 @@ the whole pane, diffs against `_previous_buffer` via `_find_new_content()`, and 
 `Current Terminal Screen:\n<visible screen>`. That is our classification, done as a
 string-substring heuristic, with a silent fallback and no history. It confirms the split is
 the right abstraction and that nobody has implemented it properly yet.
+
+**Its heuristic is also the failure mode to avoid, and it fails for a structural reason.** The
+test is "is the new content a substring of the current pane" — i.e. a spatial diff of
+before/after. Once output scrolls, a diff of a redrawn surface against its previous state cannot
+recover *what the program did*: an appended line and a repainted status row are both just changed
+rows, and row position carries no identity across a scroll. See `CLASSIFIER.md` §4 for the
+reproduction. Any classifier that judges a before/after screen diff inherits this; ours segments
+on the program's own operations instead.
 
 ## What all three lack (our differentiation is intact)
 

@@ -67,6 +67,20 @@ A change may be **both** — a program can emit a line of text and repaint a sta
 same update. The model admits mixtures rather than forcing a binary choice. Where the
 classification is genuinely ambiguous, the server says so rather than choosing silently.
 
+The unit of classification is the **segment** — a run of activity bounded by the program's own
+control operations — not the update and not a region of the screen. An update carries one or
+more ordered segments, each `writing` or `drawing`; "mixed" is the structural fact that an update
+contains both. See `CLASSIFIER.md`.
+
+Two corollaries, both load-bearing for the layers above:
+
+- **The alt screen is not a verdict.** A program can write on it exactly as on the normal
+  screen; verified indistinguishable. It is a prior and a capture-urgency flag — alt-screen
+  content is destroyed on exit, so recording it while live is mandatory for L0.3.
+- **Classification gates delivery, and the two kinds collapse differently.** Writing deltas
+  concatenate; drawing states collapse to the latest. Hence coalescing cannot precede
+  classification.
+
 ### L0.2 — The screen is a structured model, never a byte stream
 
 A drawing is reported as a faithful cell grid — characters, attributes, cursor, alternate
@@ -274,9 +288,10 @@ All remaining open questions are L3 — implementation choices that cannot const
 2. **Retention and durability** — how much, how long, persisted across restarts or not (L3.4).
 3. **Human input handoff** — read-only only, or an explicit keyboard handoff, and how it is
    signalled (L3.3).
-4. **Ambiguity handling** — whether to send both representations, flag uncertainty, or ask,
-   when classification is genuinely uncertain (affects L0.1's interface; the *contract* that
-   the server must not silently guess is fixed).
+4. ~~**Ambiguity handling** — whether to send both representations, flag uncertainty, or ask,
+   when classification is genuinely uncertain.~~ **Answered in `CLASSIFIER.md` §3.5**: never ask,
+   never guess — emit `confidence: "low"` with evidence and send both representations. The
+   contract that the server must not silently guess is unchanged.
 5. **Safety floor** — what ships by default (L3.5).
 6. **Optional representations** — whether PNG/HTML ship at all, given the native-dependency
    cost (L2, L3.1).
