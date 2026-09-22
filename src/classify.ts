@@ -99,8 +99,14 @@ interface Frame {
 /**
  * Classify one update for a session.
  *
- * `before` is the screen as of `fromByte`; `screen` is the live model after
- * feeding the update. `ops` are the ops recorded during it.
+ * `before` is the screen as of `fromByte`; `after` is the live model once the
+ * update has been fed in. `ops` are the ops recorded during it.
+ *
+ * An op's `byteOffset` is the end of the delivery that carried it: the byte
+ * counter advances per feed, not per op. Two ops in one delivery therefore
+ * always share an offset, which means ops can be *counted* but never ordered
+ * or bounded against each other inside a delivery. Every segment below spans
+ * the whole delivery for that reason.
  */
 export function classify(params: {
   before: Frame;
@@ -111,110 +117,31 @@ export function classify(params: {
 }): ClassifiedUpdate {
   const { before, after, ops, fromByte, toByte } = params;
 
-  if (ops.length === 0) return appendOnly(before, after, fromByte, toByte);
+  // The screen's own account, with no op to interpret it: did the content
+  // land where an append would put it? Emitted first and spanning the whole
+  // delivery, so an op that agrees absorbs it rather than replacing it.
+  const segments: Segment[] = [inferSegment(before, after, fromByte, toByte)];
 
-  const raw: Segment[] = [];
-
-  // Op offsets are only as precise as the delivery that carried them: the byte
-  // counter advances per feed, so an op reports the offset at the *end* of its
-  // delivery. Two ops in one delivery therefore share an offset and cannot be
-  // ordered or bounded against each other.
-  //
-  // When that happens the ops still say what the program did -- reaching for
-  // CUP/EL is a repaint -- but they cannot say where one ends and the next
-  // begins. So: one segment per op, each spanning the whole delivery, and let
-  // the caller's coalescing merge the ones that agree. Spanning the whole
-  // delivery rather than a zero-width point is what keeps them from being
-  // discarded as noise.
-  const offsets = new Set(ops.map((o) => o.byteOffset));
-  const coarselyLocated = ops.length > 1 && offsets.size < ops.length;
-
-  if (coarselyLocated) {
-    for (const op of ops) {
-      // Buffer switches are timeline boundaries, emitted on their own so they
-      // neither swallow the repaint nor vanish into it. Other mode changes are
-      // evidence, not segments.
-      if (OP.isStructural(op.name) && !OP.isAltScreenSwitch(op)) continue;
-      raw.push(
-        buildSegment({
-          kind: OP.isAltScreenSwitch(op) ? 'writing' : OP.isDrawing(op.name) ? 'drawing' : 'writing',
-          before,
-          after,
-          op,
-          fromByte,
-          toByte,
-        }),
-      );
-    }
-    // When ops cannot be localized, the delivery is still usually mixed: text
-    // followed by a repaint. Emit the append first and the op's run second --
-    // the op sits at the end of the delivery, so anything before it was
-    // written rather than drawn. In the ambiguous case (no way to tell) both
-    // are reported and the caller sees the mixture; ordering the append first
-    // keeps the repaint from absorbing it during coalescing.
-    raw.unshift(appendOnly(before, after, fromByte, toByte).segments[0]!);
-    return { segments: coalesce(raw), fromByte, toByte };
-  }
-
-  // A segment is the run of activity that *starts* at an op and runs until
-  // the next one. Kind therefore comes from the op that opens it, not the one
-  // that closes it: `text \n CUP EL text` is an append followed by a repaint,
-  // and the CUP is what begins the repaint.
-  for (let i = 0; i < ops.length; i++) {
-    const op = ops[i]!;
-    const start = i === 0 ? fromByte : ops[i - 1]!.byteOffset;
-    const end = i === ops.length - 1 ? toByte : ops[i + 1]!.byteOffset;
-
-    // Mode changes are not repaints -- except a buffer switch, which is a
-    // timeline boundary even though it draws nothing. It is emitted *after*
-    // the append that preceded it and *before* any repaint it introduces, so
-    // merging cannot swallow either.
+  for (const op of ops) {
+    // Mode changes are evidence, not segments -- except a buffer switch,
+    // which is a timeline boundary even though it draws nothing (L0.3,
+    // GOAL.md criterion 3). It is neither drawing (it erased nothing) nor
+    // swallowed by the repaint that follows it.
     if (OP.isStructural(op.name) && !OP.isAltScreenSwitch(op)) continue;
-    if (OP.isAltScreenSwitch(op)) {
-      raw.push(
-        buildSegment({
-          kind: 'writing',
-          before,
-          after,
-          op,
-          fromByte: start,
-          toByte: Math.max(start, op.byteOffset),
-        }),
-      );
-      continue;
-    }
 
-    // Text before the first op, with no op opening it: an append.
-    //
-    // Only when offsets actually localize the op. When the byte counter is
-    // coarser than the ops, `start < op.byteOffset` is an artifact of the
-    // shared offset, and inferring a leading append from it produces a
-    // phantom segment that then absorbs the real evidence.
-    if (i === 0 && start < op.byteOffset && offsets.size === ops.length) {
-      raw.push(appendOnly(before, after, start, op.byteOffset).segments[0]!);
-    }
-
-    raw.push(
+    segments.push(
       buildSegment({
         kind: OP.isDrawing(op.name) ? 'drawing' : 'writing',
         before,
         after,
         op,
-        fromByte: op.byteOffset,
-        toByte: end,
+        fromByte,
+        toByte,
       }),
     );
   }
 
-  // Every update gets at least one segment. An update with no segments is a
-  // change the caller cannot see, and L0.1 says the server reports every
-  // change. This happens when the only ops were mode changes, which are
-  // evidence rather than segments of their own.
-  if (raw.length === 0) {
-    raw.push(appendOnly(before, after, fromByte, toByte).segments[0]!);
-  }
-
-  return { segments: coalesce(raw), fromByte, toByte };
+  return { segments: coalesce(segments), fromByte, toByte };
 }
 
 /**
@@ -231,21 +158,15 @@ function coalesce(segments: readonly Segment[]): Segment[] {
     const prev = out[out.length - 1];
     if (prev && prev.kind === seg.kind) {
       prev.toByte = Math.max(prev.toByte, seg.toByte);
-      // Keep the ops even when the range contributes nothing: a zero-width
-      // segment still records what the program did, and dropping it loses the
-      // evidence the verdict is supposed to carry (L0.1).
-    // Absorb into whichever side carries op evidence. An op-less segment is an
-    // inference from the screen; an op is the program stating what it did, and
-    // that is strictly better. Without this, the inference segment emitted
-    // first survives and the op evidence is lost.
-    if (prev.evidence.ops.length === 0 && seg.evidence.ops.length > 0) {
-      prev.evidence.ops.push(...seg.evidence.ops);
-    } else {
-      for (const name of seg.evidence.ops) {
-        if (!prev.evidence.ops.includes(name)) prev.evidence.ops.push(name);
-      }
-    }
-    prev.evidence.erased ||= seg.evidence.erased;
+      // An op-less segment is an inference from the screen; a segment carrying
+      // an op is the program stating what it did, which is strictly better
+      // evidence. Replace the inference's empty op list rather than appending
+      // to it, so the verdict is attributed to the op. Otherwise union, since
+      // a run of ops draws from more than one.
+      if (prev.evidence.ops.length === 0) prev.evidence.ops.push(...seg.evidence.ops);
+      else for (const name of seg.evidence.ops) if (!prev.evidence.ops.includes(name)) prev.evidence.ops.push(name);
+
+      prev.evidence.erased ||= seg.evidence.erased;
       prev.evidence.overwrote ||= seg.evidence.overwrote;
       prev.evidence.reachedBack ||= seg.evidence.reachedBack;
       prev.evidence.scrolledBy += seg.evidence.scrolledBy;
@@ -264,12 +185,14 @@ function coalesce(segments: readonly Segment[]): Segment[] {
   return out;
 }
 
-function appendOnly(
-  before: Frame,
-  after: Frame,
-  fromByte: number,
-  toByte: number,
-): ClassifiedUpdate {
+/**
+ * The verdict the screen supports on its own, with no control op to interpret.
+ *
+ * Every update gets one: L0.1 says the server reports every change, so an
+ * update carrying only mode changes -- evidence, not segments -- must still
+ * produce a segment rather than nothing.
+ */
+function inferSegment(before: Frame, after: Frame, fromByte: number, toByte: number): Segment {
   const scrolledBy = scrollDelta(before, after);
   const { erased, overwrote, reachedBack } = diffFacts(before, after, scrolledBy);
 
@@ -277,10 +200,10 @@ function appendOnly(
   // append would put it? An append continues at the cursor and only ever
   // touches that row and, via scrolling, rows below it.
   //
-  // A bare `\r` overwrite emits no op at all (CLASSIFIER.md §9.2), and a
-  // spinner is `\r` + text repeated. Judging those by "did anything change
-  // anywhere" classifies a repaint as writing whenever a repainted row
-  // happens to differ, which is most of them.
+  // A bare carriage-return overwrite emits no op at all (CLASSIFIER.md §9.2),
+  // and a spinner is one followed by text, repeated. Judging those by "did
+  // anything change anywhere" classifies a repaint as writing whenever a
+  // repainted row happens to differ, which is most of them.
   const continued = appendContinues(before, after, scrolledBy);
 
   // A buffer switch is not a content change. Entering the alt screen replaces
@@ -289,27 +212,25 @@ function appendOnly(
   // a repaint would call every shell→TUI transition a redraw.
   const bufferSwitch = before.altScreen !== after.altScreen;
 
-  const isDrawing = !bufferSwitch && (!continued || erased || overwrote || reachedBack);
+  // Positive structural evidence. `continued` failing is the absence of a
+  // signal, not a signal, so it demotes confidence rather than standing
+  // alongside the three that do.
+  const damaged = erased || overwrote || reachedBack;
+  const isDrawing = !bufferSwitch && (!continued || damaged);
 
   return {
-    segments: [
-      {
-        kind: isDrawing ? 'drawing' : 'writing',
-        confidence: isDrawing && !(erased || overwrote || reachedBack) ? 'low' : 'high',
-        fromByte,
-        toByte,
-        evidence: {
-          ops: [],
-          erased,
-          overwrote,
-          reachedBack,
-          scrolledBy,
-          altScreen: after.altScreen,
-        },
-      },
-    ],
+    kind: isDrawing ? 'drawing' : 'writing',
+    confidence: isDrawing && !damaged ? 'low' : 'high',
     fromByte,
     toByte,
+    evidence: {
+      ops: [],
+      erased,
+      overwrote,
+      reachedBack,
+      scrolledBy,
+      altScreen: after.altScreen,
+    },
   };
 }
 
@@ -339,15 +260,16 @@ function appendContinues(before: Frame, after: Frame, scrolledBy: number): boole
   }
 
   // Nothing on screen changed: the only movement is the caret. SGR resets and
-  // a bare `\r` produce exactly this, and a program that is mid-line is not
-  // repainting. Reporting it as drawing would fire once per colour change.
+  // a bare carriage return produce exactly this, and a program that is
+  // mid-line is not repainting. Reporting it as drawing would fire once per
+  // colour change.
   if (!changed) return true;
 
-  // Deliberately no "cursor moved backwards ⇒ drawing" test. A trailing `\r`
-  // after appended text leaves the cursor at column 0 with the text intact,
-  // which every build log does; the structural signal for an overwrite is
-  // `overwrote` -- text landing on cells that were already non-blank.
-  void writeRow;
+  // Deliberately no "cursor moved backwards ⇒ drawing" test. A trailing
+  // carriage return after appended text leaves the cursor at column 0 with the
+  // text intact, which every build log does; the structural signal for an
+  // overwrite is `overwrote` -- text landing on cells that were already
+  // non-blank.
   return true;
 }
 
@@ -365,8 +287,11 @@ function buildSegment(params: {
 
   // Structural corroboration: an op said "drawing", so believe it unless the
   // screen says nothing changed at all.
-  const agrees =
-    kind === 'drawing' ? erased || overwrote || reachedBack || op.name === 'CUP' : !erased && !reachedBack;
+  //
+  // `CUP` alone corroborates because a repaint that redraws a row with the
+  // content it already held leaves no screen fact behind -- the op is the
+  // program stating its intent, and nothing here can contradict it.
+  const agrees = kind === 'drawing' ? op.name === 'CUP' || erased || overwrote || reachedBack : !erased && !reachedBack;
 
   return {
     kind,
