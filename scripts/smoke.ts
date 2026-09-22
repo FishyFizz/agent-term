@@ -7,6 +7,8 @@
  *
  * Run with: npx tsx scripts/smoke.ts
  */
+import { randomUUID } from 'node:crypto';
+import { PtySession } from '../src/pty.js';
 import { SessionRegistry } from '../src/registry.js';
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -42,7 +44,11 @@ async function main(): Promise<void> {
   const args = isWindows ? ['-NoLogo', '-NoProfile'] : [];
   const marker = 'AGENTTERM-SMOKE-OK';
 
-  const session = registry.create({ command, args, cols: 80, rows: 24 });
+  // L0.5 is the pty substrate on its own: no emulator, no classifier. The
+  // registry hands back a full TerminalSession, which is the layer above what
+  // this script is checking, so spawn the pty directly and leave the registry
+  // to the accounting check at the end.
+  const session = new PtySession(randomUUID(), { command, args, cols: 80, rows: 24 });
   check('session created', session.alive, `pid=${session.pid} id=${session.id.slice(0, 8)}`);
   check('size defaults applied', session.cols === 80 && session.rows === 24);
 
@@ -132,10 +138,13 @@ async function main(): Promise<void> {
   }
   check('write after exit is a no-op, not a throw', !writeAfterExitThrew);
 
-  // Registry accounting.
+  // Registry accounting. The registry owns TerminalSessions, so this is the
+  // layer above the pty checks: create, find, remove, and independence.
+  const managed = registry.create({ command, args });
   check('registry tracked the session', registry.size() === 1);
-  check('registry remove returns true', registry.remove(session.id));
-  check('registry remove is idempotent', registry.remove(session.id) === false);
+  check('registry hands back the session it created', registry.get(managed.id) === managed);
+  check('registry remove returns true', registry.remove(managed.id));
+  check('registry remove is idempotent', registry.remove(managed.id) === false);
   check('registry empty after removal', registry.size() === 0);
 
   // Two sessions at once must not interfere: L0.4 independence.
@@ -143,8 +152,8 @@ async function main(): Promise<void> {
   const b = registry.create({ command, args });
   const aChunks: Buffer[] = [];
   const bChunks: Buffer[] = [];
-  a.on('data', (c) => aChunks.push(c));
-  b.on('data', (c) => bChunks.push(c));
+  a.pty.on('data', (c) => aChunks.push(c));
+  b.pty.on('data', (c) => bChunks.push(c));
   const aSeen = () => Buffer.concat(aChunks).toString('utf8');
   const bSeen = () => Buffer.concat(bChunks).toString('utf8');
 
@@ -153,7 +162,7 @@ async function main(): Promise<void> {
   });
   aChunks.length = 0;
   bChunks.length = 0;
-  a.write('echo ONLY-A\r\n');
+  a.pty.write('echo ONLY-A\r\n');
   const aGot = await waitFor(() => aSeen().includes('ONLY-A'), { label: 'ONLY-A' });
   await delay(300);
   check('session a received its own output', aGot);
@@ -164,8 +173,8 @@ async function main(): Promise<void> {
   // releases listeners, and `kill()` on Windows forks a ConPTY helper that
   // can outlive us and hold the stdio pipe open -- the process then never
   // exits even though every check passed.
-  a.kill();
-  b.kill();
+  a.pty.kill();
+  b.pty.kill();
   registry.disposeAll();
   check('disposeAll empties registry', registry.size() === 0);
 

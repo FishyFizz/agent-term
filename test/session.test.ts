@@ -22,13 +22,14 @@ const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
  * `TerminalSession` constructs its own pty, so the registry is not used to
  * spawn here -- using both would start two shells per test and leave one
  * alive at teardown.
+ *
+ * The session wires pty data to its own classifier, so subscribing is all a
+ * caller does; there is no separate feed step to forget.
  */
 function harness() {
   const session = new TerminalSession('test-session', { command, args, cols: 100, rows: 24 });
   const updates: Awaited<ReturnType<TerminalSession['feed']>>[] = [];
-  session.pty.on('data', (chunk) => {
-    void session.feed(chunk).then((u) => updates.push(u));
-  });
+  session.onUpdate((u) => updates.push(u));
   return { session, updates };
 }
 

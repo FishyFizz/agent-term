@@ -7,7 +7,7 @@
   "cols": 60,
   "rows": 8,
   "platform": "win32",
-  "recordedAt": "2026-09-22T05:27:23.793Z",
+  "recordedAt": "2026-09-22T10:21:19.568Z",
   "expectations": [
     {
       "from": 0,
@@ -30,795 +30,853 @@
   ],
   "ops": [
     {
-      "seq": 0,
-      "kind": "csi",
+      "name": "DECSET",
+      "source": "csi",
+      "byteOffset": 16,
+      "cursorX": 0,
+      "cursorY": 0,
+      "params": [
+        9001
+      ],
+      "altScreen": false,
+      "at": 1790072479005
+    },
+    {
+      "name": "DECSET",
+      "source": "csi",
+      "byteOffset": 16,
+      "cursorX": 0,
+      "cursorY": 0,
+      "params": [
+        1004
+      ],
+      "altScreen": false,
+      "at": 1790072479005
+    },
+    {
+      "name": "DECRST",
+      "source": "csi",
+      "byteOffset": 116,
+      "cursorX": 0,
+      "cursorY": 0,
+      "params": [
+        25
+      ],
+      "altScreen": false,
+      "at": 1790072479099
+    },
+    {
       "name": "ED",
-      "final": "J",
+      "source": "csi",
+      "byteOffset": 116,
+      "cursorX": 0,
+      "cursorY": 0,
       "params": [
         2
       ],
-      "offset": 116,
-      "cursorY": 0,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072479099
     },
     {
-      "seq": 1,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 116,
+      "cursorX": 0,
+      "cursorY": 0,
       "params": [
         0
       ],
-      "offset": 116,
-      "cursorY": 0,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072479099
     },
     {
-      "seq": 2,
-      "kind": "csi",
       "name": "CUP",
-      "final": "H",
+      "source": "csi",
+      "byteOffset": 116,
+      "cursorX": 0,
+      "cursorY": 0,
       "params": [
         0
       ],
-      "offset": 116,
-      "cursorY": 0,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072479099
     },
     {
-      "seq": 3,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 116,
-      "cursorY": 1,
+      "source": "event",
+      "byteOffset": 116,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 1,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072479099
     },
     {
-      "seq": 4,
-      "kind": "event",
       "name": "TITLECHANGE",
-      "final": "",
-      "params": [],
-      "offset": 116,
+      "source": "event",
+      "byteOffset": 116,
+      "cursorX": 0,
       "cursorY": 1,
-      "cursorX": 0,
-      "buffer": "normal"
+      "params": [],
+      "altScreen": false,
+      "at": 1790072479099
     },
     {
-      "seq": 5,
-      "kind": "event",
+      "name": "DECSET",
+      "source": "csi",
+      "byteOffset": 116,
+      "cursorX": 0,
+      "cursorY": 1,
+      "params": [
+        25
+      ],
+      "altScreen": false,
+      "at": 1790072479099
+    },
+    {
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 155,
+      "source": "event",
+      "byteOffset": 155,
+      "cursorX": 0,
       "cursorY": 2,
-      "cursorX": 0,
-      "buffer": "normal"
-    },
-    {
-      "seq": 6,
-      "kind": "event",
-      "name": "LINEFEED",
-      "final": "",
       "params": [],
-      "offset": 155,
-      "cursorY": 3,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072479114
     },
     {
-      "seq": 7,
-      "kind": "mode",
-      "name": "ALT_ENTER",
-      "final": "h",
+      "name": "LINEFEED",
+      "source": "event",
+      "byteOffset": 155,
+      "cursorX": 0,
+      "cursorY": 3,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072479114
+    },
+    {
+      "name": "DECSET",
+      "source": "csi",
+      "byteOffset": 219,
+      "cursorX": 0,
+      "cursorY": 3,
       "params": [
         1049
       ],
-      "offset": 219,
-      "cursorY": 3,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072479130
     },
     {
-      "seq": 8,
-      "kind": "event",
       "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 219,
-      "cursorY": 3,
+      "source": "event",
+      "byteOffset": 219,
       "cursorX": 0,
-      "buffer": "alternate"
+      "cursorY": 3,
+      "params": [
+        0
+      ],
+      "altScreen": true,
+      "at": 1790072479130
     },
     {
-      "seq": 9,
-      "kind": "event",
       "name": "BUFFERCHANGE",
-      "final": "",
+      "source": "event",
+      "byteOffset": 219,
+      "cursorX": 0,
+      "cursorY": 3,
       "params": [],
-      "offset": 219,
-      "cursorY": 3,
-      "cursorX": 0,
-      "buffer": "alternate"
+      "altScreen": true,
+      "at": 1790072479130
     },
     {
-      "seq": 10,
-      "kind": "csi",
+      "name": "DECRST",
+      "source": "csi",
+      "byteOffset": 219,
+      "cursorX": 0,
+      "cursorY": 3,
+      "params": [
+        25
+      ],
+      "altScreen": true,
+      "at": 1790072479130
+    },
+    {
       "name": "CUP",
-      "final": "H",
+      "source": "csi",
+      "byteOffset": 219,
+      "cursorX": 0,
+      "cursorY": 3,
       "params": [
         0
       ],
-      "offset": 219,
-      "cursorY": 3,
-      "cursorX": 0,
-      "buffer": "alternate"
+      "altScreen": true,
+      "at": 1790072479130
     },
     {
-      "seq": 11,
-      "kind": "csi",
       "name": "EL",
-      "final": "K",
-      "params": [
-        0
-      ],
-      "offset": 219,
+      "source": "csi",
+      "byteOffset": 219,
+      "cursorX": 0,
       "cursorY": 0,
-      "cursorX": 0,
-      "buffer": "alternate"
+      "params": [
+        0
+      ],
+      "altScreen": true,
+      "at": 1790072479130
     },
     {
-      "seq": 12,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 219,
+      "source": "event",
+      "byteOffset": 219,
+      "cursorX": 0,
       "cursorY": 1,
-      "cursorX": 0,
-      "buffer": "alternate"
+      "params": [],
+      "altScreen": true,
+      "at": 1790072479130
     },
     {
-      "seq": 13,
-      "kind": "csi",
       "name": "EL",
-      "final": "K",
-      "params": [
-        0
-      ],
-      "offset": 219,
+      "source": "csi",
+      "byteOffset": 219,
+      "cursorX": 0,
       "cursorY": 1,
-      "cursorX": 0,
-      "buffer": "alternate"
+      "params": [
+        0
+      ],
+      "altScreen": true,
+      "at": 1790072479130
     },
     {
-      "seq": 14,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 219,
+      "source": "event",
+      "byteOffset": 219,
+      "cursorX": 0,
       "cursorY": 2,
-      "cursorX": 0,
-      "buffer": "alternate"
+      "params": [],
+      "altScreen": true,
+      "at": 1790072479130
     },
     {
-      "seq": 15,
-      "kind": "csi",
       "name": "EL",
-      "final": "K",
-      "params": [
-        0
-      ],
-      "offset": 219,
+      "source": "csi",
+      "byteOffset": 219,
+      "cursorX": 0,
       "cursorY": 2,
-      "cursorX": 0,
-      "buffer": "alternate"
+      "params": [
+        0
+      ],
+      "altScreen": true,
+      "at": 1790072479130
     },
     {
-      "seq": 16,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 219,
+      "source": "event",
+      "byteOffset": 219,
+      "cursorX": 0,
       "cursorY": 3,
-      "cursorX": 0,
-      "buffer": "alternate"
+      "params": [],
+      "altScreen": true,
+      "at": 1790072479130
     },
     {
-      "seq": 17,
-      "kind": "csi",
       "name": "EL",
-      "final": "K",
-      "params": [
-        0
-      ],
-      "offset": 219,
+      "source": "csi",
+      "byteOffset": 219,
+      "cursorX": 0,
       "cursorY": 3,
-      "cursorX": 0,
-      "buffer": "alternate"
+      "params": [
+        0
+      ],
+      "altScreen": true,
+      "at": 1790072479130
     },
     {
-      "seq": 18,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 219,
+      "source": "event",
+      "byteOffset": 219,
+      "cursorX": 0,
       "cursorY": 4,
-      "cursorX": 0,
-      "buffer": "alternate"
+      "params": [],
+      "altScreen": true,
+      "at": 1790072479130
     },
     {
-      "seq": 19,
-      "kind": "csi",
       "name": "EL",
-      "final": "K",
-      "params": [
-        0
-      ],
-      "offset": 219,
+      "source": "csi",
+      "byteOffset": 219,
+      "cursorX": 0,
       "cursorY": 4,
-      "cursorX": 0,
-      "buffer": "alternate"
+      "params": [
+        0
+      ],
+      "altScreen": true,
+      "at": 1790072479130
     },
     {
-      "seq": 20,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 219,
+      "source": "event",
+      "byteOffset": 219,
+      "cursorX": 0,
       "cursorY": 5,
-      "cursorX": 0,
-      "buffer": "alternate"
+      "params": [],
+      "altScreen": true,
+      "at": 1790072479130
     },
     {
-      "seq": 21,
-      "kind": "csi",
       "name": "EL",
-      "final": "K",
-      "params": [
-        0
-      ],
-      "offset": 219,
+      "source": "csi",
+      "byteOffset": 219,
+      "cursorX": 0,
       "cursorY": 5,
-      "cursorX": 0,
-      "buffer": "alternate"
-    },
-    {
-      "seq": 22,
-      "kind": "event",
-      "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 219,
-      "cursorY": 6,
-      "cursorX": 0,
-      "buffer": "alternate"
-    },
-    {
-      "seq": 23,
-      "kind": "csi",
-      "name": "EL",
-      "final": "K",
       "params": [
         0
       ],
-      "offset": 219,
-      "cursorY": 6,
-      "cursorX": 0,
-      "buffer": "alternate"
+      "altScreen": true,
+      "at": 1790072479130
     },
     {
-      "seq": 24,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 219,
-      "cursorY": 7,
+      "source": "event",
+      "byteOffset": 219,
       "cursorX": 0,
-      "buffer": "alternate"
+      "cursorY": 6,
+      "params": [],
+      "altScreen": true,
+      "at": 1790072479130
     },
     {
-      "seq": 25,
-      "kind": "csi",
       "name": "EL",
-      "final": "K",
+      "source": "csi",
+      "byteOffset": 219,
+      "cursorX": 0,
+      "cursorY": 6,
       "params": [
         0
       ],
-      "offset": 219,
-      "cursorY": 7,
-      "cursorX": 0,
-      "buffer": "alternate"
+      "altScreen": true,
+      "at": 1790072479130
     },
     {
-      "seq": 26,
-      "kind": "csi",
+      "name": "LINEFEED",
+      "source": "event",
+      "byteOffset": 219,
+      "cursorX": 0,
+      "cursorY": 7,
+      "params": [],
+      "altScreen": true,
+      "at": 1790072479130
+    },
+    {
+      "name": "EL",
+      "source": "csi",
+      "byteOffset": 219,
+      "cursorX": 0,
+      "cursorY": 7,
+      "params": [
+        0
+      ],
+      "altScreen": true,
+      "at": 1790072479130
+    },
+    {
       "name": "CUP",
-      "final": "H",
-      "params": [
-        0
-      ],
-      "offset": 219,
+      "source": "csi",
+      "byteOffset": 219,
+      "cursorX": 0,
       "cursorY": 7,
-      "cursorX": 0,
-      "buffer": "alternate"
-    },
-    {
-      "seq": 27,
-      "kind": "event",
-      "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 309,
-      "cursorY": 1,
-      "cursorX": 0,
-      "buffer": "alternate"
-    },
-    {
-      "seq": 28,
-      "kind": "event",
-      "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 309,
-      "cursorY": 2,
-      "cursorX": 0,
-      "buffer": "alternate"
-    },
-    {
-      "seq": 29,
-      "kind": "event",
-      "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 309,
-      "cursorY": 3,
-      "cursorX": 0,
-      "buffer": "alternate"
-    },
-    {
-      "seq": 30,
-      "kind": "event",
-      "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 309,
-      "cursorY": 4,
-      "cursorX": 0,
-      "buffer": "alternate"
-    },
-    {
-      "seq": 31,
-      "kind": "event",
-      "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 309,
-      "cursorY": 5,
-      "cursorX": 0,
-      "buffer": "alternate"
-    },
-    {
-      "seq": 32,
-      "kind": "event",
-      "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 309,
-      "cursorY": 6,
-      "cursorX": 0,
-      "buffer": "alternate"
-    },
-    {
-      "seq": 33,
-      "kind": "csi",
-      "name": "CUP",
-      "final": "H",
       "params": [
         0
       ],
-      "offset": 442,
-      "cursorY": 6,
-      "cursorX": 0,
-      "buffer": "alternate"
+      "altScreen": true,
+      "at": 1790072479130
     },
     {
-      "seq": 34,
-      "kind": "csi",
-      "name": "EL",
-      "final": "K",
-      "params": [
-        0
-      ],
-      "offset": 442,
+      "name": "DECSET",
+      "source": "csi",
+      "byteOffset": 219,
+      "cursorX": 0,
       "cursorY": 0,
-      "cursorX": 13,
-      "buffer": "alternate"
+      "params": [
+        25
+      ],
+      "altScreen": true,
+      "at": 1790072479130
     },
     {
-      "seq": 35,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 442,
+      "source": "event",
+      "byteOffset": 309,
+      "cursorX": 0,
       "cursorY": 1,
-      "cursorX": 0,
-      "buffer": "alternate"
-    },
-    {
-      "seq": 36,
-      "kind": "csi",
-      "name": "EL",
-      "final": "K",
-      "params": [
-        0
-      ],
-      "offset": 442,
-      "cursorY": 1,
-      "cursorX": 13,
-      "buffer": "alternate"
-    },
-    {
-      "seq": 37,
-      "kind": "event",
-      "name": "LINEFEED",
-      "final": "",
       "params": [],
-      "offset": 442,
+      "altScreen": true,
+      "at": 1790072479146
+    },
+    {
+      "name": "LINEFEED",
+      "source": "event",
+      "byteOffset": 309,
+      "cursorX": 0,
       "cursorY": 2,
-      "cursorX": 0,
-      "buffer": "alternate"
-    },
-    {
-      "seq": 38,
-      "kind": "csi",
-      "name": "EL",
-      "final": "K",
-      "params": [
-        0
-      ],
-      "offset": 442,
-      "cursorY": 2,
-      "cursorX": 13,
-      "buffer": "alternate"
-    },
-    {
-      "seq": 39,
-      "kind": "event",
-      "name": "LINEFEED",
-      "final": "",
       "params": [],
-      "offset": 442,
+      "altScreen": true,
+      "at": 1790072479146
+    },
+    {
+      "name": "LINEFEED",
+      "source": "event",
+      "byteOffset": 309,
+      "cursorX": 0,
       "cursorY": 3,
-      "cursorX": 0,
-      "buffer": "alternate"
-    },
-    {
-      "seq": 40,
-      "kind": "csi",
-      "name": "EL",
-      "final": "K",
-      "params": [
-        0
-      ],
-      "offset": 442,
-      "cursorY": 3,
-      "cursorX": 13,
-      "buffer": "alternate"
-    },
-    {
-      "seq": 41,
-      "kind": "event",
-      "name": "LINEFEED",
-      "final": "",
       "params": [],
-      "offset": 442,
+      "altScreen": true,
+      "at": 1790072479146
+    },
+    {
+      "name": "LINEFEED",
+      "source": "event",
+      "byteOffset": 309,
+      "cursorX": 0,
       "cursorY": 4,
-      "cursorX": 0,
-      "buffer": "alternate"
-    },
-    {
-      "seq": 42,
-      "kind": "csi",
-      "name": "EL",
-      "final": "K",
-      "params": [
-        0
-      ],
-      "offset": 442,
-      "cursorY": 4,
-      "cursorX": 14,
-      "buffer": "alternate"
-    },
-    {
-      "seq": 43,
-      "kind": "event",
-      "name": "LINEFEED",
-      "final": "",
       "params": [],
-      "offset": 442,
-      "cursorY": 5,
-      "cursorX": 0,
-      "buffer": "alternate"
+      "altScreen": true,
+      "at": 1790072479146
     },
     {
-      "seq": 44,
-      "kind": "csi",
-      "name": "EL",
-      "final": "K",
-      "params": [
-        0
-      ],
-      "offset": 442,
-      "cursorY": 5,
-      "cursorX": 14,
-      "buffer": "alternate"
-    },
-    {
-      "seq": 45,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
+      "source": "event",
+      "byteOffset": 309,
+      "cursorX": 0,
+      "cursorY": 5,
       "params": [],
-      "offset": 442,
+      "altScreen": true,
+      "at": 1790072479146
+    },
+    {
+      "name": "LINEFEED",
+      "source": "event",
+      "byteOffset": 309,
+      "cursorX": 0,
       "cursorY": 6,
-      "cursorX": 0,
-      "buffer": "alternate"
+      "params": [],
+      "altScreen": true,
+      "at": 1790072479146
     },
     {
-      "seq": 46,
-      "kind": "mode",
-      "name": "ALT_EXIT",
-      "final": "l",
+      "name": "DECRST",
+      "source": "csi",
+      "byteOffset": 442,
+      "cursorX": 0,
+      "cursorY": 6,
+      "params": [
+        25
+      ],
+      "altScreen": true,
+      "at": 1790072479161
+    },
+    {
+      "name": "CUP",
+      "source": "csi",
+      "byteOffset": 442,
+      "cursorX": 0,
+      "cursorY": 6,
+      "params": [
+        0
+      ],
+      "altScreen": true,
+      "at": 1790072479161
+    },
+    {
+      "name": "EL",
+      "source": "csi",
+      "byteOffset": 442,
+      "cursorX": 13,
+      "cursorY": 0,
+      "params": [
+        0
+      ],
+      "altScreen": true,
+      "at": 1790072479161
+    },
+    {
+      "name": "LINEFEED",
+      "source": "event",
+      "byteOffset": 442,
+      "cursorX": 0,
+      "cursorY": 1,
+      "params": [],
+      "altScreen": true,
+      "at": 1790072479161
+    },
+    {
+      "name": "EL",
+      "source": "csi",
+      "byteOffset": 442,
+      "cursorX": 13,
+      "cursorY": 1,
+      "params": [
+        0
+      ],
+      "altScreen": true,
+      "at": 1790072479161
+    },
+    {
+      "name": "LINEFEED",
+      "source": "event",
+      "byteOffset": 442,
+      "cursorX": 0,
+      "cursorY": 2,
+      "params": [],
+      "altScreen": true,
+      "at": 1790072479161
+    },
+    {
+      "name": "EL",
+      "source": "csi",
+      "byteOffset": 442,
+      "cursorX": 13,
+      "cursorY": 2,
+      "params": [
+        0
+      ],
+      "altScreen": true,
+      "at": 1790072479161
+    },
+    {
+      "name": "LINEFEED",
+      "source": "event",
+      "byteOffset": 442,
+      "cursorX": 0,
+      "cursorY": 3,
+      "params": [],
+      "altScreen": true,
+      "at": 1790072479161
+    },
+    {
+      "name": "EL",
+      "source": "csi",
+      "byteOffset": 442,
+      "cursorX": 13,
+      "cursorY": 3,
+      "params": [
+        0
+      ],
+      "altScreen": true,
+      "at": 1790072479161
+    },
+    {
+      "name": "LINEFEED",
+      "source": "event",
+      "byteOffset": 442,
+      "cursorX": 0,
+      "cursorY": 4,
+      "params": [],
+      "altScreen": true,
+      "at": 1790072479161
+    },
+    {
+      "name": "EL",
+      "source": "csi",
+      "byteOffset": 442,
+      "cursorX": 14,
+      "cursorY": 4,
+      "params": [
+        0
+      ],
+      "altScreen": true,
+      "at": 1790072479161
+    },
+    {
+      "name": "LINEFEED",
+      "source": "event",
+      "byteOffset": 442,
+      "cursorX": 0,
+      "cursorY": 5,
+      "params": [],
+      "altScreen": true,
+      "at": 1790072479161
+    },
+    {
+      "name": "EL",
+      "source": "csi",
+      "byteOffset": 442,
+      "cursorX": 14,
+      "cursorY": 5,
+      "params": [
+        0
+      ],
+      "altScreen": true,
+      "at": 1790072479161
+    },
+    {
+      "name": "LINEFEED",
+      "source": "event",
+      "byteOffset": 442,
+      "cursorX": 0,
+      "cursorY": 6,
+      "params": [],
+      "altScreen": true,
+      "at": 1790072479161
+    },
+    {
+      "name": "DECSET",
+      "source": "csi",
+      "byteOffset": 442,
+      "cursorX": 0,
+      "cursorY": 6,
+      "params": [
+        25
+      ],
+      "altScreen": true,
+      "at": 1790072479161
+    },
+    {
+      "name": "DECRST",
+      "source": "csi",
+      "byteOffset": 442,
+      "cursorX": 0,
+      "cursorY": 6,
       "params": [
         1049
       ],
-      "offset": 442,
-      "cursorY": 6,
-      "cursorX": 0,
-      "buffer": "alternate"
+      "altScreen": true,
+      "at": 1790072479161
     },
     {
-      "seq": 47,
-      "kind": "event",
       "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 442,
-      "cursorY": 6,
+      "source": "event",
+      "byteOffset": 442,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 6,
+      "params": [
+        0
+      ],
+      "altScreen": false,
+      "at": 1790072479161
     },
     {
-      "seq": 48,
-      "kind": "event",
       "name": "BUFFERCHANGE",
-      "final": "",
-      "params": [],
-      "offset": 442,
+      "source": "event",
+      "byteOffset": 442,
+      "cursorX": 0,
       "cursorY": 6,
-      "cursorX": 0,
-      "buffer": "normal"
+      "params": [],
+      "altScreen": false,
+      "at": 1790072479161
     },
     {
-      "seq": 49,
-      "kind": "csi",
-      "name": "CUP",
-      "final": "H",
-      "params": [
-        0
-      ],
-      "offset": 570,
+      "name": "DECRST",
+      "source": "csi",
+      "byteOffset": 570,
+      "cursorX": 0,
       "cursorY": 3,
-      "cursorX": 0,
-      "buffer": "normal"
+      "params": [
+        25
+      ],
+      "altScreen": false,
+      "at": 1790072479176
     },
     {
-      "seq": 50,
-      "kind": "csi",
-      "name": "EL",
-      "final": "K",
+      "name": "CUP",
+      "source": "csi",
+      "byteOffset": 570,
+      "cursorX": 0,
+      "cursorY": 3,
       "params": [
         0
       ],
-      "offset": 570,
-      "cursorY": 0,
+      "altScreen": false,
+      "at": 1790072479176
+    },
+    {
+      "name": "EL",
+      "source": "csi",
+      "byteOffset": 570,
       "cursorX": 19,
-      "buffer": "normal"
-    },
-    {
-      "seq": 51,
-      "kind": "event",
-      "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 570,
-      "cursorY": 1,
-      "cursorX": 0,
-      "buffer": "normal"
-    },
-    {
-      "seq": 52,
-      "kind": "csi",
-      "name": "EL",
-      "final": "K",
+      "cursorY": 0,
       "params": [
         0
       ],
-      "offset": 570,
+      "altScreen": false,
+      "at": 1790072479176
+    },
+    {
+      "name": "LINEFEED",
+      "source": "event",
+      "byteOffset": 570,
+      "cursorX": 0,
       "cursorY": 1,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072479176
+    },
+    {
+      "name": "EL",
+      "source": "csi",
+      "byteOffset": 570,
       "cursorX": 18,
-      "buffer": "normal"
-    },
-    {
-      "seq": 53,
-      "kind": "event",
-      "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 570,
-      "cursorY": 2,
-      "cursorX": 0,
-      "buffer": "normal"
-    },
-    {
-      "seq": 54,
-      "kind": "csi",
-      "name": "EL",
-      "final": "K",
+      "cursorY": 1,
       "params": [
         0
       ],
-      "offset": 570,
+      "altScreen": false,
+      "at": 1790072479176
+    },
+    {
+      "name": "LINEFEED",
+      "source": "event",
+      "byteOffset": 570,
+      "cursorX": 0,
       "cursorY": 2,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072479176
+    },
+    {
+      "name": "EL",
+      "source": "csi",
+      "byteOffset": 570,
       "cursorX": 17,
-      "buffer": "normal"
-    },
-    {
-      "seq": 55,
-      "kind": "event",
-      "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 570,
-      "cursorY": 3,
-      "cursorX": 0,
-      "buffer": "normal"
-    },
-    {
-      "seq": 56,
-      "kind": "csi",
-      "name": "EL",
-      "final": "K",
+      "cursorY": 2,
       "params": [
         0
       ],
-      "offset": 570,
+      "altScreen": false,
+      "at": 1790072479176
+    },
+    {
+      "name": "LINEFEED",
+      "source": "event",
+      "byteOffset": 570,
+      "cursorX": 0,
       "cursorY": 3,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072479176
+    },
+    {
+      "name": "EL",
+      "source": "csi",
+      "byteOffset": 570,
       "cursorX": 11,
-      "buffer": "normal"
-    },
-    {
-      "seq": 57,
-      "kind": "event",
-      "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 570,
-      "cursorY": 4,
-      "cursorX": 0,
-      "buffer": "normal"
-    },
-    {
-      "seq": 58,
-      "kind": "csi",
-      "name": "EL",
-      "final": "K",
+      "cursorY": 3,
       "params": [
         0
       ],
-      "offset": 570,
+      "altScreen": false,
+      "at": 1790072479176
+    },
+    {
+      "name": "LINEFEED",
+      "source": "event",
+      "byteOffset": 570,
+      "cursorX": 0,
       "cursorY": 4,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072479176
+    },
+    {
+      "name": "EL",
+      "source": "csi",
+      "byteOffset": 570,
       "cursorX": 4,
-      "buffer": "normal"
+      "cursorY": 4,
+      "params": [
+        0
+      ],
+      "altScreen": false,
+      "at": 1790072479176
     },
     {
-      "seq": 59,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 570,
+      "source": "event",
+      "byteOffset": 570,
+      "cursorX": 0,
       "cursorY": 5,
-      "cursorX": 0,
-      "buffer": "normal"
+      "params": [],
+      "altScreen": false,
+      "at": 1790072479176
     },
     {
-      "seq": 60,
-      "kind": "csi",
       "name": "EL",
-      "final": "K",
-      "params": [
-        0
-      ],
-      "offset": 570,
+      "source": "csi",
+      "byteOffset": 570,
+      "cursorX": 0,
       "cursorY": 5,
-      "cursorX": 0,
-      "buffer": "normal"
-    },
-    {
-      "seq": 61,
-      "kind": "event",
-      "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 570,
-      "cursorY": 6,
-      "cursorX": 0,
-      "buffer": "normal"
-    },
-    {
-      "seq": 62,
-      "kind": "csi",
-      "name": "EL",
-      "final": "K",
       "params": [
         0
       ],
-      "offset": 570,
-      "cursorY": 6,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072479176
     },
     {
-      "seq": 63,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 570,
-      "cursorY": 7,
+      "source": "event",
+      "byteOffset": 570,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 6,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072479176
     },
     {
-      "seq": 64,
-      "kind": "csi",
       "name": "EL",
-      "final": "K",
+      "source": "csi",
+      "byteOffset": 570,
+      "cursorX": 0,
+      "cursorY": 6,
       "params": [
         0
       ],
-      "offset": 570,
-      "cursorY": 7,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072479176
     },
     {
-      "seq": 65,
-      "kind": "csi",
+      "name": "LINEFEED",
+      "source": "event",
+      "byteOffset": 570,
+      "cursorX": 0,
+      "cursorY": 7,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072479176
+    },
+    {
+      "name": "EL",
+      "source": "csi",
+      "byteOffset": 570,
+      "cursorX": 0,
+      "cursorY": 7,
+      "params": [
+        0
+      ],
+      "altScreen": false,
+      "at": 1790072479176
+    },
+    {
       "name": "CUP",
-      "final": "H",
+      "source": "csi",
+      "byteOffset": 570,
+      "cursorX": 0,
+      "cursorY": 7,
       "params": [
         6,
         1
       ],
-      "offset": 570,
-      "cursorY": 7,
+      "altScreen": false,
+      "at": 1790072479176
+    },
+    {
+      "name": "DECSET",
+      "source": "csi",
+      "byteOffset": 570,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 5,
+      "params": [
+        25
+      ],
+      "altScreen": false,
+      "at": 1790072479176
     }
   ],
   "frames": [

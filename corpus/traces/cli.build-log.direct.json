@@ -7,7 +7,7 @@
   "cols": 80,
   "rows": 10,
   "platform": "win32",
-  "recordedAt": "2026-09-22T05:28:05.485Z",
+  "recordedAt": "2026-09-22T10:20:46.996Z",
   "expectations": [
     {
       "from": 0,
@@ -18,1943 +18,1850 @@
   ],
   "ops": [
     {
-      "seq": 0,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 32,
+      "cursorX": 0,
+      "cursorY": 0,
       "params": [
         1
       ],
-      "offset": 32,
-      "cursorY": 0,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446250
     },
     {
-      "seq": 1,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
-      "params": [
-        0
-      ],
-      "offset": 32,
-      "cursorY": 0,
+      "source": "csi",
+      "byteOffset": 32,
       "cursorX": 19,
-      "buffer": "normal"
+      "cursorY": 0,
+      "params": [
+        0
+      ],
+      "altScreen": false,
+      "at": 1790072446250
     },
     {
-      "seq": 2,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 32,
+      "source": "event",
+      "byteOffset": 32,
+      "cursorX": 0,
       "cursorY": 1,
-      "cursorX": 0,
-      "buffer": "normal"
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446250
     },
     {
-      "seq": 3,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
-      "params": [
-        32
-      ],
-      "offset": 64,
+      "source": "csi",
+      "byteOffset": 64,
+      "cursorX": 0,
       "cursorY": 1,
-      "cursorX": 0,
-      "buffer": "normal"
+      "params": [
+        32
+      ],
+      "altScreen": false,
+      "at": 1790072446265
     },
     {
-      "seq": 4,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
-      "params": [
-        0
-      ],
-      "offset": 64,
+      "source": "csi",
+      "byteOffset": 64,
+      "cursorX": 6,
       "cursorY": 1,
-      "cursorX": 6,
-      "buffer": "normal"
+      "params": [
+        0
+      ],
+      "altScreen": false,
+      "at": 1790072446265
     },
     {
-      "seq": 5,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 96,
+      "source": "event",
+      "byteOffset": 96,
+      "cursorX": 0,
       "cursorY": 2,
-      "cursorX": 0,
-      "buffer": "normal"
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446280
     },
     {
-      "seq": 6,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
-      "params": [
-        32
-      ],
-      "offset": 96,
+      "source": "csi",
+      "byteOffset": 96,
+      "cursorX": 0,
       "cursorY": 2,
-      "cursorX": 0,
-      "buffer": "normal"
+      "params": [
+        32
+      ],
+      "altScreen": false,
+      "at": 1790072446280
     },
     {
-      "seq": 7,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
-      "params": [
-        0
-      ],
-      "offset": 96,
+      "source": "csi",
+      "byteOffset": 96,
+      "cursorX": 6,
       "cursorY": 2,
-      "cursorX": 6,
-      "buffer": "normal"
+      "params": [
+        0
+      ],
+      "altScreen": false,
+      "at": 1790072446280
     },
     {
-      "seq": 8,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 128,
+      "source": "event",
+      "byteOffset": 128,
+      "cursorX": 0,
       "cursorY": 3,
-      "cursorX": 0,
-      "buffer": "normal"
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446296
     },
     {
-      "seq": 9,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
-      "params": [
-        32
-      ],
-      "offset": 128,
+      "source": "csi",
+      "byteOffset": 128,
+      "cursorX": 0,
       "cursorY": 3,
-      "cursorX": 0,
-      "buffer": "normal"
+      "params": [
+        32
+      ],
+      "altScreen": false,
+      "at": 1790072446296
     },
     {
-      "seq": 10,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
-      "params": [
-        0
-      ],
-      "offset": 128,
+      "source": "csi",
+      "byteOffset": 128,
+      "cursorX": 6,
       "cursorY": 3,
-      "cursorX": 6,
-      "buffer": "normal"
+      "params": [
+        0
+      ],
+      "altScreen": false,
+      "at": 1790072446296
     },
     {
-      "seq": 11,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 160,
+      "source": "event",
+      "byteOffset": 160,
+      "cursorX": 0,
       "cursorY": 4,
-      "cursorX": 0,
-      "buffer": "normal"
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446311
     },
     {
-      "seq": 12,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
-      "params": [
-        32
-      ],
-      "offset": 160,
+      "source": "csi",
+      "byteOffset": 160,
+      "cursorX": 0,
       "cursorY": 4,
-      "cursorX": 0,
-      "buffer": "normal"
+      "params": [
+        32
+      ],
+      "altScreen": false,
+      "at": 1790072446311
     },
     {
-      "seq": 13,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
-      "params": [
-        0
-      ],
-      "offset": 160,
+      "source": "csi",
+      "byteOffset": 160,
+      "cursorX": 6,
       "cursorY": 4,
-      "cursorX": 6,
-      "buffer": "normal"
+      "params": [
+        0
+      ],
+      "altScreen": false,
+      "at": 1790072446311
     },
     {
-      "seq": 14,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 192,
+      "source": "event",
+      "byteOffset": 192,
+      "cursorX": 0,
       "cursorY": 5,
-      "cursorX": 0,
-      "buffer": "normal"
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446327
     },
     {
-      "seq": 15,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
-      "params": [
-        32
-      ],
-      "offset": 192,
+      "source": "csi",
+      "byteOffset": 192,
+      "cursorX": 0,
       "cursorY": 5,
-      "cursorX": 0,
-      "buffer": "normal"
+      "params": [
+        32
+      ],
+      "altScreen": false,
+      "at": 1790072446327
     },
     {
-      "seq": 16,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
-      "params": [
-        0
-      ],
-      "offset": 192,
+      "source": "csi",
+      "byteOffset": 192,
+      "cursorX": 6,
       "cursorY": 5,
-      "cursorX": 6,
-      "buffer": "normal"
+      "params": [
+        0
+      ],
+      "altScreen": false,
+      "at": 1790072446327
     },
     {
-      "seq": 17,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 224,
+      "source": "event",
+      "byteOffset": 224,
+      "cursorX": 0,
       "cursorY": 6,
-      "cursorX": 0,
-      "buffer": "normal"
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446342
     },
     {
-      "seq": 18,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
-      "params": [
-        32
-      ],
-      "offset": 224,
+      "source": "csi",
+      "byteOffset": 224,
+      "cursorX": 0,
       "cursorY": 6,
-      "cursorX": 0,
-      "buffer": "normal"
+      "params": [
+        32
+      ],
+      "altScreen": false,
+      "at": 1790072446342
     },
     {
-      "seq": 19,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
-      "params": [
-        0
-      ],
-      "offset": 224,
+      "source": "csi",
+      "byteOffset": 224,
+      "cursorX": 6,
       "cursorY": 6,
-      "cursorX": 6,
-      "buffer": "normal"
+      "params": [
+        0
+      ],
+      "altScreen": false,
+      "at": 1790072446342
     },
     {
-      "seq": 20,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 256,
+      "source": "event",
+      "byteOffset": 256,
+      "cursorX": 0,
       "cursorY": 7,
-      "cursorX": 0,
-      "buffer": "normal"
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446356
     },
     {
-      "seq": 21,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
-      "params": [
-        33
-      ],
-      "offset": 256,
+      "source": "csi",
+      "byteOffset": 256,
+      "cursorX": 0,
       "cursorY": 7,
-      "cursorX": 0,
-      "buffer": "normal"
+      "params": [
+        33
+      ],
+      "altScreen": false,
+      "at": 1790072446356
     },
     {
-      "seq": 22,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
-      "params": [
-        0
-      ],
-      "offset": 288,
+      "source": "csi",
+      "byteOffset": 288,
+      "cursorX": 6,
       "cursorY": 7,
-      "cursorX": 6,
-      "buffer": "normal"
+      "params": [
+        0
+      ],
+      "altScreen": false,
+      "at": 1790072446371
     },
     {
-      "seq": 23,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 288,
+      "source": "event",
+      "byteOffset": 288,
+      "cursorX": 0,
       "cursorY": 8,
-      "cursorX": 0,
-      "buffer": "normal"
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446372
     },
     {
-      "seq": 24,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
-      "params": [
-        32
-      ],
-      "offset": 288,
+      "source": "csi",
+      "byteOffset": 288,
+      "cursorX": 0,
       "cursorY": 8,
-      "cursorX": 0,
-      "buffer": "normal"
+      "params": [
+        32
+      ],
+      "altScreen": false,
+      "at": 1790072446372
     },
     {
-      "seq": 25,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
-      "params": [
-        0
-      ],
-      "offset": 320,
+      "source": "csi",
+      "byteOffset": 320,
+      "cursorX": 6,
       "cursorY": 8,
+      "params": [
+        0
+      ],
+      "altScreen": false,
+      "at": 1790072446387
+    },
+    {
+      "name": "LINEFEED",
+      "source": "event",
+      "byteOffset": 320,
+      "cursorX": 0,
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446387
+    },
+    {
+      "name": "SGR",
+      "source": "csi",
+      "byteOffset": 352,
+      "cursorX": 0,
+      "cursorY": 9,
+      "params": [
+        32
+      ],
+      "altScreen": false,
+      "at": 1790072446402
+    },
+    {
+      "name": "SGR",
+      "source": "csi",
+      "byteOffset": 352,
       "cursorX": 6,
-      "buffer": "normal"
-    },
-    {
-      "seq": 26,
-      "kind": "event",
-      "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 320,
       "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
-    },
-    {
-      "seq": 27,
-      "kind": "csi",
-      "name": "SGR",
-      "final": "m",
-      "params": [
-        32
-      ],
-      "offset": 352,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
-    },
-    {
-      "seq": 28,
-      "kind": "csi",
-      "name": "SGR",
-      "final": "m",
       "params": [
         0
       ],
-      "offset": 352,
-      "cursorY": 9,
-      "cursorX": 6,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446402
     },
     {
-      "seq": 29,
-      "kind": "event",
       "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 384,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 384,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [
+        1
+      ],
+      "altScreen": false,
+      "at": 1790072446418
     },
     {
-      "seq": 30,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 384,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 384,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446418
     },
     {
-      "seq": 31,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 384,
+      "cursorX": 0,
+      "cursorY": 9,
       "params": [
         32
       ],
-      "offset": 384,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446418
     },
     {
-      "seq": 32,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
-      "params": [
-        0
-      ],
-      "offset": 384,
-      "cursorY": 9,
+      "source": "csi",
+      "byteOffset": 384,
       "cursorX": 7,
-      "buffer": "normal"
-    },
-    {
-      "seq": 33,
-      "kind": "event",
-      "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 416,
       "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
-    },
-    {
-      "seq": 34,
-      "kind": "event",
-      "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 416,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
-    },
-    {
-      "seq": 35,
-      "kind": "csi",
-      "name": "SGR",
-      "final": "m",
-      "params": [
-        32
-      ],
-      "offset": 416,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
-    },
-    {
-      "seq": 36,
-      "kind": "csi",
-      "name": "SGR",
-      "final": "m",
       "params": [
         0
       ],
-      "offset": 416,
-      "cursorY": 9,
-      "cursorX": 7,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446418
     },
     {
-      "seq": 37,
-      "kind": "event",
       "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 448,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 416,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [
+        2
+      ],
+      "altScreen": false,
+      "at": 1790072446433
     },
     {
-      "seq": 38,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 448,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 416,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446433
     },
     {
-      "seq": 39,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 416,
+      "cursorX": 0,
+      "cursorY": 9,
       "params": [
         32
       ],
-      "offset": 448,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446433
     },
     {
-      "seq": 40,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 416,
+      "cursorX": 7,
+      "cursorY": 9,
       "params": [
         0
       ],
-      "offset": 448,
-      "cursorY": 9,
-      "cursorX": 7,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446433
     },
     {
-      "seq": 41,
-      "kind": "event",
       "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 480,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 448,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [
+        3
+      ],
+      "altScreen": false,
+      "at": 1790072446448
     },
     {
-      "seq": 42,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 480,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 448,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446448
     },
     {
-      "seq": 43,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 448,
+      "cursorX": 0,
+      "cursorY": 9,
       "params": [
         32
       ],
-      "offset": 480,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446448
     },
     {
-      "seq": 44,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 448,
+      "cursorX": 7,
+      "cursorY": 9,
       "params": [
         0
       ],
-      "offset": 512,
-      "cursorY": 9,
-      "cursorX": 7,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446448
     },
     {
-      "seq": 45,
-      "kind": "event",
       "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 512,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 480,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [
+        4
+      ],
+      "altScreen": false,
+      "at": 1790072446464
     },
     {
-      "seq": 46,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 512,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 480,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446464
     },
     {
-      "seq": 47,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 480,
+      "cursorX": 0,
+      "cursorY": 9,
+      "params": [
+        32
+      ],
+      "altScreen": false,
+      "at": 1790072446464
+    },
+    {
+      "name": "SGR",
+      "source": "csi",
+      "byteOffset": 512,
+      "cursorX": 7,
+      "cursorY": 9,
+      "params": [
+        0
+      ],
+      "altScreen": false,
+      "at": 1790072446479
+    },
+    {
+      "name": "SCROLL",
+      "source": "event",
+      "byteOffset": 512,
+      "cursorX": 0,
+      "cursorY": 9,
+      "params": [
+        5
+      ],
+      "altScreen": false,
+      "at": 1790072446479
+    },
+    {
+      "name": "LINEFEED",
+      "source": "event",
+      "byteOffset": 512,
+      "cursorX": 0,
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446479
+    },
+    {
+      "name": "SGR",
+      "source": "csi",
+      "byteOffset": 512,
+      "cursorX": 0,
+      "cursorY": 9,
       "params": [
         33
       ],
-      "offset": 512,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446479
     },
     {
-      "seq": 48,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 544,
+      "cursorX": 7,
+      "cursorY": 9,
       "params": [
         0
       ],
-      "offset": 544,
-      "cursorY": 9,
-      "cursorX": 7,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446495
     },
     {
-      "seq": 49,
-      "kind": "event",
       "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 544,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 544,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [
+        6
+      ],
+      "altScreen": false,
+      "at": 1790072446495
     },
     {
-      "seq": 50,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 544,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 544,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446495
     },
     {
-      "seq": 51,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 576,
+      "cursorX": 0,
+      "cursorY": 9,
       "params": [
         32
       ],
-      "offset": 576,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446510
     },
     {
-      "seq": 52,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 576,
+      "cursorX": 7,
+      "cursorY": 9,
       "params": [
         0
       ],
-      "offset": 576,
-      "cursorY": 9,
-      "cursorX": 7,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446510
     },
     {
-      "seq": 53,
-      "kind": "event",
       "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 608,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 608,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [
+        7
+      ],
+      "altScreen": false,
+      "at": 1790072446525
     },
     {
-      "seq": 54,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 608,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 608,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446525
     },
     {
-      "seq": 55,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 608,
+      "cursorX": 0,
+      "cursorY": 9,
       "params": [
         32
       ],
-      "offset": 608,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446525
     },
     {
-      "seq": 56,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 608,
+      "cursorX": 7,
+      "cursorY": 9,
       "params": [
         0
       ],
-      "offset": 608,
-      "cursorY": 9,
-      "cursorX": 7,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446526
     },
     {
-      "seq": 57,
-      "kind": "event",
       "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 640,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 640,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [
+        8
+      ],
+      "altScreen": false,
+      "at": 1790072446541
     },
     {
-      "seq": 58,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 640,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 640,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446541
     },
     {
-      "seq": 59,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 640,
+      "cursorX": 0,
+      "cursorY": 9,
       "params": [
         32
       ],
-      "offset": 640,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446541
     },
     {
-      "seq": 60,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 640,
+      "cursorX": 7,
+      "cursorY": 9,
       "params": [
         0
       ],
-      "offset": 640,
-      "cursorY": 9,
-      "cursorX": 7,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446541
     },
     {
-      "seq": 61,
-      "kind": "event",
       "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 672,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 672,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [
+        9
+      ],
+      "altScreen": false,
+      "at": 1790072446556
     },
     {
-      "seq": 62,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 672,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 672,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446556
     },
     {
-      "seq": 63,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 672,
+      "cursorX": 0,
+      "cursorY": 9,
       "params": [
         32
       ],
-      "offset": 672,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446556
     },
     {
-      "seq": 64,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 704,
+      "cursorX": 7,
+      "cursorY": 9,
       "params": [
         0
       ],
-      "offset": 704,
-      "cursorY": 9,
-      "cursorX": 7,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446572
     },
     {
-      "seq": 65,
-      "kind": "event",
       "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 704,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 704,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [
+        10
+      ],
+      "altScreen": false,
+      "at": 1790072446573
     },
     {
-      "seq": 66,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 704,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 704,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446573
     },
     {
-      "seq": 67,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 704,
+      "cursorX": 0,
+      "cursorY": 9,
       "params": [
         32
       ],
-      "offset": 704,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446573
     },
     {
-      "seq": 68,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 736,
+      "cursorX": 7,
+      "cursorY": 9,
       "params": [
         0
       ],
-      "offset": 736,
-      "cursorY": 9,
-      "cursorX": 7,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446588
     },
     {
-      "seq": 69,
-      "kind": "event",
       "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 736,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 736,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [
+        11
+      ],
+      "altScreen": false,
+      "at": 1790072446588
     },
     {
-      "seq": 70,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 736,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 736,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446588
     },
     {
-      "seq": 71,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 768,
+      "cursorX": 0,
+      "cursorY": 9,
       "params": [
         32
       ],
-      "offset": 768,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446588
     },
     {
-      "seq": 72,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 768,
+      "cursorX": 7,
+      "cursorY": 9,
       "params": [
         0
       ],
-      "offset": 768,
-      "cursorY": 9,
-      "cursorX": 7,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446588
     },
     {
-      "seq": 73,
-      "kind": "event",
       "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 800,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 800,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [
+        12
+      ],
+      "altScreen": false,
+      "at": 1790072446604
     },
     {
-      "seq": 74,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 800,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 800,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446604
     },
     {
-      "seq": 75,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 800,
+      "cursorX": 0,
+      "cursorY": 9,
       "params": [
         33
       ],
-      "offset": 800,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446604
     },
     {
-      "seq": 76,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 800,
+      "cursorX": 7,
+      "cursorY": 9,
       "params": [
         0
       ],
-      "offset": 800,
-      "cursorY": 9,
-      "cursorX": 7,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446604
     },
     {
-      "seq": 77,
-      "kind": "event",
       "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 832,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 832,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [
+        13
+      ],
+      "altScreen": false,
+      "at": 1790072446619
     },
     {
-      "seq": 78,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 832,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 832,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446619
     },
     {
-      "seq": 79,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 832,
+      "cursorX": 0,
+      "cursorY": 9,
       "params": [
         32
       ],
-      "offset": 832,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446619
     },
     {
-      "seq": 80,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 832,
+      "cursorX": 7,
+      "cursorY": 9,
       "params": [
         0
       ],
-      "offset": 832,
-      "cursorY": 9,
-      "cursorX": 7,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446619
     },
     {
-      "seq": 81,
-      "kind": "event",
       "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 864,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 864,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [
+        14
+      ],
+      "altScreen": false,
+      "at": 1790072446635
     },
     {
-      "seq": 82,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 864,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 864,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446635
     },
     {
-      "seq": 83,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 864,
+      "cursorX": 0,
+      "cursorY": 9,
       "params": [
         32
       ],
-      "offset": 864,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446635
     },
     {
-      "seq": 84,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 864,
+      "cursorX": 7,
+      "cursorY": 9,
       "params": [
         0
       ],
-      "offset": 864,
-      "cursorY": 9,
-      "cursorX": 7,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446635
     },
     {
-      "seq": 85,
-      "kind": "event",
       "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 896,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 896,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [
+        15
+      ],
+      "altScreen": false,
+      "at": 1790072446651
     },
     {
-      "seq": 86,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 896,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 896,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446651
     },
     {
-      "seq": 87,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 896,
+      "cursorX": 0,
+      "cursorY": 9,
       "params": [
         32
       ],
-      "offset": 896,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446651
     },
     {
-      "seq": 88,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 928,
+      "cursorX": 7,
+      "cursorY": 9,
       "params": [
         0
       ],
-      "offset": 928,
-      "cursorY": 9,
-      "cursorX": 7,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446667
     },
     {
-      "seq": 89,
-      "kind": "event",
       "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 928,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 928,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [
+        16
+      ],
+      "altScreen": false,
+      "at": 1790072446667
     },
     {
-      "seq": 90,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 928,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 928,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446667
     },
     {
-      "seq": 91,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 928,
+      "cursorX": 0,
+      "cursorY": 9,
       "params": [
         32
       ],
-      "offset": 928,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446667
     },
     {
-      "seq": 92,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 960,
+      "cursorX": 7,
+      "cursorY": 9,
       "params": [
         0
       ],
-      "offset": 960,
-      "cursorY": 9,
-      "cursorX": 7,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446682
     },
     {
-      "seq": 93,
-      "kind": "event",
       "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 992,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 992,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [
+        17
+      ],
+      "altScreen": false,
+      "at": 1790072446698
     },
     {
-      "seq": 94,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 992,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 992,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446698
     },
     {
-      "seq": 95,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 992,
+      "cursorX": 0,
+      "cursorY": 9,
       "params": [
         32
       ],
-      "offset": 992,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446698
     },
     {
-      "seq": 96,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 992,
+      "cursorX": 7,
+      "cursorY": 9,
       "params": [
         0
       ],
-      "offset": 992,
-      "cursorY": 9,
-      "cursorX": 7,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446698
     },
     {
-      "seq": 97,
-      "kind": "event",
       "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 1024,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 1024,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [
+        18
+      ],
+      "altScreen": false,
+      "at": 1790072446713
     },
     {
-      "seq": 98,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 1024,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 1024,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446713
     },
     {
-      "seq": 99,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 1024,
+      "cursorX": 0,
+      "cursorY": 9,
       "params": [
         32
       ],
-      "offset": 1024,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446713
     },
     {
-      "seq": 100,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 1024,
+      "cursorX": 7,
+      "cursorY": 9,
       "params": [
         0
       ],
-      "offset": 1024,
-      "cursorY": 9,
-      "cursorX": 7,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446713
     },
     {
-      "seq": 101,
-      "kind": "event",
       "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 1056,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 1056,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [
+        19
+      ],
+      "altScreen": false,
+      "at": 1790072446729
     },
     {
-      "seq": 102,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 1056,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 1056,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446729
     },
     {
-      "seq": 103,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 1056,
+      "cursorX": 0,
+      "cursorY": 9,
       "params": [
         33
       ],
-      "offset": 1056,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446729
     },
     {
-      "seq": 104,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 1056,
+      "cursorX": 7,
+      "cursorY": 9,
       "params": [
         0
       ],
-      "offset": 1056,
-      "cursorY": 9,
-      "cursorX": 7,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446729
     },
     {
-      "seq": 105,
-      "kind": "event",
       "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 1088,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 1088,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [
+        20
+      ],
+      "altScreen": false,
+      "at": 1790072446745
     },
     {
-      "seq": 106,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 1088,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 1088,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446745
     },
     {
-      "seq": 107,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 1088,
+      "cursorX": 0,
+      "cursorY": 9,
       "params": [
         32
       ],
-      "offset": 1088,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446745
     },
     {
-      "seq": 108,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 1120,
+      "cursorX": 7,
+      "cursorY": 9,
       "params": [
         0
       ],
-      "offset": 1120,
-      "cursorY": 9,
-      "cursorX": 7,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446761
     },
     {
-      "seq": 109,
-      "kind": "event",
       "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 1120,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 1120,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [
+        21
+      ],
+      "altScreen": false,
+      "at": 1790072446761
     },
     {
-      "seq": 110,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 1120,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 1120,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446761
     },
     {
-      "seq": 111,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 1120,
+      "cursorX": 0,
+      "cursorY": 9,
       "params": [
         32
       ],
-      "offset": 1120,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446761
     },
     {
-      "seq": 112,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 1152,
+      "cursorX": 7,
+      "cursorY": 9,
       "params": [
         0
       ],
-      "offset": 1152,
-      "cursorY": 9,
-      "cursorX": 7,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446776
     },
     {
-      "seq": 113,
-      "kind": "event",
       "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 1152,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 1152,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [
+        22
+      ],
+      "altScreen": false,
+      "at": 1790072446776
     },
     {
-      "seq": 114,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 1152,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 1152,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446776
     },
     {
-      "seq": 115,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 1184,
+      "cursorX": 0,
+      "cursorY": 9,
       "params": [
         32
       ],
-      "offset": 1184,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446792
     },
     {
-      "seq": 116,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 1184,
+      "cursorX": 7,
+      "cursorY": 9,
       "params": [
         0
       ],
-      "offset": 1184,
-      "cursorY": 9,
-      "cursorX": 7,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446792
     },
     {
-      "seq": 117,
-      "kind": "event",
       "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 1216,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 1216,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [
+        23
+      ],
+      "altScreen": false,
+      "at": 1790072446808
     },
     {
-      "seq": 118,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 1216,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 1216,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446808
     },
     {
-      "seq": 119,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 1216,
+      "cursorX": 0,
+      "cursorY": 9,
       "params": [
         32
       ],
-      "offset": 1216,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446808
     },
     {
-      "seq": 120,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 1216,
+      "cursorX": 7,
+      "cursorY": 9,
       "params": [
         0
       ],
-      "offset": 1216,
-      "cursorY": 9,
-      "cursorX": 7,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446808
     },
     {
-      "seq": 121,
-      "kind": "event",
       "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 1248,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 1248,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [
+        24
+      ],
+      "altScreen": false,
+      "at": 1790072446824
     },
     {
-      "seq": 122,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 1248,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 1248,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446824
     },
     {
-      "seq": 123,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 1248,
+      "cursorX": 0,
+      "cursorY": 9,
       "params": [
         32
       ],
-      "offset": 1248,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446824
     },
     {
-      "seq": 124,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 1248,
+      "cursorX": 7,
+      "cursorY": 9,
       "params": [
         0
       ],
-      "offset": 1248,
-      "cursorY": 9,
-      "cursorX": 7,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446824
     },
     {
-      "seq": 125,
-      "kind": "event",
       "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 1280,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 1280,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [
+        25
+      ],
+      "altScreen": false,
+      "at": 1790072446840
     },
     {
-      "seq": 126,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 1280,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 1280,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446840
     },
     {
-      "seq": 127,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 1280,
+      "cursorX": 0,
+      "cursorY": 9,
       "params": [
         32
       ],
-      "offset": 1280,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446840
     },
     {
-      "seq": 128,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 1312,
+      "cursorX": 7,
+      "cursorY": 9,
       "params": [
         0
       ],
-      "offset": 1312,
-      "cursorY": 9,
-      "cursorX": 7,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446855
     },
     {
-      "seq": 129,
-      "kind": "event",
       "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 1312,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 1312,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [
+        26
+      ],
+      "altScreen": false,
+      "at": 1790072446855
     },
     {
-      "seq": 130,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 1312,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 1312,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446855
     },
     {
-      "seq": 131,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 1312,
+      "cursorX": 0,
+      "cursorY": 9,
       "params": [
         33
       ],
-      "offset": 1312,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446855
     },
     {
-      "seq": 132,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 1344,
+      "cursorX": 7,
+      "cursorY": 9,
       "params": [
         0
       ],
-      "offset": 1344,
-      "cursorY": 9,
-      "cursorX": 7,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446871
     },
     {
-      "seq": 133,
-      "kind": "event",
       "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 1344,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 1344,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [
+        27
+      ],
+      "altScreen": false,
+      "at": 1790072446871
     },
     {
-      "seq": 134,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 1344,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 1344,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446871
     },
     {
-      "seq": 135,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 1376,
+      "cursorX": 0,
+      "cursorY": 9,
       "params": [
         32
       ],
-      "offset": 1376,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446886
     },
     {
-      "seq": 136,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 1376,
+      "cursorX": 7,
+      "cursorY": 9,
       "params": [
         0
       ],
-      "offset": 1376,
-      "cursorY": 9,
-      "cursorX": 7,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446886
     },
     {
-      "seq": 137,
-      "kind": "event",
       "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 1408,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 1408,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [
+        28
+      ],
+      "altScreen": false,
+      "at": 1790072446902
     },
     {
-      "seq": 138,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 1408,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 1408,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446902
     },
     {
-      "seq": 139,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 1408,
+      "cursorX": 0,
+      "cursorY": 9,
       "params": [
         32
       ],
-      "offset": 1408,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446902
     },
     {
-      "seq": 140,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 1408,
+      "cursorX": 7,
+      "cursorY": 9,
       "params": [
         0
       ],
-      "offset": 1408,
-      "cursorY": 9,
-      "cursorX": 7,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446902
     },
     {
-      "seq": 141,
-      "kind": "event",
       "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 1440,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 1440,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [
+        29
+      ],
+      "altScreen": false,
+      "at": 1790072446918
     },
     {
-      "seq": 142,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 1440,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 1440,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446918
     },
     {
-      "seq": 143,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 1440,
+      "cursorX": 0,
+      "cursorY": 9,
       "params": [
         32
       ],
-      "offset": 1440,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446918
     },
     {
-      "seq": 144,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 1440,
+      "cursorX": 7,
+      "cursorY": 9,
       "params": [
         0
       ],
-      "offset": 1440,
-      "cursorY": 9,
-      "cursorX": 7,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446918
     },
     {
-      "seq": 145,
-      "kind": "event",
       "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 1472,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 1472,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [
+        30
+      ],
+      "altScreen": false,
+      "at": 1790072446933
     },
     {
-      "seq": 146,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 1472,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 1472,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446933
     },
     {
-      "seq": 147,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 1472,
+      "cursorX": 0,
+      "cursorY": 9,
       "params": [
         32
       ],
-      "offset": 1472,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446933
     },
     {
-      "seq": 148,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 1472,
+      "cursorX": 7,
+      "cursorY": 9,
       "params": [
         0
       ],
-      "offset": 1472,
-      "cursorY": 9,
-      "cursorX": 7,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446933
     },
     {
-      "seq": 149,
-      "kind": "event",
       "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 1504,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 1504,
       "cursorX": 0,
-      "buffer": "normal"
-    },
-    {
-      "seq": 150,
-      "kind": "event",
-      "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 1504,
       "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
-    },
-    {
-      "seq": 151,
-      "kind": "csi",
-      "name": "SGR",
-      "final": "m",
-      "params": [
-        32
-      ],
-      "offset": 1504,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
-    },
-    {
-      "seq": 152,
-      "kind": "csi",
-      "name": "SGR",
-      "final": "m",
-      "params": [
-        0
-      ],
-      "offset": 1536,
-      "cursorY": 9,
-      "cursorX": 7,
-      "buffer": "normal"
-    },
-    {
-      "seq": 153,
-      "kind": "event",
-      "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 1536,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
-    },
-    {
-      "seq": 154,
-      "kind": "event",
-      "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 1536,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
-    },
-    {
-      "seq": 155,
-      "kind": "csi",
-      "name": "SGR",
-      "final": "m",
       "params": [
         31
       ],
-      "offset": 1536,
-      "cursorY": 9,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072446948
     },
     {
-      "seq": 156,
-      "kind": "csi",
+      "name": "LINEFEED",
+      "source": "event",
+      "byteOffset": 1504,
+      "cursorX": 0,
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446948
+    },
+    {
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 1504,
+      "cursorX": 0,
+      "cursorY": 9,
+      "params": [
+        32
+      ],
+      "altScreen": false,
+      "at": 1790072446948
+    },
+    {
+      "name": "SGR",
+      "source": "csi",
+      "byteOffset": 1536,
+      "cursorX": 7,
+      "cursorY": 9,
       "params": [
         0
       ],
-      "offset": 1568,
+      "altScreen": false,
+      "at": 1790072446964
+    },
+    {
+      "name": "SCROLL",
+      "source": "event",
+      "byteOffset": 1536,
+      "cursorX": 0,
       "cursorY": 9,
+      "params": [
+        32
+      ],
+      "altScreen": false,
+      "at": 1790072446964
+    },
+    {
+      "name": "LINEFEED",
+      "source": "event",
+      "byteOffset": 1536,
+      "cursorX": 0,
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446964
+    },
+    {
+      "name": "SGR",
+      "source": "csi",
+      "byteOffset": 1536,
+      "cursorX": 0,
+      "cursorY": 9,
+      "params": [
+        31
+      ],
+      "altScreen": false,
+      "at": 1790072446964
+    },
+    {
+      "name": "SGR",
+      "source": "csi",
+      "byteOffset": 1568,
       "cursorX": 22,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [
+        0
+      ],
+      "altScreen": false,
+      "at": 1790072446980
     },
     {
-      "seq": 157,
-      "kind": "event",
       "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 1568,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 1568,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [
+        33
+      ],
+      "altScreen": false,
+      "at": 1790072446980
     },
     {
-      "seq": 158,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 1568,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 1568,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446980
     },
     {
-      "seq": 159,
-      "kind": "event",
       "name": "SCROLL",
-      "final": "",
-      "params": [],
-      "offset": 1583,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 1583,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [
+        34
+      ],
+      "altScreen": false,
+      "at": 1790072446996
     },
     {
-      "seq": 160,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 1583,
-      "cursorY": 9,
+      "source": "event",
+      "byteOffset": 1583,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 9,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072446996
     }
   ],
   "frames": [
@@ -1967,16 +1874,16 @@
       "buffer": "normal",
       "viewportY": 34,
       "lines": [
-        "Building 40 targets",
-        "[1/40] Compiling module_1",
-        "[2/40] Compiling module_2",
-        "[3/40] Compiling module_3",
-        "[4/40] Compiling module_4",
-        "[5/40] Compiling module_5",
-        "[6/40] Compiling module_6",
-        "[7/40] Compiling module_7",
-        "[8/40] Compiling module_8",
-        "[9/40] Compiling module_9"
+        "[34/40] Compiling module_34",
+        "[35/40] Compiling module_35",
+        "[36/40] Compiling module_36",
+        "[37/40] Compiling module_37",
+        "[38/40] Compiling module_38",
+        "[39/40] Compiling module_39",
+        "[40/40] Compiling module_40",
+        "error: 1 target failed",
+        "Finished in 3.21s",
+        ""
       ]
     }
   ],

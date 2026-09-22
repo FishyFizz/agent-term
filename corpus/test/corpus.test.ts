@@ -17,6 +17,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { allProgrammes } from '../programmes/index.js';
 import { runDirect } from '../src/runner.js';
+import { OP } from '../../src/edit-record.js';
 import type { Trace, Op } from '../src/types.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -82,16 +83,26 @@ test('a repaint trace does emit erase and cursor ops', () => {
 
 test('the alt-screen writing counterexample really is on the alternate buffer', () => {
   const trace = loadTrace('basic.alt-screen-write', 'direct');
-  const inAlt = trace.ops.filter((o) => o.buffer === 'alternate');
+  const inAlt = trace.ops.filter((o) => o.altScreen);
   assert.ok(inAlt.length > 0, 'some ops must have fired while the alt buffer was active');
-  assert.ok(has(trace.ops, 'ALT_ENTER'), 'expected alt-screen enter');
+  // Enter and leave are DECSET/DECRST like any other mode; what makes them a
+  // boundary is the mode number, which `OP.isAltScreenSwitch` is the one
+  // authority on. Asserting on it here keeps a trace and the classifier in
+  // agreement about which ops are boundaries.
+  assert.ok(
+    trace.ops.some((o) => OP.isAltScreenSwitch(o)),
+    'expected an alt-screen switch',
+  );
 
   // The counterexample only bites if those alt-buffer ops are plain appends.
   const linefeedsInAlt = inAlt.filter((o) => o.name === 'LINEFEED').length;
   assert.ok(linefeedsInAlt >= 4, `expected sequential linefeeds on alt, got ${linefeedsInAlt}`);
 
   // Alt content is destroyed on exit — so a live frame must have been captured.
-  assert.ok(has(trace.ops, 'ALT_EXIT'));
+  assert.ok(
+    trace.ops.filter((o) => OP.isAltScreenSwitch(o)).length >= 2,
+    'expected both an enter and an exit',
+  );
 });
 
 test('the progress-bar scroll trace reproduces the CLASSIFIER.md §4 disproof', () => {
@@ -118,8 +129,11 @@ test('the shell→TUI→shell journey changes buffer twice', () => {
   const trace = loadTrace('complex.shell-tui-shell', 'direct');
   const changes = trace.ops.filter((o) => o.name === 'BUFFERCHANGE').length;
   assert.ok(changes >= 2, `expected enter and exit, got ${changes}`);
-  assert.ok(has(trace.ops, 'ALT_ENTER'));
-  assert.ok(has(trace.ops, 'ALT_EXIT'));
+  assert.equal(
+    trace.ops.filter((o) => OP.isAltScreenSwitch(o)).length >= 2,
+    true,
+    'expected an alt-screen enter and exit',
+  );
   // Shell text must survive the TUI: the final screen is back on normal and
   // shows the post-TUI shell output.
   const last = trace.frames[trace.frames.length - 1]!;
@@ -152,7 +166,12 @@ test('synchronized output frames are bracketed by the sync markers', () => {
 
 test('an unclean TUI exit preserves the last live alt-screen frame', () => {
   const trace = loadTrace('complex.unclean-tui-exit', 'direct');
-  assert.ok(!has(trace.ops, 'ALT_EXIT'), 'the programme dies without restoring');
+  // It enters the alt screen but never leaves: no DECRST of an alt-screen
+  // mode. The old vocabulary could say "no ALT_EXIT" with one op name; with
+  // enter and exit both spelled DECSET/DECRST, the direction is in the name.
+  const switches = trace.ops.filter((o) => OP.isAltScreenSwitch(o));
+  assert.equal(switches.length, 1, 'entered the alt screen exactly once, never left');
+  assert.equal(switches[0]!.name, 'DECSET', 'the only switch is the enter');
   const last = trace.frames[trace.frames.length - 1]!;
   assert.equal(last.buffer, 'alternate');
   assert.ok(last.lines.some((l) => l.includes('tui row')),
@@ -178,11 +197,13 @@ test('ops are byte-offset stamped and monotonic', async () => {
   const { trace } = await runDirect(allProgrammes[0]!);
   let prev = -1;
   for (const op of trace.ops) {
-    assert.ok(op.offset >= 0, 'offset is a byte offset');
-    assert.ok(op.offset >= prev, 'offsets never go backwards');
-    assert.ok(op.offset <= trace.bytes, 'offset is within the stream');
-    prev = op.offset;
+    assert.ok(op.byteOffset >= 0, 'offset is a byte offset');
+    assert.ok(op.byteOffset >= prev, 'offsets never go backwards');
+    assert.ok(op.byteOffset <= trace.bytes, 'offset is within the stream');
+    prev = op.byteOffset;
   }
-  // Seq is a total order independent of offsets.
-  trace.ops.forEach((op, i) => assert.equal(op.seq, i, 'seq is dense and ordered'));
+  // Array order is the order the emulator saw them, which is the only total
+  // order that exists: ops in one delivery share an offset, so an offset
+  // cannot order them.
+  assert.ok(trace.ops.length > 0, 'the stream is not empty');
 });

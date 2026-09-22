@@ -7,7 +7,7 @@
   "cols": 60,
   "rows": 6,
   "platform": "win32",
-  "recordedAt": "2026-09-22T05:27:22.377Z",
+  "recordedAt": "2026-09-22T10:21:18.025Z",
   "expectations": [
     {
       "from": 0,
@@ -24,65 +24,108 @@
   ],
   "ops": [
     {
-      "seq": 0,
-      "kind": "csi",
+      "name": "DECSET",
+      "source": "csi",
+      "byteOffset": 16,
+      "cursorX": 0,
+      "cursorY": 0,
+      "params": [
+        9001
+      ],
+      "altScreen": false,
+      "at": 1790072477526
+    },
+    {
+      "name": "DECSET",
+      "source": "csi",
+      "byteOffset": 16,
+      "cursorX": 0,
+      "cursorY": 0,
+      "params": [
+        1004
+      ],
+      "altScreen": false,
+      "at": 1790072477526
+    },
+    {
+      "name": "DECRST",
+      "source": "csi",
+      "byteOffset": 122,
+      "cursorX": 0,
+      "cursorY": 0,
+      "params": [
+        25
+      ],
+      "altScreen": false,
+      "at": 1790072477620
+    },
+    {
       "name": "ED",
-      "final": "J",
+      "source": "csi",
+      "byteOffset": 122,
+      "cursorX": 0,
+      "cursorY": 0,
       "params": [
         2
       ],
-      "offset": 122,
-      "cursorY": 0,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072477621
     },
     {
-      "seq": 1,
-      "kind": "csi",
       "name": "SGR",
-      "final": "m",
+      "source": "csi",
+      "byteOffset": 122,
+      "cursorX": 0,
+      "cursorY": 0,
       "params": [
         0
       ],
-      "offset": 122,
-      "cursorY": 0,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072477621
     },
     {
-      "seq": 2,
-      "kind": "csi",
       "name": "CUP",
-      "final": "H",
+      "source": "csi",
+      "byteOffset": 122,
+      "cursorX": 0,
+      "cursorY": 0,
       "params": [
         0
       ],
-      "offset": 122,
-      "cursorY": 0,
-      "cursorX": 0,
-      "buffer": "normal"
+      "altScreen": false,
+      "at": 1790072477621
     },
     {
-      "seq": 3,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 122,
-      "cursorY": 1,
+      "source": "event",
+      "byteOffset": 122,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 1,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072477621
     },
     {
-      "seq": 4,
-      "kind": "event",
       "name": "TITLECHANGE",
-      "final": "",
-      "params": [],
-      "offset": 122,
-      "cursorY": 1,
+      "source": "event",
+      "byteOffset": 122,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 1,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072477621
+    },
+    {
+      "name": "DECSET",
+      "source": "csi",
+      "byteOffset": 122,
+      "cursorX": 0,
+      "cursorY": 1,
+      "params": [
+        25
+      ],
+      "altScreen": false,
+      "at": 1790072477621
     }
   ],
   "frames": [
@@ -96,7 +139,7 @@
       "viewportY": 0,
       "lines": [
         "About to delete 12 files.",
-        "Continue? [y/N] ",
+        "Continue? [y/N]",
         "",
         "",
         "",

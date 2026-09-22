@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { PtySession } from './pty.js';
+import { TerminalSession } from './session.js';
 import type { SessionId, SessionOptions } from './types.js';
 
 /**
@@ -8,18 +8,23 @@ import type { SessionId, SessionOptions } from './types.js';
  * Ids are server-generated UUIDs, never caller-supplied: a session handle is
  * meant to be an unforgeable key, not a name another caller can guess or
  * collide with.
+ *
+ * It holds `TerminalSession`s rather than bare ptys. A registry of ptys was
+ * the L0.5 substrate's own view, but everything above L0.5 needs the
+ * classified session, so every caller was reassembling one by hand -- and
+ * `TerminalSession` was not reachable from the registry at all.
  */
 export class SessionRegistry {
-  private readonly sessions = new Map<SessionId, PtySession>();
+  private readonly sessions = new Map<SessionId, TerminalSession>();
 
-  create(options: SessionOptions = {}): PtySession {
+  create(options: SessionOptions = {}): TerminalSession {
     const id = randomUUID();
-    const session = new PtySession(id, options);
+    const session = new TerminalSession(id, options);
     this.sessions.set(id, session);
     return session;
   }
 
-  get(id: SessionId): PtySession | undefined {
+  get(id: SessionId): TerminalSession | undefined {
     return this.sessions.get(id);
   }
 
@@ -35,7 +40,6 @@ export class SessionRegistry {
   remove(id: SessionId): boolean {
     const session = this.sessions.get(id);
     if (!session) return false;
-    session.kill();
     session.dispose();
     this.sessions.delete(id);
     return true;

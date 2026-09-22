@@ -132,8 +132,8 @@ test('erase and cursor addressing are honoured', async () => {
   const s = await screen(20, 3, 'aaaa');
   // CUP to row 1 col 1, then erase to end of line.
   await s.feed('\x1b[1;1H\x1b[K');
-  assert.equal(s.snapshot().lines[0].trimEnd(), '', 'EL cleared the row');
+  assert.equal(s.snapshot().lines[0]!.trimEnd(), '', 'EL cleared the row');
   await s.feed('zz');
-  assert.equal(s.snapshot().lines[0].trimEnd(), 'zz', 'content written after erase');
+  assert.equal(s.snapshot().lines[0]!.trimEnd(), 'zz', 'content written after erase');
   assert.equal(s.snapshot().cursorX, 2);
 });

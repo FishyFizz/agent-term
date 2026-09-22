@@ -7,7 +7,7 @@
   "cols": 80,
   "rows": 6,
   "platform": "win32",
-  "recordedAt": "2026-09-22T05:28:02.669Z",
+  "recordedAt": "2026-09-22T10:20:44.178Z",
   "expectations": [
     {
       "from": 0,
@@ -24,15 +24,14 @@
   ],
   "ops": [
     {
-      "seq": 0,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 32,
-      "cursorY": 1,
+      "source": "event",
+      "byteOffset": 32,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 1,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072444163
     }
   ],
   "frames": [

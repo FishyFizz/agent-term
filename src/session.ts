@@ -7,6 +7,11 @@
  *
  * What it deliberately does not do: deliver, coalesce on a timer, or store
  * history. Those are L1/L3 and sit above this.
+ *
+ * Output is classified as it arrives: the pty's `data` is wired straight to
+ * `feed` in the constructor. Otherwise a caller could build a session, never
+ * subscribe, and have a classifier that silently never runs -- a mistake
+ * possible by omission, which is the kind worth removing.
  */
 import { PtySession } from './pty.js';
 import { ScreenModel } from './screen.js';
@@ -24,14 +29,27 @@ export interface SessionUpdate {
   fromByte: number;
   toByte: number;
   segments: Segment[];
-  /** L1.3: bytes read in total; `bytesPending` is null when unknown, never 0. */
-  io: {
-    bytesRead: number;
-    /** Bytes delivered but not yet parsed. null when not knowable. */
-    bytesPending: number | null;
-  };
+  io: SessionIo;
   /** The screen after this update. Present whenever the change touched it. */
   screen: ReturnType<ScreenModel['snapshot']>;
+}
+
+/**
+ * L1.3 — the facts that distinguish "quiet" from "not read yet".
+ *
+ * `bytesRead` is a watermark: monotonic, never reset, so comparing an earlier
+ * value against the current one says whether anything arrived since.
+ *
+ * `bytesPending` is bytes read but not yet through the parser. `null` when the
+ * number is not knowable, and 0 only when it is genuinely zero — GOAL.md L1.3:
+ * unknown values are `null`, never `0`, because conflating the two is a whole
+ * class of interaction bug.
+ */
+export interface SessionIo {
+  /** Total bytes read from the pty. Monotonic. */
+  bytesRead: number;
+  /** Bytes read but not yet parsed. `null` when not knowable. */
+  bytesPending: number | null;
 }
 
 /**
@@ -46,6 +64,7 @@ export class TerminalSession {
   readonly pty: PtySession;
   readonly screen: ScreenModel;
 
+  private readonly listeners: ((update: SessionUpdate) => void)[] = [];
   private _seq = 0;
   private queue: Promise<void> = Promise.resolve();
   private pendings = 0;
@@ -54,6 +73,24 @@ export class TerminalSession {
     this.id = id;
     this.pty = new PtySession(id, options);
     this.screen = new ScreenModel(this.pty.cols, this.pty.rows);
+    this.pty.on('data', (chunk) => {
+      void this.feed(chunk).then((update) => {
+        for (const listener of this.listeners) listener(update);
+      });
+    });
+  }
+
+  /**
+   * Subscribe to classified output. Returns an unsubscribe function.
+   *
+   * Every change produces an update, in the order the pty produced it.
+   */
+  onUpdate(listener: (update: SessionUpdate) => void): () => void {
+    this.listeners.push(listener);
+    return () => {
+      const i = this.listeners.indexOf(listener);
+      if (i >= 0) this.listeners.splice(i, 1);
+    };
   }
 
   /** Feed one chunk of pty output and classify it. Serialized. */
@@ -83,13 +120,10 @@ export class TerminalSession {
         fromByte,
         toByte: classified.toByte,
         segments: classified.segments,
-        io: {
-          bytesRead: this.pty.bytesRead,
-          // Bytes handed over but not yet through the parser. Zero here is a
-          // real zero -- this call has drained what it was given -- so it is
-          // genuinely 0, not null.
-          bytesPending: 0,
-        },
+        // Zero is a real zero here: this call has drained what it was given.
+        // It is per-update, so it says *this* update is parsed, not that the
+        // pty is quiet -- `bytesRead` is the watermark that answers that.
+        io: { bytesRead: this.pty.bytesRead, bytesPending: 0 },
         screen: this.screen.snapshot(),
       } satisfies SessionUpdate;
     });
@@ -129,6 +163,7 @@ export class TerminalSession {
    * and the process never exits.
    */
   dispose(): void {
+    this.listeners.length = 0;
     this.pty.kill();
     this.screen.dispose();
     this.pty.dispose();

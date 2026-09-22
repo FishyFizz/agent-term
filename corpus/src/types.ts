@@ -2,33 +2,18 @@
  * Trace shapes.
  *
  * The corpus contract: a trace is the emulator's own record of a programme's
- * output — the control-op stream, screen frames, and the text log — plus the
+ * output — the op stream, screen frames, and the text log — plus the
  * *expectation* of how each segment should classify.
  *
- * Everything here is produced by `Recorder`, which only ever reads the
- * emulator. No field is derived by scanning the raw bytes; that would be a
- * second parser and CLASSIFIER.md §1 forbids it.
+ * Everything here is produced by feeding the bytes through `ScreenModel`,
+ * which only ever reads the emulator. No field is derived by scanning the raw
+ * bytes; that would be a second parser and CLASSIFIER.md §1 forbids it.
+ *
+ * The `Op` shape is the repo's one op vocabulary (src/edit-record.ts), not a
+ * corpus-local copy: a trace is replayed through the same classifier that
+ * reads a live session, so both have to mean the same thing by the same name.
  */
-
-/** One intercepted control operation or structural event. */
-export interface Op {
-  /** Monotonic ordering across the whole trace. */
-  seq: number;
-  /** `csi` / `esc` / `mode` (alt-screen, DEC private modes) / `event`. */
-  kind: 'csi' | 'esc' | 'mode' | 'event';
-  /** Human-readable op name: `CUP`, `EL`, `ALT_ENTER`, `LINEFEED`, … */
-  name: string;
-  /** Terminating byte; empty for structural events. */
-  final: string;
-  /** Numeric parameters, flattened. */
-  params: number[];
-  /** Byte offset into the programme's output at which this op fired. */
-  offset: number;
-  cursorY: number;
-  cursorX: number;
-  /** Which buffer was active when the op fired. */
-  buffer: 'normal' | 'alternate';
-}
+import type { Op } from '../../src/edit-record.js';
 
 /** A snapshot of the visible screen. */
 export interface Frame {
@@ -128,3 +113,5 @@ export interface ProgrammeIo {
   cols: number;
   rows: number;
 }
+
+export type { Op };

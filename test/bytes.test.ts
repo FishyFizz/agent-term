@@ -11,8 +11,8 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { SessionRegistry } from '../src/registry.js';
-import type { PtySession } from '../src/pty.js';
+import { randomUUID } from 'node:crypto';
+import { PtySession } from '../src/pty.js';
 
 const isWindows = process.platform === 'win32';
 const command = isWindows ? 'powershell.exe' : '/bin/sh';
@@ -70,10 +70,9 @@ function probe(marker: string): string {
 }
 
 test('bytesRead counts bytes, not characters', async (t) => {
-  const registry = new SessionRegistry();
-  t.after(() => registry.disposeAll());
+  const session = new PtySession(randomUUID(), { command, args, cols: 200, rows: 24 });
+  t.after(() => session.dispose());
 
-  const session = registry.create({ command, args, cols: 200, rows: 24 });
   const chunks: Buffer[] = [];
   session.on('data', (c) => chunks.push(c));
   const seen = () => Buffer.concat(chunks).toString('utf8');
@@ -112,10 +111,9 @@ test('bytesRead counts bytes, not characters', async (t) => {
 });
 
 test('data events deliver Buffers, monotonically ordered', async (t) => {
-  const registry = new SessionRegistry();
-  t.after(() => registry.disposeAll());
+  const session = new PtySession(randomUUID(), { command, args });
+  t.after(() => session.dispose());
 
-  const session = registry.create({ command, args });
   const chunks: Buffer[] = [];
   session.on('data', (c) => chunks.push(c));
 

@@ -7,7 +7,7 @@
   "cols": 80,
   "rows": 4,
   "platform": "win32",
-  "recordedAt": "2026-09-22T05:28:03.058Z",
+  "recordedAt": "2026-09-22T10:20:44.567Z",
   "expectations": [
     {
       "from": 9,
@@ -18,37 +18,34 @@
   ],
   "ops": [
     {
-      "seq": 0,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 32,
+      "source": "event",
+      "byteOffset": 32,
+      "cursorX": 0,
       "cursorY": 1,
-      "cursorX": 0,
-      "buffer": "normal"
+      "params": [],
+      "altScreen": false,
+      "at": 1790072444489
     },
     {
-      "seq": 1,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 173,
+      "source": "event",
+      "byteOffset": 173,
+      "cursorX": 0,
       "cursorY": 2,
-      "cursorX": 0,
-      "buffer": "normal"
+      "params": [],
+      "altScreen": false,
+      "at": 1790072444567
     },
     {
-      "seq": 2,
-      "kind": "event",
       "name": "LINEFEED",
-      "final": "",
-      "params": [],
-      "offset": 173,
-      "cursorY": 3,
+      "source": "event",
+      "byteOffset": 173,
       "cursorX": 0,
-      "buffer": "normal"
+      "cursorY": 3,
+      "params": [],
+      "altScreen": false,
+      "at": 1790072444567
     }
   ],
   "frames": [

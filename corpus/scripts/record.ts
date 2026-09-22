@@ -62,7 +62,7 @@ async function main(): Promise<void> {
         const counts = countOps(trace);
         console.log(
           `ok  bytes=${trace.bytes} ops=${trace.ops.length} frames=${trace.frames.length} ` +
-            `csi=${counts.csi} esc=${counts.esc} mode=${counts.mode} ev=${counts.event}`,
+            `csi=${counts.csi} esc=${counts.esc} ev=${counts.event}`,
         );
         if (args.print) printTrace(trace);
         if (trace.bytes === 0) {
@@ -81,8 +81,8 @@ async function main(): Promise<void> {
 }
 
 function countOps(trace: Trace): Record<string, number> {
-  const counts: Record<string, number> = { csi: 0, esc: 0, mode: 0, event: 0 };
-  for (const op of trace.ops) counts[op.kind] = (counts[op.kind] ?? 0) + 1;
+  const counts: Record<string, number> = { csi: 0, esc: 0, event: 0 };
+  for (const op of trace.ops) counts[op.source] = (counts[op.source] ?? 0) + 1;
   return counts;
 }
 

@@ -13,7 +13,7 @@
  */
 import { Writable } from 'node:stream';
 import { Recorder } from './recorder.js';
-import type { Programme, ProgrammeIo, Trace, Op, Frame } from './types.js';
+import type { Programme, ProgrammeIo, Trace } from './types.js';
 
 /** A stdout the programme writes to, which counts bytes and records marks. */
 class CountingSink extends Writable {
@@ -202,8 +202,9 @@ function assemble(
   cols: number,
   rows: number,
 ): Trace {
-  const ops: Op[] = recorder.ops;
-  const frames: Frame[] = recorder.frames;
+  // Ops are the live array until the trace owns them; copy, so a recorder
+  // disposed right after this cannot have cleared what we just recorded.
+  const { ops, frames, textLog } = recorder.recorded();
   return {
     version: 1,
     id: programme.id,
@@ -215,9 +216,9 @@ function assemble(
     platform: process.platform,
     recordedAt: new Date().toISOString(),
     expectations: programme.expectations(marks),
-    ops,
+    ops: [...ops],
     frames,
-    textLog: recorder.textLog,
+    textLog,
     bytes: recorder.bytesWritten,
     raw,
   };
