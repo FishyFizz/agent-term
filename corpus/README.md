@@ -1,6 +1,6 @@
 # Corpus — terminal test programs and recorded traces
 
-A submodule of AgentTerm: 22 terminal programmes that exercise the terminal in
+Part of AgentTerm: 22 terminal programmes that exercise the terminal in
 different ways, plus recorded traces of each, for validating the
 writing/drawing classifier (L0.1).
 
@@ -19,15 +19,20 @@ classifier so that the classifier has something to be wrong about.
 ## Layout
 
 ```
-src/recorder.ts      feeds bytes through @xterm/headless, records op stream + frames
+src/recorder.ts      captures frames + text log over the repo's ScreenModel
 src/runner.ts        runs a programme directly or in a real pty
-src/types.ts         Trace / Op / Frame / SegmentExpectation
+src/types.ts         Trace / Frame / SegmentExpectation; Op comes from src/
 src/child-driver.ts  runs one programme in a child process (pty feed)
 programmes/          basic.ts, cli.ts, complex.ts, index.ts
 traces/              recorded output, one file per (programme, feed)
 test/corpus.test.ts  corpus invariants
 OPS.md               commands, and the platform facts a classifier author needs
 ```
+
+Recording goes through the repo's own `ScreenModel` (`src/screen.ts`), so the
+op stream, byte offsets and screen state in a trace are exactly what a live
+session produces — a trace replayed through the classifier is not meeting a
+different parser than the server uses. `Op` is `src/edit-record.ts`'s.
 
 ## The contract
 
@@ -49,9 +54,11 @@ killing a plausible wrong design, and the `why` says which.
 ## Quick start
 
 ```bash
-cd corpus
-npx tsx scripts/record.ts --print     # record all, direct feed
-npx tsx --test test/corpus.test.ts    # 36 invariant checks
+# from the repo root
+npm run record        # record all programmes, direct feed
+npm run record:all    # both feeds (direct + pty)
+npm run test          # runs corpus/test/corpus.test.ts alongside the rest
+npm run corpus        # score the classifier across replay granularities
 ```
 
 See `OPS.md` for the two feeds, the ConPTY findings, and how to add a programme.
