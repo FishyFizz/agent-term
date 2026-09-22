@@ -156,15 +156,13 @@ export class TerminalSession {
   }
 
   /**
-   * End the session: kill the process tree first, then release handles.
+   * End the session.
    *
-   * `PtySession.dispose()` only releases listeners -- it does not kill. A
-   * session that is disposed without being killed leaves its shell running
-   * and the process never exits.
+   * `pty.dispose()` kills the process tree itself, so there is no separate
+   * kill to remember here.
    */
   dispose(): void {
     this.listeners.length = 0;
-    this.pty.kill();
     this.screen.dispose();
     this.pty.dispose();
   }

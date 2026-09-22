@@ -20,7 +20,7 @@ import type { Trace } from './helpers/corpus.js';
 /** Scores are pinned so a change is visible; raise them when the classifier improves. */
 const EXPECTED = {
   /** One delivery per drawing op: the classifier's best case. */
-  drawOps: 19,
+  drawOps: 20,
   /** Fixed 64-byte chunks, closer to what a pty delivers. */
   pty64: 14,
 };

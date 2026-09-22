@@ -155,8 +155,18 @@ export class PtySession implements PtyEventTarget {
     this.emitter.off(event, listener);
   }
 
-  /** Release listeners and pty handles. Safe to call after exit. */
+  /**
+   * End the session: kill the process tree, then release listeners and pty
+   * handles. Idempotent, and safe to call after exit.
+   *
+   * Killing is part of disposal, not a separate step a caller must remember.
+   * A pty released without being killed leaves its shell running and the
+   * process never exits -- which is a hang, not a leak you notice later.
+   * `TerminalSession.dispose()` used to have to say this out loud in a
+   * comment; the invariant belongs here, where the handle is owned.
+   */
   dispose(): void {
+    this.kill();
     for (const d of this.disposables) d.dispose();
     this.disposables.length = 0;
     this.emitter.removeAllListeners();
