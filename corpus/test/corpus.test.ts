@@ -15,7 +15,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { allProgrammes } from '../programmes/index.js';
+import { allProgrammes, findProgramme } from '../programmes/index.js';
 import { runDirect } from '../src/runner.js';
 import { OP } from '../../src/edit-record.js';
 import type { Trace, Op } from '../src/types.js';
@@ -146,10 +146,8 @@ test('a firehose overloads the grid but keeps every line in the text log', async
   assert.ok(trace.bytes > 10000, 'expected a large burst');
 
   // The grid is bounded; the text log must not be the place lines are lost.
-  const { runDirect: run } = await import('../src/runner.js');
-  const { findProgramme } = await import('../programmes/index.js');
   const programme = findProgramme('complex.firehose')!;
-  const { trace: fresh } = await run(programme);
+  const { trace: fresh } = await runDirect(programme);
   const visible = fresh.frames[fresh.frames.length - 1]!.lines.length;
   assert.ok(visible <= programme.rows!, 'the grid stays bounded at rows');
 });
@@ -191,6 +189,25 @@ test('every programme runs and records without throwing', async (t) => {
       }
     });
   }
+});
+
+test('recording is deterministic apart from timestamps', async () => {
+  // Re-recording must reproduce the committed trace byte for byte, or a
+  // "regression" can be nothing but clock drift. Two independent runs of
+  // `--feed both` were identical everywhere except `recordedAt` and `op.at`,
+  // so those two are stripped and everything else is compared exactly.
+  const trace = loadTrace('basic.plain-write', 'direct');
+  const programme = findProgramme('basic.plain-write')!;
+  const { trace: fresh } = await runDirect(programme);
+
+  const stripTime = (t: Trace) => ({
+    ...t,
+    recordedAt: '<time>',
+    ops: t.ops.map(({ at: _at, ...rest }) => rest),
+    frames: t.frames.map((f) => ({ ...f })),
+  });
+
+  assert.deepEqual(stripTime(fresh), stripTime(trace), 're-recording reproduces the trace');
 });
 
 test('ops are byte-offset stamped and monotonic', async () => {
