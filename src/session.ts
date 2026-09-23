@@ -17,6 +17,7 @@ import { PtySession } from './pty.js';
 import { ScreenModel } from './screen.js';
 import { classify, frameOf } from './classify.js';
 import type { Segment } from './classify.js';
+import { gridDelta, type GridDelta } from './delta.js';
 import type { TextLine } from './text-log.js';
 import type { SessionOptions } from './types.js';
 import { assertGridSize } from './types.js';
@@ -41,6 +42,16 @@ export interface SessionUpdate {
    * destroyed on exit (CLASSIFIER.md §5).
    */
   text: TextLine[];
+  /**
+   * What this delivery changed on the grid, or `null` when nothing changed or
+   * a delta would not have been smaller than the screen itself.
+   *
+   * Storing the delta rather than only the screen is what keeps a repainting
+   * TUI affordable: 60fps of full grids is ~17 MB/minute at 120x40, where the
+   * change is usually a few cells. The screen is still reported whole, because
+   * a caller that wants the state should not have to reconstruct it.
+   */
+  grid: GridDelta | null;
   /** The screen after this update. Present whenever the change touched it. */
   screen: ReturnType<ScreenModel['snapshot']>;
 }
@@ -109,9 +120,14 @@ export class TerminalSession {
     this.pendings++;
     const run = this.queue.then(async () => {
       const fromByte = this.screen.ops.bytesFed;
-      const before = frameOf(this.screen);
+      // Snapshotted once and used for both the classifier's frame and the grid
+      // delta: the frame trims the padded rows the delta needs, so taking two
+      // snapshots would do the same work twice to get the same grid.
+      const beforeSnap = this.screen.snapshot();
+      const before = frameOf(this.screen, beforeSnap);
       await this.screen.feed(chunk);
-      const after = frameOf(this.screen);
+      const afterSnap = this.screen.snapshot();
+      const after = frameOf(this.screen, afterSnap);
       const ops = this.screen.ops.recorded.filter((o) => o.byteOffset >= fromByte);
       this.screen.ops.clear();
       // Drained in the same window as the ops, so each line belongs to exactly
@@ -135,11 +151,15 @@ export class TerminalSession {
         toByte: classified.toByte,
         segments: classified.segments,
         text,
+        // The viewport delta is exactly the scroll until the scrollback ring
+        // saturates; past that it is useless, and the encoder falls back to
+        // searching for a shift it can verify (see `delta.ts`).
+        grid: gridDelta(beforeSnap, afterSnap, after.viewportY - before.viewportY),
         // Zero is a real zero here: this call has drained what it was given.
         // It is per-update, so it says *this* update is parsed, not that the
         // pty is quiet -- `bytesRead` is the watermark that answers that.
         io: { bytesRead: this.pty.bytesRead, bytesPending: 0 },
-        screen: this.screen.snapshot(),
+        screen: afterSnap,
       } satisfies SessionUpdate;
     });
 

@@ -9,6 +9,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { TerminalSession } from '../src/session.js';
+import { applyDelta } from '../src/delta.js';
 
 const isWindows = process.platform === 'win32';
 const command = isWindows ? 'powershell.exe' : '/bin/sh';
@@ -137,6 +138,64 @@ test('a command producing many lines is classified without drowning', async (t) 
     assert.equal(u.screen.rows, 24);
     assert.equal(u.screen.cols, 100);
   }
+});
+
+test("every update's delta reproduces that update's screen exactly", async (t) => {
+  const { session, updates } = harness();
+  t.after(() => session.dispose());
+
+  session.pty.write('1..200 | % { $_ }\r\n');
+  await waitFor(() => session.seq > 0 && updates.at(-1)!.io.bytesRead > 500, {
+    label: 'bulk output',
+    timeoutMs: 15000,
+  });
+
+  // The invariant the timeline rests on. A delta is stored instead of a screen,
+  // so if one encoding were wrong -- a missed scroll, a mis-aligned run -- every
+  // later read of that history would be silently corrupt, and the screen stored
+  // alongside it would look perfectly fine. Checking both together is the only
+  // way to catch it here rather than three layers up.
+  let checked = 0;
+  for (let i = 1; i < updates.length; i++) {
+    const previous = updates[i - 1]!;
+    const current = updates[i]!;
+    if (!current.grid) continue;
+    checked++;
+    assert.deepEqual(
+      applyDelta(previous.screen, current.grid).lines,
+      current.screen.lines,
+      `update ${current.seq}'s delta reconstructs its screen`,
+    );
+  }
+  assert.ok(checked > 0, `the run produced deltas to check (${checked})`);
+});
+
+test('a bulk run keeps the lines the grid cannot hold', async (t) => {
+  const { session, updates } = harness();
+  t.after(() => session.dispose());
+
+  // 200 lines into a 24-row screen: the overwhelming majority cannot survive on
+  // the grid, which is the whole reason the text log exists. Wait for the *last*
+  // line rather than a count, so the assertions below run on a finished command
+  // instead of racing one still producing output.
+  session.pty.write('1..200 | % { "AGENTTERM-LINE-$_" }\r\n');
+  const got = await waitFor(
+    () => updates.some((u) => u.text.some((l) => l.text.includes('AGENTTERM-LINE-200'))),
+    { label: 'the final line', timeoutMs: 15000 },
+  );
+  assert.ok(got, 'the run finished');
+
+  const lines = updates.flatMap((u) => u.text.map((l) => l.text));
+  assert.ok(lines.length >= 150, `captured ${lines.length} lines, far more than the 24 rows`);
+  assert.ok(
+    lines.some((l) => l.includes('AGENTTERM-LINE-1')),
+    'including one the screen scrolled away long ago',
+  );
+  assert.ok(
+    lines.some((l) => l.includes('AGENTTERM-LINE-200')),
+    'and the most recent one',
+  );
+  assert.ok(new Set(lines).size >= 150, 'distinct lines, not collapsed into a set');
 });
 
 test('resizing a live session keeps pty and screen in step', async (t) => {

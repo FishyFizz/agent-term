@@ -13,6 +13,7 @@
  * "without special-casing any program".
  */
 import type { ScreenModel } from './screen.js';
+import type { ScreenSnapshot } from './screen.js';
 import { OP, type Op, type OpName } from './edit-record.js';
 
 export type Verdict = 'writing' | 'drawing';
@@ -381,9 +382,14 @@ function scoreShift(before: Frame, after: Frame, shift: number): number {
   return score;
 }
 
-/** Capture the frame a classifier call needs from a live model. */
-export function frameOf(screen: ScreenModel): Frame {
-  const snap = screen.snapshot();
+/**
+ * Capture the frame a classifier call needs from a live model.
+ *
+ * `snap` may be passed when the caller has already taken one -- `feed` needs
+ * the padded rows for a grid delta, and snapshotting the emulator twice per
+ * delivery to get the same grid trimmed and untrimmed is waste, not clarity.
+ */
+export function frameOf(screen: ScreenModel, snap: ScreenSnapshot = screen.snapshot()): Frame {
   return {
     // Right-trimmed. `snapshot()` pads rows to the full width so a caller can
     // index a cell, but comparing padded rows against trimmed ones makes
