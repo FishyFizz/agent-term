@@ -154,17 +154,30 @@ export class PtySession implements PtyEventTarget {
   }
 
   /**
-   * End the session: kill the process tree, then release listeners and pty
-   * handles. Idempotent, and safe to call after exit.
+   * End the session: release the pty, then release listeners and handles.
+   * Idempotent, and safe to call after exit.
    *
    * Killing is part of disposal, not a separate step a caller must remember.
    * A pty released without being killed leaves its shell running and the
    * process never exits -- which is a hang, not a leak you notice later.
    * `TerminalSession.dispose()` used to have to say this out loud in a
    * comment; the invariant belongs here, where the handle is owned.
+   *
+   * The underlying `kill()` is called **even when the process has already
+   * exited**, which `kill()` itself deliberately does not do. Stopping a
+   * process and releasing its resources are different questions, and node-pty
+   * only answers the second one from `kill()`: the ConPTY agent owns a worker
+   * thread that nothing else terminates. A process that exits on its own never
+   * runs that path, so skipping it here leaves the thread alive and the host
+   * process unable to exit -- the session that ended by itself would be the one
+   * that never lets go.
    */
   dispose(): void {
-    this.kill();
+    try {
+      this.pty.kill();
+    } catch {
+      // Nothing left to kill, so nothing left to release.
+    }
     for (const d of this.disposables) d.dispose();
     this.disposables.length = 0;
     this.emitter.removeAllListeners();
