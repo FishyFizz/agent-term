@@ -252,6 +252,20 @@ test('the process exiting is reported, with its status', async (t) => {
   assert.ok(seen[0]?.exitCode !== undefined, 'with a status, not an absent one');
 });
 
+test('a disposed session reports itself over, not merely released', () => {
+  // `dispose()` kills the process itself, and drops the exit handler in the
+  // same breath -- so nothing is left to clear the liveness flag afterwards.
+  // A caller still holding the session would be told it is alive with its pty
+  // gone, and `write()` guards on exactly that flag before touching the pty.
+  const { session } = harness();
+
+  session.dispose();
+  assert.equal(session.pty.alive, false, 'disposal is the end of the session');
+
+  // Writing into a pty whose socket is gone must be a no-op, not a throw.
+  session.pty.write('anything');
+});
+
 test('history reconstructs every screen of a live session', async (t) => {
   const { session, updates } = harness();
   const history = new HistoryStore().open(session);

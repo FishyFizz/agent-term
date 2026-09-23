@@ -171,8 +171,14 @@ export class PtySession implements PtyEventTarget {
    * runs that path, so skipping it here leaves the thread alive and the host
    * process unable to exit -- the session that ended by itself would be the one
    * that never lets go.
+   *
+   * Disposal is itself the end of the session, so `alive` goes false here and
+   * not only when an exit event happens to arrive. The exit handler is disposed
+   * in the same breath, so nothing else would ever clear the flag -- and a
+   * caller holding the session would be told it is alive with its socket gone.
    */
   dispose(): void {
+    this._alive = false;
     try {
       this.pty.kill();
     } catch {
