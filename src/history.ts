@@ -314,17 +314,12 @@ export class SessionHistory {
     }
 
     const stoppedAtEpochEnd = index >= epoch.records.length;
-    const next = stoppedAtEpochEnd
-      ? start.epoch + 1 < this.list.length
-        ? this.encode(start.epoch + 1, 0)
-        : null
-      : this.encode(start.epoch, index);
 
     return {
       epoch: epoch.info,
       records,
       from: this.encode(start.epoch, start.index),
-      next,
+      next: this.resumeAt(start.epoch, index),
       truncated,
       stoppedAtEpochEnd,
     };
@@ -408,13 +403,8 @@ export class SessionHistory {
     }
 
     const stoppedAtEpochEnd = index >= epoch.records.length;
-    const next = stoppedAtEpochEnd
-      ? epochIndex + 1 < this.list.length
-        ? this.encode(epochIndex + 1, 0)
-        : null
-      : this.encode(epochIndex, index);
 
-    return { epoch: epoch.info, lines, next, truncated, stoppedAtEpochEnd };
+    return { epoch: epoch.info, lines, next: this.resumeAt(epochIndex, index), truncated, stoppedAtEpochEnd };
   }
 
   /** Resolve any address to a token, for a caller that wants somewhere to resume. */
@@ -468,6 +458,23 @@ export class SessionHistory {
     const epoch = this.list[this.list.length - 1];
     if (!epoch) throw new Error('history has no epoch');
     return epoch;
+  }
+
+  /**
+   * Where a read that stopped at `index` of `epoch` should resume.
+   *
+   * The first record it did not return: the record itself when the limit
+   * stopped the read mid-epoch -- both reads address a token inclusively --
+   * otherwise the first record of whatever follows, or `null` at the end of the
+   * timeline.
+   *
+   * Shared because the two reads have to agree about it, and they did not: the
+   * text read handed back the record it stopped on while resuming past it, so
+   * paging lost the rest of that record.
+   */
+  private resumeAt(epoch: number, index: number): HistoryToken | null {
+    if (index < (this.list[epoch]?.records.length ?? 0)) return this.encode(epoch, index);
+    return epoch + 1 < this.list.length ? this.encode(epoch + 1, 0) : null;
   }
 
   private openEpoch(cols: number, rows: number): void {
@@ -530,9 +537,5 @@ export class HistoryStore {
 
   get(id: SessionId): SessionHistory | undefined {
     return this.histories.get(id);
-  }
-
-  ids(): SessionId[] {
-    return [...this.histories.keys()];
   }
 }

@@ -14,7 +14,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { loadTraces, classifyTraceStreaming, scoreTrace } from './helpers/corpus.js';
+import { loadTraces, classifyTraceStreaming, scoreTrace, fixedChunks } from './helpers/corpus.js';
 import type { Trace } from './helpers/corpus.js';
 
 /** Scores are pinned so a change is visible; raise them when the classifier improves. */
@@ -23,12 +23,6 @@ const EXPECTED = {
   drawOps: 21,
   /** Fixed 64-byte chunks, closer to what a pty delivers. */
   pty64: 15,
-};
-
-const fixed = (n: number) => (raw: string) => {
-  const out: string[] = [];
-  for (let i = 0; i < raw.length; i += n) out.push(raw.slice(i, i + n));
-  return out;
 };
 
 async function run(
@@ -67,7 +61,7 @@ test('classifier scores at least the pinned rate under op-aligned replay', async
 });
 
 test('classifier scores at least the pinned rate under pty-like replay', async () => {
-  const { pass, total, fails } = await run(fixed(64));
+  const { pass, total, fails } = await run(fixedChunks(64));
   assert.ok(
     pass >= EXPECTED.pty64,
     `expected >= ${EXPECTED.pty64}/${total} under 64-byte chunks, got ${pass}/${total}. ` +
@@ -79,7 +73,7 @@ test('op-aligned replay beats pty-like replay, or the gap is a real finding', as
   // Not a requirement -- a measurement. If delivery granularity stops mattering
   // the two should converge, and this test tells us when that happens.
   const best = await run();
-  const realistic = await run(fixed(64));
+  const realistic = await run(fixedChunks(64));
   console.log(
     `      corpus: ${best.pass}/${best.total} op-aligned, ${realistic.pass}/${realistic.total} at 64-byte chunks`,
   );

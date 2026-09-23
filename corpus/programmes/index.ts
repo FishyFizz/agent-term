@@ -18,12 +18,6 @@ export const allProgrammes: Programme[] = [
   ...complexProgrammes,
 ];
 
-export const programmesByCategory: Record<'basic' | 'cli' | 'complex', Programme[]> = {
-  basic: basicProgrammes,
-  cli: cliProgrammes,
-  complex: complexProgrammes,
-};
-
 export function findProgramme(id: string): Programme | undefined {
   return allProgrammes.find((p) => p.id === id);
 }

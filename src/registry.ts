@@ -28,11 +28,6 @@ export class SessionRegistry {
     return this.sessions.get(id);
   }
 
-  /** Ids of every session the registry tracks, live or exited. */
-  list(): SessionId[] {
-    return [...this.sessions.keys()];
-  }
-
   /**
    * Kill and remove a session. History is not owned by the registry, so
    * dropping the live session does not discard anything already recorded.

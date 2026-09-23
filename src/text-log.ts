@@ -67,11 +67,6 @@ export class TextLog {
     return this._bytesFed;
   }
 
-  /** Lines captured so far, oldest first. */
-  get recorded(): readonly TextLine[] {
-    return this.lines;
-  }
-
   /** Take the lines captured so far and reset. Callers drain rather than accumulate. */
   drain(): TextLine[] {
     const out = this.lines.slice();

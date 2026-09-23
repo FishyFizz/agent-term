@@ -95,11 +95,22 @@ export function styleAt(snapshot: ScreenSnapshot, y: number, column: number): st
   return '';
 }
 
+/**
+ * The columns the glyph starting at `column` occupies: 2 when it is wide.
+ *
+ * The one fact `columnOf` and `glyphAtColumn` both turn on, so the two stay
+ * reconciled with each other and with `buildRow`, which is what records the
+ * wide columns in the first place.
+ */
+function widthAt(wide: readonly number[], column: number): number {
+  return wide.includes(column) ? 2 : 1;
+}
+
 /** The column a glyph starts at. */
 export function columnOf(snapshot: ScreenSnapshot, y: number, glyph: number): number {
   const wide = snapshot.wide[y] ?? [];
   let column = 0;
-  for (let g = 0; g < glyph; g++) column += wide.includes(column) ? 2 : 1;
+  for (let g = 0; g < glyph; g++) column += widthAt(wide, column);
   return column;
 }
 
@@ -116,7 +127,7 @@ export function glyphAtColumn(snapshot: ScreenSnapshot, y: number, column: numbe
   const wide = snapshot.wide[y] ?? [];
   let col = 0;
   for (let glyph = 0; col < snapshot.cols; glyph++) {
-    const width = wide.includes(col) ? 2 : 1;
+    const width = widthAt(wide, col);
     if (col === column) return glyph;
     if (col < column && column < col + width) return -1;
     col += width;

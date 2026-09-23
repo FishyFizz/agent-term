@@ -156,9 +156,11 @@ function encodeAt(
   scrollBy: number,
 ): { runs: GridRun[]; rows: GridRow[]; cost: number } | null {
   const { rows, cols } = after;
-  const base = shift(before.lines, scrollBy, rows, cols);
-  const baseStyles = shiftStyles(before.styles, scrollBy, rows);
-  const baseWide = shiftWide(before.wide, scrollBy, rows);
+  const base = shiftRows(before.lines, scrollBy, rows, () => blank(cols));
+  // A row past the end gains no appearance and no wide columns, which is what
+  // a blank row has.
+  const baseStyles = shiftRows(before.styles, scrollBy, rows, () => []);
+  const baseWide = shiftRows(before.wide, scrollBy, rows, () => []);
   const runs: GridRun[] = [];
   const changed: GridRow[] = [];
   let cost = 0;
@@ -226,32 +228,18 @@ function encodeAt(
   return { runs, rows: changed, cost };
 }
 
-/** Content scrolled up by `scrollBy`; rows past the end come in blank. */
-function shift(lines: readonly string[], scrollBy: number, rows: number, cols: number): string[] {
-  const out: string[] = [];
+/**
+ * Rows scrolled up by `scrollBy`; rows past the end come in as `blank`.
+ *
+ * One function for glyphs, appearance runs and wide columns: a delta shifts all
+ * three by the same amount, and three copies of that walk is how they drift
+ * apart.
+ */
+function shiftRows<T>(source: readonly T[], scrollBy: number, rows: number, blank: () => T): T[] {
+  const out: T[] = [];
   for (let y = 0; y < rows; y++) {
     const src = y + scrollBy;
-    out.push(src < rows ? (lines[src] ?? blank(cols)) : blank(cols));
-  }
-  return out;
-}
-
-/** Appearance scrolled up by `scrollBy`; rows past the end come in default. */
-function shiftStyles(styles: readonly StyleRun[][], scrollBy: number, rows: number): StyleRun[][] {
-  const out: StyleRun[][] = [];
-  for (let y = 0; y < rows; y++) {
-    const src = y + scrollBy;
-    out.push(src < rows ? (styles[src] ?? []) : []);
-  }
-  return out;
-}
-
-/** Wide columns scrolled up by `scrollBy`; rows past the end come in plain. */
-function shiftWide(wide: readonly number[][], scrollBy: number, rows: number): number[][] {
-  const out: number[][] = [];
-  for (let y = 0; y < rows; y++) {
-    const src = y + scrollBy;
-    out.push(src < rows ? (wide[src] ?? []) : []);
+    out.push(src < rows ? (source[src] ?? blank()) : blank());
   }
   return out;
 }
@@ -287,9 +275,9 @@ function blank(cols: number): string {
  */
 export function applyDelta(base: ScreenSnapshot, delta: GridDelta): ScreenSnapshot {
   const { rows, cols } = base;
-  const lines = shift(base.lines, delta.scrollBy, rows, cols);
-  const styles = shiftStyles(base.styles, delta.scrollBy, rows);
-  const wide = shiftWide(base.wide, delta.scrollBy, rows);
+  const lines = shiftRows(base.lines, delta.scrollBy, rows, () => blank(cols));
+  const styles = shiftRows(base.styles, delta.scrollBy, rows, () => []);
+  const wide = shiftRows(base.wide, delta.scrollBy, rows, () => []);
 
   for (const run of delta.runs) {
     if (run.y < 0 || run.y >= rows) continue;

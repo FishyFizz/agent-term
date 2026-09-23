@@ -12,20 +12,18 @@
  * pty delivers. The gap between them is the open item in CLASSIFIER.md §9:
  * coalescing is a classification input, not merely a delivery policy.
  */
-import { loadTraces, classifyTraceStreaming, scoreTrace, splitOnDrawOps } from '../test/helpers/corpus.js';
-
-const fixed =
-  (n: number) =>
-  (raw: string): string[] => {
-    const out: string[] = [];
-    for (let i = 0; i < raw.length; i += n) out.push(raw.slice(i, i + n));
-    return out;
-  };
+import {
+  loadTraces,
+  classifyTraceStreaming,
+  scoreTrace,
+  splitOnDrawOps,
+  fixedChunks,
+} from '../test/helpers/corpus.js';
 
 const chunkers: Array<[string, (raw: string) => string[]]> = [
   ['drawOps', splitOnDrawOps],
-  ['fixed64', fixed(64)],
-  ['fixed256', fixed(256)],
+  ['fixed64', fixedChunks(64)],
+  ['fixed256', fixedChunks(256)],
   ['whole', (raw) => [raw]],
 ];
 

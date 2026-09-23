@@ -92,6 +92,22 @@ export async function classifyTraceStreaming(
 }
 
 /**
+ * Split into deliveries of a fixed size, whatever their content.
+ *
+ * The other end of the scale from `splitOnDrawOps`: no knowledge of the stream
+ * at all, which is closer to what a real pty delivers -- a chunk boundary lands
+ * wherever the buffer filled. Scoring against it is what makes the cost of
+ * delivery granularity visible rather than implied (CLASSIFIER.md §9.3).
+ */
+export function fixedChunks(size: number): (raw: string) => string[] {
+  return (raw) => {
+    const out: string[] = [];
+    for (let i = 0; i < raw.length; i += size) out.push(raw.slice(i, i + size));
+    return out;
+  };
+}
+
+/**
  * Split into deliveries: one per drawing op, plus the text that follows it.
  *
  * A program writes a repaint as `CUP` + erase + text, and that group is one

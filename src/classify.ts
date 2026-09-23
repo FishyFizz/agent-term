@@ -97,7 +97,8 @@ export function classify(params: {
     // but content on the alt screen is destroyed when the program leaves it
     // (L0.3), so the boundary has to survive into the stream -- neither
     // swallowed by the repaint that follows nor lost as mode-change noise.
-    if (!OP.isDrawing(op.name) && !(OP.isModeChange(op.name) && OP.isAltScreenSwitch(op))) continue;
+    // Asking for the switch alone is enough: it is a mode change already.
+    if (!OP.isDrawing(op.name) && !OP.isAltScreenSwitch(op)) continue;
 
     segments.push(
       buildSegment({
@@ -166,20 +167,25 @@ export function coalesce(segments: readonly Segment[]): Segment[] {
  * Every update gets one: L0.1 says the server reports every change, so an
  * update carrying only mode changes -- evidence, not segments -- must still
  * produce a segment rather than nothing.
+ *
+ * With no op to read, the screen is the only witness, and a change is drawing
+ * exactly when it damaged something: erased a cell, wrote over a non-blank one,
+ * or reached back above the cursor. The decisive test when no control op fired
+ * is "did the content land where an append would put it?" -- but that is the
+ * same question as `reachedBack` asked the other way round, so an inferred
+ * drawing always carries positive evidence and this path never abstains.
+ * Abstention is `buildSegment`'s: an op that claims a drawing the screen cannot
+ * corroborate. (CLASSIFIER.md §3.5.)
  */
 function inferSegment(before: Frame, after: Frame, fromByte: number, toByte: number): Segment {
   const scrolledBy = scrollDelta(before, after);
   const { erased, overwrote, reachedBack } = diffFacts(before, after, scrolledBy);
 
-  // The decisive test when no control op fired: did the content land where an
-  // append would put it? An append continues at the cursor and only ever
-  // touches that row and, via scrolling, rows below it.
-  //
   // A bare carriage-return overwrite emits no op at all (CLASSIFIER.md §9.2),
   // and a spinner is one followed by text, repeated. Judging those by "did
   // anything change anywhere" classifies a repaint as writing whenever a
   // repainted row happens to differ, which is most of them.
-  const continued = appendContinues(before, after, scrolledBy);
+  const damaged = erased || overwrote || reachedBack;
 
   // A buffer switch is not a content change. Entering the alt screen replaces
   // the whole visible grid with a blank one, which reads as "erased" -- but
@@ -187,15 +193,9 @@ function inferSegment(before: Frame, after: Frame, fromByte: number, toByte: num
   // a repaint would call every shell→TUI transition a redraw.
   const bufferSwitch = before.altScreen !== after.altScreen;
 
-  // Positive structural evidence. `continued` failing is the absence of a
-  // signal, not a signal, so it demotes confidence rather than standing
-  // alongside the three that do.
-  const damaged = erased || overwrote || reachedBack;
-  const isDrawing = !bufferSwitch && (!continued || damaged);
-
   return {
-    kind: isDrawing ? 'drawing' : 'writing',
-    confidence: isDrawing && !damaged ? 'low' : 'high',
+    kind: !bufferSwitch && damaged ? 'drawing' : 'writing',
+    confidence: 'high',
     fromByte,
     toByte,
     evidence: {
@@ -207,45 +207,6 @@ function inferSegment(before: Frame, after: Frame, fromByte: number, toByte: num
       altScreen: after.altScreen,
     },
   };
-}
-
-/**
- * Did the change continue from where output was being appended?
- *
- * True when every changed row is at or below the row the cursor was writing
- * on, accounting for scroll, and the cursor did not move backwards.
- */
-function appendContinues(before: Frame, after: Frame, scrolledBy: number): boolean {
-  const rows = Math.min(before.lines.length, after.lines.length);
-
-  // The append row, in `before` coordinates. Scrolling is already accounted
-  // for by mapping an after-row back to `y + scrolledBy`, so comparing against
-  // a further scroll-adjusted row would double-count it.
-  const writeRow = before.cursorY;
-  let changed = false;
-
-  for (let y = 0; y < rows; y++) {
-    const prevIdx = y + scrolledBy;
-    if (prevIdx < 0 || prevIdx >= before.lines.length) continue;
-    const prevLine = before.lines[prevIdx] ?? '';
-    const nextLine = after.lines[y] ?? '';
-    if (prevLine === nextLine) continue;
-    changed = true;
-    if (prevIdx < writeRow) return false;
-  }
-
-  // Nothing on screen changed: the only movement is the caret. SGR resets and
-  // a bare carriage return produce exactly this, and a program that is
-  // mid-line is not repainting. Reporting it as drawing would fire once per
-  // colour change.
-  if (!changed) return true;
-
-  // Deliberately no "cursor moved backwards ⇒ drawing" test. A trailing
-  // carriage return after appended text leaves the cursor at column 0 with the
-  // text intact, which every build log does; the structural signal for an
-  // overwrite is `overwrote` -- text landing on cells that were already
-  // non-blank.
-  return true;
 }
 
 function buildSegment(params: {
@@ -289,6 +250,14 @@ function buildSegment(params: {
  *
  * `scrolledBy` rows have already been factored out, so a scrolling build log
  * is not mistaken for a repaint.
+ *
+ * One walk answers all three, because they are the same comparison asked three
+ * ways. `reachedBack` is also the answer to "did the change continue from
+ * where output was being appended?", asked the other way round: an append
+ * continues at the cursor and only ever touches that row and, via scrolling,
+ * rows below it. There is deliberately no "the cursor moved backwards" test --
+ * a trailing carriage return after appended text leaves the cursor at column 0
+ * with the text intact, which every build log does.
  */
 function diffFacts(
   before: Frame,

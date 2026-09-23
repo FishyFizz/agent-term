@@ -80,6 +80,15 @@ export interface SessionSize {
   rows: number;
 }
 
+/** Add `listener` to `list`, and return the function that takes it back out. */
+function subscribe<T>(list: T[], listener: T): () => void {
+  list.push(listener);
+  return () => {
+    const i = list.indexOf(listener);
+    if (i >= 0) list.splice(i, 1);
+  };
+}
+
 /**
  * A terminal session that classifies its own output.
  *
@@ -124,11 +133,7 @@ export class TerminalSession {
    * Every change produces an update, in the order the pty produced it.
    */
   onUpdate(listener: (update: SessionUpdate) => void): () => void {
-    this.listeners.push(listener);
-    return () => {
-      const i = this.listeners.indexOf(listener);
-      if (i >= 0) this.listeners.splice(i, 1);
-    };
+    return subscribe(this.listeners, listener);
   }
 
   /**
@@ -139,20 +144,12 @@ export class TerminalSession {
    * before or after the update it is looking at.
    */
   onResize(listener: (size: SessionSize) => void): () => void {
-    this.resizeListeners.push(listener);
-    return () => {
-      const i = this.resizeListeners.indexOf(listener);
-      if (i >= 0) this.resizeListeners.splice(i, 1);
-    };
+    return subscribe(this.resizeListeners, listener);
   }
 
   /** Subscribe to the process exiting. Returns an unsubscribe function. */
   onExit(listener: (info: PtyExitInfo) => void): () => void {
-    this.exitListeners.push(listener);
-    return () => {
-      const i = this.exitListeners.indexOf(listener);
-      if (i >= 0) this.exitListeners.splice(i, 1);
-    };
+    return subscribe(this.exitListeners, listener);
   }
 
   /**
