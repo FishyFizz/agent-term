@@ -25,6 +25,10 @@ function snapshot(cols: number, rows: number, lines: string[]): ScreenSnapshot {
   for (let y = 0; y < rows; y++) padded.push((lines[y] ?? '').padEnd(cols, ' '));
   return {
     lines: padded,
+    // All default, no wide glyphs: what these timeline tests are about.
+    // Attributes have their own tests, and the corpus-wide one compares them.
+    styles: padded.map(() => []),
+    wide: padded.map(() => []),
     cols,
     rows,
     buffer: 'normal',

@@ -8,7 +8,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ScreenModel } from '../src/screen.js';
+import { ScreenModel, columnOf, glyphAtColumn, styleAt } from '../src/screen.js';
 
 /** Feed and wait. `feed` is async because terminal.write is. */
 async function screen(cols: number, rows: number, ...writes: string[]): Promise<ScreenModel> {
@@ -136,4 +136,77 @@ test('erase and cursor addressing are honoured', async () => {
   await s.feed('zz');
   assert.equal(s.snapshot().lines[0]!.trimEnd(), 'zz', 'content written after erase');
   assert.equal(s.snapshot().cursorX, 2);
+});
+
+test('an unstyled screen carries no appearance at all', async () => {
+  const s = await screen(10, 2, 'plain\r\ntext');
+  const snap = s.snapshot();
+  assert.deepEqual(snap.styles, [[], []], 'empty per row: the common case, and free');
+  assert.deepEqual(snap.wide, [[], []]);
+  assert.equal(snap.lines[0]!.length, 10, 'and a row is still exactly cols characters');
+});
+
+test('SGR attributes become canonical appearance keys', async () => {
+  const s = await screen(12, 1, '\x1b[31mred\x1b[0m \x1b[1;32mbold\x1b[0m');
+  const snap = s.snapshot();
+  assert.equal(styleAt(snap, 0, 0), 'fg1', 'palette colour');
+  assert.equal(styleAt(snap, 0, 3), '', 'reset returns to the default appearance');
+  assert.equal(styleAt(snap, 0, 4), 'fg2 bold', 'flagged and coloured, in canonical order');
+  assert.deepEqual(
+    snap.styles[0],
+    [
+      { from: 0, to: 3, style: 'fg1' },
+      { from: 4, to: 8, style: 'fg2 bold' },
+    ],
+    'runs cover the coloured spans and leave the default gap out',
+  );
+});
+
+test('foreground, background and truecolour stay distinct', async () => {
+  const s = await screen(12, 1, '\x1b[38;2;255;0;128mX\x1b[0m\x1b[48;2;0;16;255mY\x1b[0m');
+  const snap = s.snapshot();
+  assert.equal(styleAt(snap, 0, 0), 'fg#ff0080', 'a 24-bit foreground is not a palette index');
+  assert.equal(styleAt(snap, 0, 1), 'bg#0010ff', 'and a background-only cell is not the default');
+});
+
+test('inverse is an attribute, not a colour', async () => {
+  // What `cli.menu-selector` selects with, so this is real corpus material.
+  const s = await screen(8, 1, '\x1b[7mselected\x1b[0m');
+  assert.equal(styleAt(s.snapshot(), 0, 0), 'inverse');
+});
+
+test('appearance is indexed by column, not by glyph', async () => {
+  const s = await screen(10, 1, '\x1b[31mab\x1b[0m中文');
+  const snap = s.snapshot();
+  assert.equal(snap.lines[0], 'ab中文    ', 'six glyphs: four written, two blank columns');
+  assert.deepEqual(snap.styles[0], [{ from: 0, to: 2, style: 'fg1' }], 'columns 0-1 are red');
+  assert.deepEqual(snap.wide[0], [2, 4], 'and the wide glyphs start at columns 2 and 4');
+});
+
+test('a double-width glyph takes two columns and one string index', async () => {
+  const s = await screen(10, 1, 'ab中文cd');
+  const snap = s.snapshot();
+
+  // Ten columns, eight glyphs: two of them double-width.
+  assert.equal(snap.lines[0], 'ab中文cd  ');
+  assert.equal(snap.lines[0]!.length, 8);
+  assert.deepEqual(snap.wide[0], [2, 4]);
+
+  assert.equal(columnOf(snap, 0, 0), 0);
+  assert.equal(columnOf(snap, 0, 2), 2, 'the first wide glyph starts at column 2');
+  assert.equal(columnOf(snap, 0, 3), 4, 'and the next at 4, not 3');
+  assert.equal(columnOf(snap, 0, 4), 6, 'so plain text after them is pushed right');
+
+  assert.equal(glyphAtColumn(snap, 0, 1), 1);
+  assert.equal(glyphAtColumn(snap, 0, 3), -1, 'column 3 is the tail of a wide glyph');
+  assert.equal(glyphAtColumn(snap, 0, 6), 4, 'column 6 holds the fifth glyph');
+  assert.equal(glyphAtColumn(snap, 0, 10), -1, 'and past the grid is nothing');
+});
+
+test('the cursor is a column number, which is what a wide row needs', async () => {
+  const s = await screen(10, 1, 'ab中文cd');
+  // Six glyphs, but eight columns: a cursor reported in glyphs would put the
+  // next character in the wrong place.
+  assert.equal(s.snapshot().cursorX, 8);
+  assert.equal(s.snapshot().lines[0]!.length, 8, 'even though there are only 8 glyphs');
 });

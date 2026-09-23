@@ -18,6 +18,7 @@
 import { createRequire } from 'node:module';
 import type {
   Terminal as XtermTerminal,
+  IBufferCell,
   ITerminalOptions,
   ITerminalInitOnlyOptions,
 } from '@xterm/headless';
@@ -27,7 +28,7 @@ type XtermModule = { Terminal: new (options?: ITerminalOptions & ITerminalInitOn
 const require = createRequire(import.meta.url);
 const xterm = require('@xterm/headless') as XtermModule;
 
-export type { XtermTerminal };
+export type { XtermTerminal, IBufferCell };
 
 /** Options AgentTerm always requires, regardless of caller intent. */
 const BASE_OPTIONS = { allowProposedApi: true } as const;

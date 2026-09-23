@@ -8,7 +8,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ScreenModel, type ScreenSnapshot } from '../src/screen.js';
+import { ScreenModel, type ScreenSnapshot, type StyleRun } from '../src/screen.js';
 import { applyDelta, gridDelta } from '../src/delta.js';
 
 /** Feed `before`, snapshot, feed `after`, snapshot — a real pair from the emulator. */
@@ -21,10 +21,25 @@ async function pair(cols: number, rows: number, before: string, after: string) {
   return { b, a };
 }
 
-/** A hand-built snapshot, for shapes the emulator will not make on request. */
-function snap(cols: number, rows: number, lines: string[]): ScreenSnapshot {
+/**
+ * A hand-built snapshot, for shapes the emulator will not make on request.
+ *
+ * Padded to a full grid: a delta's row runs and an epoch's row count are both
+ * read off this, so a short array would test a screen the emulator cannot
+ * produce. `appearance` lets a test give a row colour and wide glyphs.
+ */
+function snap(
+  cols: number,
+  rows: number,
+  lines: string[],
+  appearance: { styles?: StyleRun[][]; wide?: number[][] } = {},
+): ScreenSnapshot {
+  const padded: string[] = [];
+  for (let y = 0; y < rows; y++) padded.push((lines[y] ?? '').padEnd(cols, ' '));
   return {
-    lines: lines.map((l) => l.padEnd(cols, ' ')),
+    lines: padded,
+    styles: appearance.styles ?? padded.map(() => []),
+    wide: appearance.wide ?? padded.map(() => []),
     cols,
     rows,
     buffer: 'normal',
