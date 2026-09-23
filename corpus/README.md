@@ -1,6 +1,6 @@
 # Corpus — terminal test programs and recorded traces
 
-Part of AgentTerm: 22 terminal programmes that exercise the terminal in
+Part of AgentTerm: 23 terminal programmes that exercise the terminal in
 different ways, plus recorded traces of each, for validating the
 writing/drawing classifier (L0.1).
 
@@ -65,6 +65,6 @@ See `OPS.md` for the two feeds, the ConPTY findings, and how to add a programme.
 
 ## Status
 
-22 programmes, 44 recorded traces (22 × direct/pty), 36/36 corpus tests passing,
+23 programmes, 46 recorded traces (23 × direct/pty), 39/39 corpus tests passing,
 typecheck clean. Traces are committed so the classifier can be measured against a
 fixed corpus.

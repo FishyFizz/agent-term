@@ -287,18 +287,21 @@ Update {
    the hooked set — **closed**. Caught by the screen model (`overwrote`: text
    landing on cells that were already non-blank). Exercised by
    `basic.cr-overwrite` and `basic.spinner`.
-3. **Delivery granularity is a first-class constraint.** *New — found by
-   measurement, and it is the biggest open item.* A classifier call sees a
-   *before* and an *after*, so what it can detect depends on where deliveries
-   begin. Same corpus, same classifier:
+3. **Delivery granularity is a first-class constraint.** *Found by measurement,
+   and it remains the biggest open item.* A classifier call sees a *before* and
+   an *after*, so what it can detect depends on where deliveries begin. Same
+   corpus, same classifier:
 
    | Replay | Score |
    |---|---|
-   | one delivery per drawing op | **19/22** |
-   | 64-byte chunks | **14/22** |
-   | 8-byte chunks | 9/22 |
+   | one delivery per drawing op | **21/23** |
+   | 64-byte chunks | **15/23** |
+   | 256-byte chunks | 7/23 |
+   | the whole trace as one delivery | 7/23 |
 
-   Two consequences the design has to own:
+   `npm run corpus` prints these; the pins live in `test/corpus.test.ts`.
+
+   Three consequences the design has to own:
 
    - **An op's byte offset is only as precise as the delivery carrying it.** The
      byte counter advances per feed, so ops in one delivery share an offset and
@@ -308,6 +311,9 @@ Update {
    - **Coalescing is a classification input, not merely a delivery policy.**
      Where a window opens decides whether an overwrite is visible at all. This
      is L1.1's territory, but L0 cannot pretend to be neutral about it.
+   - **History inherits the same resolution.** A timeline entry is a delivery, so
+     a seek resolves to the entry at or before the point asked for and does not
+     invent precision between entries (`src/history.ts`). See `HISTORY.md`.
 
    Unresolved: whether a session should feed per-op, per-chunk, or adaptively.
 4. **Coalescing window ownership.** Per-`onWriteParsed` classification is exact
@@ -315,8 +321,13 @@ Update {
    offsets, still exact — *qualified by item 3*: offsets are delivery-coarse, so
    "exact" holds only at the delivery's resolution. Timing policy is L3 and must
    not leak into L0.
-5. **Whether the text log is L0 or L1.** Argued here as L0, because L0.3's "page back to any
-   earlier part" is unsatisfiable without it. If it is L1, the segment contract changes.
+5. **Whether the text log is L0 or L1.** — **closed: L0.** It is built
+   (`src/text-log.ts`), and the argument above is the reason: the screen grid
+   holds the viewport, so a line that scrolls out is in no snapshot at all, and
+   L0.3's "page back to any earlier part" is unsatisfiable without a separate
+   record. Measured: 200 lines into a 5-row terminal with 50 lines of scrollback
+   leaves 54 of them in the buffer, while reading the completed line at each
+   linefeed yields all 200, distinct. See `HISTORY.md`.
 
 ---
 
