@@ -7,7 +7,7 @@
   "cols": 40,
   "rows": 5,
   "platform": "win32",
-  "recordedAt": "2026-09-23T18:11:50.409Z",
+  "recordedAt": "2026-09-23T18:19:04.108Z",
   "expectations": [
     {
       "from": 0,
@@ -43,7 +43,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790187110393
+      "at": 1790187544094
     },
     {
       "name": "LINEFEED",
@@ -53,7 +53,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790187110393
+      "at": 1790187544094
     },
     {
       "name": "LINEFEED",
@@ -63,7 +63,7 @@
       "cursorY": 3,
       "params": [],
       "altScreen": false,
-      "at": 1790187110393
+      "at": 1790187544094
     },
     {
       "name": "LINEFEED",
@@ -73,7 +73,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790187110393
+      "at": 1790187544094
     },
     {
       "name": "SCROLL",
@@ -85,7 +85,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790187110408
+      "at": 1790187544107
     },
     {
       "name": "LINEFEED",
@@ -95,7 +95,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790187110408
+      "at": 1790187544107
     },
     {
       "name": "CUP",
@@ -108,7 +108,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790187110408
+      "at": 1790187544107
     },
     {
       "name": "EL",
@@ -120,7 +120,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790187110409
+      "at": 1790187544107
     }
   ],
   "frames": [
@@ -148,6 +148,7 @@
     "[#####-----]",
     "log5"
   ],
+  "resizes": [],
   "bytes": 60,
   "raw": "log1\r\nlog2\r\nlog3\r\n[#####-----]\r\nlog5\r\n\u001b[5;1H\u001b[2K[##########]"
 }

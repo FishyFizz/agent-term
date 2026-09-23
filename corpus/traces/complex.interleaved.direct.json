@@ -7,7 +7,7 @@
   "cols": 60,
   "rows": 8,
   "platform": "win32",
-  "recordedAt": "2026-09-23T18:11:31.658Z",
+  "recordedAt": "2026-09-23T18:18:44.784Z",
   "expectations": [
     {
       "from": 0,
@@ -25,7 +25,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790187091487
+      "at": 1790187524613
     },
     {
       "name": "LINEFEED",
@@ -35,7 +35,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790187091503
+      "at": 1790187524628
     },
     {
       "name": "CUP",
@@ -48,7 +48,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790187091503
+      "at": 1790187524628
     },
     {
       "name": "EL",
@@ -60,7 +60,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790187091503
+      "at": 1790187524628
     },
     {
       "name": "LINEFEED",
@@ -70,7 +70,7 @@
       "cursorY": 3,
       "params": [],
       "altScreen": false,
-      "at": 1790187091518
+      "at": 1790187524644
     },
     {
       "name": "CUP",
@@ -83,7 +83,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790187091534
+      "at": 1790187524659
     },
     {
       "name": "EL",
@@ -95,7 +95,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790187091534
+      "at": 1790187524659
     },
     {
       "name": "LINEFEED",
@@ -105,7 +105,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790187091549
+      "at": 1790187524675
     },
     {
       "name": "CUP",
@@ -118,7 +118,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790187091565
+      "at": 1790187524691
     },
     {
       "name": "EL",
@@ -130,7 +130,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790187091565
+      "at": 1790187524691
     },
     {
       "name": "LINEFEED",
@@ -140,7 +140,7 @@
       "cursorY": 5,
       "params": [],
       "altScreen": false,
-      "at": 1790187091581
+      "at": 1790187524706
     },
     {
       "name": "CUP",
@@ -153,7 +153,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790187091581
+      "at": 1790187524706
     },
     {
       "name": "EL",
@@ -165,7 +165,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790187091581
+      "at": 1790187524706
     },
     {
       "name": "LINEFEED",
@@ -175,7 +175,7 @@
       "cursorY": 6,
       "params": [],
       "altScreen": false,
-      "at": 1790187091611
+      "at": 1790187524737
     },
     {
       "name": "CUP",
@@ -188,7 +188,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790187091611
+      "at": 1790187524737
     },
     {
       "name": "EL",
@@ -200,7 +200,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790187091611
+      "at": 1790187524737
     },
     {
       "name": "LINEFEED",
@@ -210,7 +210,7 @@
       "cursorY": 7,
       "params": [],
       "altScreen": false,
-      "at": 1790187091643
+      "at": 1790187524768
     },
     {
       "name": "CUP",
@@ -223,7 +223,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790187091643
+      "at": 1790187524768
     },
     {
       "name": "EL",
@@ -235,7 +235,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790187091643
+      "at": 1790187524768
     }
   ],
   "frames": [
@@ -268,6 +268,7 @@
     "  uploaded shard 5/6",
     "  uploaded shard 6/6"
   ],
+  "resizes": [],
   "bytes": 363,
   "raw": "deploying...\r\n  uploaded shard 1/6\r\n\u001b[s\u001b[8;1H\u001b[2Kstatus: 17% complete\u001b[u  uploaded shard 2/6\r\n\u001b[s\u001b[8;1H\u001b[2Kstatus: 33% complete\u001b[u  uploaded shard 3/6\r\n\u001b[s\u001b[8;1H\u001b[2Kstatus: 50% complete\u001b[u  uploaded shard 4/6\r\n\u001b[s\u001b[8;1H\u001b[2Kstatus: 67% complete\u001b[u  uploaded shard 5/6\r\n\u001b[s\u001b[8;1H\u001b[2Kstatus: 83% complete\u001b[u  uploaded shard 6/6\r\n\u001b[s\u001b[8;1H\u001b[2Kstatus: 100% complete\u001b[u"
 }

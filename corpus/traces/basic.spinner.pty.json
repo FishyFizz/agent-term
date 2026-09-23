@@ -7,7 +7,7 @@
   "cols": 80,
   "rows": 4,
   "platform": "win32",
-  "recordedAt": "2026-09-23T18:11:56.034Z",
+  "recordedAt": "2026-09-23T18:19:09.180Z",
   "expectations": [
     {
       "from": 0,
@@ -27,7 +27,7 @@
         9001
       ],
       "altScreen": false,
-      "at": 1790187115361
+      "at": 1790187548511
     },
     {
       "name": "DECSET",
@@ -39,7 +39,7 @@
         1004
       ],
       "altScreen": false,
-      "at": 1790187115361
+      "at": 1790187548511
     },
     {
       "name": "DECRST",
@@ -51,7 +51,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790187115424
+      "at": 1790187548588
     },
     {
       "name": "ED",
@@ -63,7 +63,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790187115424
+      "at": 1790187548588
     },
     {
       "name": "SGR",
@@ -75,7 +75,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187115424
+      "at": 1790187548588
     },
     {
       "name": "CUP",
@@ -87,7 +87,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187115424
+      "at": 1790187548588
     },
     {
       "name": "LINEFEED",
@@ -97,7 +97,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790187115424
+      "at": 1790187548588
     },
     {
       "name": "TITLECHANGE",
@@ -107,7 +107,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790187115424
+      "at": 1790187548588
     },
     {
       "name": "DECSET",
@@ -119,7 +119,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790187115424
+      "at": 1790187548588
     },
     {
       "name": "LINEFEED",
@@ -129,7 +129,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790187115643
+      "at": 1790187548775
     },
     {
       "name": "LINEFEED",
@@ -139,7 +139,7 @@
       "cursorY": 3,
       "params": [],
       "altScreen": false,
-      "at": 1790187115643
+      "at": 1790187548775
     }
   ],
   "frames": [
@@ -164,6 +164,7 @@
     "\\ working...",
     "done"
   ],
+  "resizes": [],
   "bytes": 247,
   "raw": "\u001b[?9001h\u001b[?1004h\u001b[?25l\u001b[2J\u001b[m\u001b[Hworking\r\n\u001b]0;C:\\Program Files\\nodejs\\node.exe\u0007\u001b[?25h| working...\r/ working...\r- working...\r\\ working...\r| working...\r/ working...\r- working...\r\\ working...\r| working...\r/ working...\r- working...\r\\ working...\r\ndone\r\n"
 }

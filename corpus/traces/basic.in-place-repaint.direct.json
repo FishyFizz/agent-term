@@ -7,7 +7,7 @@
   "cols": 80,
   "rows": 6,
   "platform": "win32",
-  "recordedAt": "2026-09-23T18:11:27.845Z",
+  "recordedAt": "2026-09-23T18:18:40.943Z",
   "expectations": [
     {
       "from": 0,
@@ -31,7 +31,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790187087830
+      "at": 1790187520928
     },
     {
       "name": "LINEFEED",
@@ -41,7 +41,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790187087830
+      "at": 1790187520928
     },
     {
       "name": "LINEFEED",
@@ -51,7 +51,7 @@
       "cursorY": 3,
       "params": [],
       "altScreen": false,
-      "at": 1790187087830
+      "at": 1790187520928
     },
     {
       "name": "CUP",
@@ -64,7 +64,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790187087830
+      "at": 1790187520928
     },
     {
       "name": "EL",
@@ -76,7 +76,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790187087830
+      "at": 1790187520928
     },
     {
       "name": "LINEFEED",
@@ -86,7 +86,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790187087845
+      "at": 1790187520943
     }
   ],
   "frames": [
@@ -114,6 +114,7 @@
     "gamma",
     "BETA-REWRITTEN"
   ],
+  "resizes": [],
   "bytes": 46,
   "raw": "alpha\r\nbeta\r\ngamma\r\n\u001b[2;1H\u001b[2KBETA-REWRITTEN\r\n"
 }

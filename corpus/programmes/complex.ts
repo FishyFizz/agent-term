@@ -142,6 +142,84 @@ export const resizeDuringTui: Programme = {
 };
 
 /**
+ * Two real resizes across a session: writing, a resize, more writing, a TUI, a
+ * second resize, and a repaint.
+ *
+ * This is the material the history timeline needs and the corpus did not have.
+ * `complex.resize-during-tui` is named for a resize that never happened -- its
+ * programme says "the harness resizes the emulator here" and no harness ever
+ * did, so its trace is a redraw at a constant size. Here the resize is real, in
+ * both feeds: `io.resize` emits a request the harness acts on, and records the
+ * byte offset it happened at so a replay reflows at the same point.
+ *
+ * What it exercises: an epoch boundary. History freezes everything produced
+ * before a resize and reports it at the size it was produced at, so the three
+ * sizes below must each be answerable independently.
+ */
+export const resizeEpochs: Programme = {
+  id: 'complex.resize-epochs',
+  category: 'complex',
+  summary: 'Writing, a resize, more writing, a TUI, a second resize, then a repaint.',
+  cols: 60,
+  rows: 8,
+  async run(io) {
+    io.mark('start');
+    for (let i = 0; i < 10; i++) io.out.write(`build step ${i} at ${io.cols} cols${CRLF}`);
+    await io.wait(15);
+
+    io.mark('resize1');
+    io.resize(30, 6);
+    // The pty feed resizes through another process, so give it a moment before
+    // drawing at a size it may not have taken yet.
+    await io.wait(60);
+
+    io.mark('narrow');
+    for (let i = 0; i < 8; i++) io.out.write(`narrow step ${i} at ${io.cols} cols${CRLF}`);
+    await io.wait(15);
+
+    io.mark('tui');
+    io.out.write('\x1b[?1049h\x1b[H');
+    for (let i = 0; i < 5; i++) io.out.write(`tui row ${i}${CRLF}`);
+    await io.wait(15);
+
+    io.mark('resize2');
+    io.resize(48, 10);
+    await io.wait(60);
+
+    io.mark('repaint');
+    io.out.write('\x1b[H');
+    for (let i = 0; i < 9; i++) {
+      io.out.write('\x1b[2K');
+      io.out.write(`redrawn row ${i} at ${io.cols} cols${CRLF}`);
+    }
+    io.mark('end');
+    io.out.write('\x1b[?1049l');
+  },
+  expectations(m) {
+    return [
+      {
+        from: m['start'] ?? 0,
+        to: m['resize1'] ?? 0,
+        kind: 'writing',
+        why: 'plain appended lines at the original size, before any boundary',
+      },
+      {
+        from: m['narrow'] ?? 0,
+        to: m['tui'] ?? 0,
+        kind: 'writing',
+        why: 'the same kind of output at a new grid size — the epoch changed, the writing did not',
+      },
+      {
+        from: m['repaint'] ?? 0,
+        to: m['end'] ?? 0,
+        kind: 'drawing',
+        why: 'a full-screen repaint after the second resize; the resize itself is a structural event and must not be counted as the repaint',
+      },
+    ];
+  },
+};
+
+/**
  * A firehose: far more output than the screen can hold, delivered fast.
  *
  * Exercises bounded delivery without loss (success criterion 5). The text log
@@ -342,6 +420,7 @@ export const complexProgrammes: Programme[] = [
   shellTuiShell,
   interleaved,
   resizeDuringTui,
+  resizeEpochs,
   firehose,
   progressBarScroll,
   synchronizedOutput,

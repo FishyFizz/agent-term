@@ -5,6 +5,7 @@
  * programme up in the registry and runs it against real stdout in a real pty.
  */
 import { findProgramme } from '../programmes/index.js';
+import { resizeMarker } from './types.js';
 import type { ProgrammeIo } from './types.js';
 
 const id = process.argv[2];
@@ -40,6 +41,15 @@ const io: ProgrammeIo = {
   wait: (ms) => new Promise((r) => setTimeout(r, ms)),
   onInput: (handler) => {
     process.stdin.on('data', (d) => handler(d.toString('utf8')));
+  },
+  resize: (cols, rows) => {
+    // The pty belongs to the parent, so this process cannot resize it. The
+    // request goes out as text -- the one channel that certainly survives the
+    // pty -- and the parent acts on it. Going through `process.stdout.write`
+    // rather than `originalWrite` keeps the byte count honest.
+    process.stdout.write(resizeMarker(cols, rows));
+    io.cols = cols;
+    io.rows = rows;
   },
   cols,
   rows,

@@ -66,12 +66,14 @@ export class Recorder {
   }
 
   /**
-   * Split a write into small chunks so the emulator sees the programme's output
-   * arrive over time, the way a pty delivers it, rather than as one blob.
+   * Resize the modelled grid, as the programme asked.
+   *
+   * Content reflows: this is an event, not a change, and the classifier is not
+   * told about it. Recorded into the trace separately (`Trace.resizes`) so a
+   * replay can do the same at the same byte offset.
    */
-  async writeChunked(data: string | Buffer, chunkSize = 64): Promise<void> {
-    const buf = typeof data === 'string' ? Buffer.from(data, 'utf8') : data;
-    for (let i = 0; i < buf.length; i += chunkSize) await this.write(buf.subarray(i, i + chunkSize));
+  resize(cols: number, rows: number): void {
+    this.screen.resize(cols, rows);
   }
 
   /** Snapshot the current screen and append it to the trace's frames. */

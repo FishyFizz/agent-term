@@ -20,9 +20,9 @@ import type { Trace } from './helpers/corpus.js';
 /** Scores are pinned so a change is visible; raise them when the classifier improves. */
 const EXPECTED = {
   /** One delivery per drawing op: the classifier's best case. */
-  drawOps: 20,
+  drawOps: 21,
   /** Fixed 64-byte chunks, closer to what a pty delivers. */
-  pty64: 14,
+  pty64: 15,
 };
 
 const fixed = (n: number) => (raw: string) => {
@@ -31,7 +31,9 @@ const fixed = (n: number) => (raw: string) => {
   return out;
 };
 
-async function run(chunker?: (raw: string) => string[]): Promise<{ pass: number; fails: string[] }> {
+async function run(
+  chunker?: (raw: string) => string[],
+): Promise<{ pass: number; total: number; fails: string[] }> {
   const traces = loadTraces('direct');
   let pass = 0;
   const fails: string[] = [];
@@ -40,7 +42,7 @@ async function run(chunker?: (raw: string) => string[]): Promise<{ pass: number;
     if (scoreTrace(trace, segments).pass) pass++;
     else fails.push(trace.id);
   }
-  return { pass, fails };
+  return { pass, total: traces.length, fails };
 }
 
 test('corpus is present and well-formed', () => {
@@ -57,18 +59,18 @@ test('corpus is present and well-formed', () => {
 });
 
 test('classifier scores at least the pinned rate under op-aligned replay', async () => {
-  const { pass, fails } = await run();
+  const { pass, total, fails } = await run();
   assert.ok(
     pass >= EXPECTED.drawOps,
-    `expected >= ${EXPECTED.drawOps}/22, got ${pass}/22. Failing: ${fails.join(', ')}`,
+    `expected >= ${EXPECTED.drawOps}/${total}, got ${pass}/${total}. Failing: ${fails.join(', ')}`,
   );
 });
 
 test('classifier scores at least the pinned rate under pty-like replay', async () => {
-  const { pass, fails } = await run(fixed(64));
+  const { pass, total, fails } = await run(fixed(64));
   assert.ok(
     pass >= EXPECTED.pty64,
-    `expected >= ${EXPECTED.pty64}/22 under 64-byte chunks, got ${pass}/22. ` +
+    `expected >= ${EXPECTED.pty64}/${total} under 64-byte chunks, got ${pass}/${total}. ` +
       `Failing: ${fails.join(', ')}`,
   );
 });
@@ -79,7 +81,7 @@ test('op-aligned replay beats pty-like replay, or the gap is a real finding', as
   const best = await run();
   const realistic = await run(fixed(64));
   console.log(
-    `      corpus: ${best.pass}/22 op-aligned, ${realistic.pass}/22 at 64-byte chunks`,
+    `      corpus: ${best.pass}/${best.total} op-aligned, ${realistic.pass}/${realistic.total} at 64-byte chunks`,
   );
   assert.ok(best.pass >= realistic.pass, 'finer deliveries should not be worse');
 });

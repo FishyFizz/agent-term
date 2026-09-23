@@ -7,7 +7,7 @@
   "cols": 80,
   "rows": 6,
   "platform": "win32",
-  "recordedAt": "2026-09-23T18:11:27.908Z",
+  "recordedAt": "2026-09-23T18:18:41.006Z",
   "expectations": [
     {
       "from": 0,
@@ -31,7 +31,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790187087892
+      "at": 1790187520990
     }
   ],
   "frames": [
@@ -56,6 +56,7 @@
   "textLog": [
     "progress: 0%"
   ],
+  "resizes": [],
   "bytes": 43,
   "raw": "progress: 0%\r\n\rprogress: 50%\rprogress: 100%"
 }

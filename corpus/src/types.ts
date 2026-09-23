@@ -15,6 +15,48 @@
  */
 import type { Op } from '../../src/edit-record.js';
 
+const CRLF = '\r\n';
+
+/**
+ * The sequence a programme emits to ask for a resize.
+ *
+ * A pty can only be resized by whoever owns it, and in pty mode the programme
+ * runs in a child process that does not. So the request goes out in-band -- and
+ * it has to be a sequence that renders **nothing**, or it defeats itself: a
+ * printed marker sits on the grid, and ConPTY repaints the grid when it
+ * resizes, so the marker comes back, is acted on again, and resizes forever.
+ * Measured, with a visible marker: two requested resizes arrived as eleven.
+ *
+ * OSC 0 sets the window title, which is not part of the cell grid and is never
+ * repainted as content. Verified to survive the pty and ConPTY intact, where a
+ * DA-style sequence came through mangled. It is already in the op vocabulary as
+ * `TITLECHANGE` -- evidence, not a segment -- so it does not disturb
+ * classification either.
+ */
+const RESIZE_MARKER = /\x1b\]0;resize:(\d+)x(\d+)\x07/g;
+
+export function resizeMarker(cols: number, rows: number): string {
+  return `\x1b]0;resize:${cols}x${rows}\x07`;
+}
+
+/**
+ * Find resize requests in a chunk of output, consuming what it matches.
+ *
+ * Returns the sizes asked for and what is left unconsumed, so a marker split
+ * across two chunks is matched once it completes rather than missed.
+ */
+export function takeResizeMarkers(text: string): { sizes: Array<{ cols: number; rows: number }>; rest: string } {
+  const sizes: Array<{ cols: number; rows: number }> = [];
+  let rest = text;
+  RESIZE_MARKER.lastIndex = 0;
+  for (let m = RESIZE_MARKER.exec(rest); m; m = RESIZE_MARKER.exec(rest)) {
+    sizes.push({ cols: Number(m[1]), rows: Number(m[2]) });
+    rest = rest.slice(m.index + m[0].length);
+    RESIZE_MARKER.lastIndex = 0;
+  }
+  return { sizes, rest };
+}
+
 /** A snapshot of the visible screen. */
 export interface Frame {
   index: number;
@@ -53,6 +95,14 @@ export interface SegmentExpectation {
   ambiguous?: boolean;
 }
 
+/** A resize a programme requested, and where in the byte stream it asked. */
+export interface ResizeAt {
+  /** Byte offset by which the marker asking for it had been written. */
+  offset: number;
+  cols: number;
+  rows: number;
+}
+
 export interface Trace {
   version: 1;
   id: string;
@@ -70,6 +120,13 @@ export interface Trace {
   ops: Op[];
   frames: Frame[];
   textLog: string[];
+  /**
+   * Resizes the programme asked for, in order.
+   *
+   * Recorded because a replay has to apply them too, or it reads the trace at a
+   * size the programme never saw. The history timeline splits its epochs here.
+   */
+  resizes: ResizeAt[];
   /** Total bytes fed to the emulator. */
   bytes: number;
   /** Raw output, kept so a trace can be replayed without re-running anything. */
@@ -110,6 +167,16 @@ export interface ProgrammeIo {
   wait(ms: number): Promise<void>;
   /** Read pending stdin, if the harness is driving this programme. */
   onInput(handler: (data: string) => void): void;
+  /**
+   * Ask the harness to resize the terminal.
+   *
+   * Emits a marker into the output and records where. A direct replay resizes at
+   * that byte offset; a pty run is resized by the parent that owns the pty.
+   * Either way a programme that needs the reflow to have happened before it
+   * redraws should `wait` afterwards, because the pty path round-trips through
+   * another process.
+   */
+  resize(cols: number, rows: number): void;
   cols: number;
   rows: number;
 }

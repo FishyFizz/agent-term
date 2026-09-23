@@ -7,7 +7,7 @@
   "cols": 60,
   "rows": 8,
   "platform": "win32",
-  "recordedAt": "2026-09-23T18:11:58.568Z",
+  "recordedAt": "2026-09-23T18:19:11.313Z",
   "expectations": [
     {
       "from": 0,
@@ -27,7 +27,7 @@
         9001
       ],
       "altScreen": false,
-      "at": 1790187117924
+      "at": 1790187550692
     },
     {
       "name": "DECSET",
@@ -39,7 +39,7 @@
         1004
       ],
       "altScreen": false,
-      "at": 1790187117924
+      "at": 1790187550692
     },
     {
       "name": "DECRST",
@@ -51,7 +51,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790187118006
+      "at": 1790187550754
     },
     {
       "name": "ED",
@@ -63,7 +63,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790187118006
+      "at": 1790187550754
     },
     {
       "name": "SGR",
@@ -75,7 +75,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187118006
+      "at": 1790187550754
     },
     {
       "name": "CUP",
@@ -87,7 +87,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187118006
+      "at": 1790187550754
     },
     {
       "name": "CUF",
@@ -99,7 +99,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790187118006
+      "at": 1790187550754
     },
     {
       "name": "TITLECHANGE",
@@ -109,7 +109,7 @@
       "cursorY": 0,
       "params": [],
       "altScreen": false,
-      "at": 1790187118006
+      "at": 1790187550754
     },
     {
       "name": "DECSET",
@@ -121,7 +121,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790187118006
+      "at": 1790187550754
     },
     {
       "name": "LINEFEED",
@@ -131,7 +131,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790187118053
+      "at": 1790187550801
     },
     {
       "name": "LINEFEED",
@@ -141,7 +141,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790187118069
+      "at": 1790187550816
     },
     {
       "name": "LINEFEED",
@@ -151,7 +151,7 @@
       "cursorY": 3,
       "params": [],
       "altScreen": false,
-      "at": 1790187118116
+      "at": 1790187550847
     },
     {
       "name": "LINEFEED",
@@ -161,7 +161,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790187118116
+      "at": 1790187550847
     },
     {
       "name": "LINEFEED",
@@ -171,7 +171,7 @@
       "cursorY": 5,
       "params": [],
       "altScreen": false,
-      "at": 1790187118162
+      "at": 1790187550909
     }
   ],
   "frames": [
@@ -202,6 +202,7 @@
     "hi",
     ">>> exit()"
   ],
+  "resizes": [],
   "bytes": 129,
   "raw": "\u001b[?9001h\u001b[?1004h\u001b[?25l\u001b[2J\u001b[m\u001b[H>>>\u001b[1C\u001b]0;C:\\Program Files\\nodejs\\node.exe\u0007\u001b[?25h1 + 1\r\n2\r\n>>> print(\"hi\")\r\nhi\r\n>>> exit()\r\n>>> "
 }

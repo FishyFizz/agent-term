@@ -7,7 +7,7 @@
   "cols": 80,
   "rows": 6,
   "platform": "win32",
-  "recordedAt": "2026-09-23T18:11:53.522Z",
+  "recordedAt": "2026-09-23T18:19:07.066Z",
   "expectations": [
     {
       "from": 0,
@@ -33,7 +33,7 @@
         9001
       ],
       "altScreen": false,
-      "at": 1790187113024
+      "at": 1790187546568
     },
     {
       "name": "DECSET",
@@ -45,7 +45,7 @@
         1004
       ],
       "altScreen": false,
-      "at": 1790187113024
+      "at": 1790187546568
     },
     {
       "name": "DECRST",
@@ -57,7 +57,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790187113081
+      "at": 1790187546631
     },
     {
       "name": "ED",
@@ -69,7 +69,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790187113081
+      "at": 1790187546631
     },
     {
       "name": "SGR",
@@ -81,7 +81,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187113082
+      "at": 1790187546631
     },
     {
       "name": "CUP",
@@ -93,7 +93,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187113082
+      "at": 1790187546631
     },
     {
       "name": "LINEFEED",
@@ -103,7 +103,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790187113082
+      "at": 1790187546631
     },
     {
       "name": "LINEFEED",
@@ -113,7 +113,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790187113082
+      "at": 1790187546631
     },
     {
       "name": "LINEFEED",
@@ -123,7 +123,7 @@
       "cursorY": 3,
       "params": [],
       "altScreen": false,
-      "at": 1790187113082
+      "at": 1790187546631
     },
     {
       "name": "TITLECHANGE",
@@ -133,7 +133,7 @@
       "cursorY": 3,
       "params": [],
       "altScreen": false,
-      "at": 1790187113082
+      "at": 1790187546631
     },
     {
       "name": "DECSET",
@@ -145,24 +145,24 @@
         25
       ],
       "altScreen": false,
-      "at": 1790187113082
+      "at": 1790187546631
     },
     {
       "name": "DECRST",
       "source": "csi",
-      "byteOffset": 113,
+      "byteOffset": 132,
       "cursorX": 0,
       "cursorY": 3,
       "params": [
         25
       ],
       "altScreen": false,
-      "at": 1790187113117
+      "at": 1790187546678
     },
     {
       "name": "CUP",
       "source": "csi",
-      "byteOffset": 113,
+      "byteOffset": 132,
       "cursorX": 0,
       "cursorY": 3,
       "params": [
@@ -170,19 +170,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790187113117
-    },
-    {
-      "name": "DECSET",
-      "source": "csi",
-      "byteOffset": 113,
-      "cursorX": 0,
-      "cursorY": 1,
-      "params": [
-        25
-      ],
-      "altScreen": false,
-      "at": 1790187113117
+      "at": 1790187546678
     },
     {
       "name": "EL",
@@ -194,7 +182,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187113133
+      "at": 1790187546678
     },
     {
       "name": "LINEFEED",
@@ -204,7 +192,19 @@
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790187113133
+      "at": 1790187546678
+    },
+    {
+      "name": "DECSET",
+      "source": "csi",
+      "byteOffset": 132,
+      "cursorX": 0,
+      "cursorY": 2,
+      "params": [
+        25
+      ],
+      "altScreen": false,
+      "at": 1790187546678
     }
   ],
   "frames": [
@@ -232,6 +232,7 @@
     "gamma",
     "BETA-REWRITTEN"
   ],
+  "resizes": [],
   "bytes": 132,
-  "raw": "\u001b[?9001h\u001b[?1004h\u001b[?25l\u001b[2J\u001b[m\u001b[Halpha\r\nbeta\r\ngamma\r\n\u001b]0;C:\\Program Files\\nodejs\\node.exe\u0007\u001b[?25h\u001b[?25l\u001b[2;1H\u001b[?25hBETA-REWRITTEN\u001b[K\r\n"
+  "raw": "\u001b[?9001h\u001b[?1004h\u001b[?25l\u001b[2J\u001b[m\u001b[Halpha\r\nbeta\r\ngamma\r\n\u001b]0;C:\\Program Files\\nodejs\\node.exe\u0007\u001b[?25h\u001b[?25l\u001b[2;1HBETA-REWRITTEN\u001b[K\r\n\u001b[?25h"
 }

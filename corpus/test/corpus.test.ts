@@ -173,6 +173,46 @@ test('a firehose overloads the grid but keeps every line in the text log', async
   assert.deepEqual(trace.textLog, fresh.textLog, 'the recorded trace holds the same lines');
 });
 
+test('a programme that genuinely resizes, in both feeds', () => {
+  // `complex.resize-during-tui` is named for a resize that never happened -- its
+  // programme says "the harness resizes the emulator here" and no harness ever
+  // did, so its trace is a redraw at a constant size. This is the programme that
+  // does resize, which is what the timeline's epoch rule needs to be tested
+  // against at all.
+  for (const feed of ['direct', 'pty'] as const) {
+    const trace = loadTrace('complex.resize-epochs', feed);
+    assert.deepEqual(
+      trace.resizes.map((r) => `${r.cols}x${r.rows}`),
+      ['30x6', '48x10'],
+      `${feed}: both resizes, at the sizes the programme asked for`,
+    );
+
+    // A replay has to be able to place them, which means inside the stream and
+    // in order.
+    let previous = -1;
+    for (const r of trace.resizes) {
+      assert.ok(r.offset > previous, `${feed}: resize offsets increase`);
+      assert.ok(r.offset <= trace.bytes, `${feed}: and fall inside the recorded bytes`);
+      previous = r.offset;
+    }
+
+    // The marker must not be content: a printed one lands on the grid, and
+    // ConPTY repaints the grid when it resizes, so the marker comes back and is
+    // acted on again -- measured as eleven resizes where two were asked for.
+    assert.ok(
+      !trace.raw.includes('resize:30x6') || trace.raw.includes('\x1b]0;resize:30x6\x07'),
+      `${feed}: the request is a title sequence, not printed text`,
+    );
+    assert.ok(
+      !/\n.*resize:30x6/.test(trace.raw.replace(/\x1b\]0;resize:\d+x\d+\x07/g, '')),
+      `${feed}: no resize marker is visible in the output`,
+    );
+
+    const last = trace.frames[trace.frames.length - 1]!;
+    assert.equal(last.lines.length, 10, `${feed}: the final frame is the resized grid`);
+  }
+});
+
 test('synchronized output frames are bracketed by the sync markers', () => {
   const trace = loadTrace('complex.synchronized-output', 'direct');
   // The recorder hooks `?h` / `?l` only for alt-screen modes, so assert on the

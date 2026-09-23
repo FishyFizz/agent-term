@@ -7,7 +7,7 @@
   "cols": 50,
   "rows": 6,
   "platform": "win32",
-  "recordedAt": "2026-09-23T18:11:50.815Z",
+  "recordedAt": "2026-09-23T18:19:04.526Z",
   "expectations": [
     {
       "from": 0,
@@ -27,7 +27,7 @@
         1049
       ],
       "altScreen": false,
-      "at": 1790187110799
+      "at": 1790187544511
     },
     {
       "name": "SCROLL",
@@ -39,7 +39,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790187110799
+      "at": 1790187544511
     },
     {
       "name": "BUFFERCHANGE",
@@ -49,7 +49,7 @@
       "cursorY": 0,
       "params": [],
       "altScreen": true,
-      "at": 1790187110799
+      "at": 1790187544511
     },
     {
       "name": "CUP",
@@ -61,7 +61,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790187110799
+      "at": 1790187544511
     },
     {
       "name": "LINEFEED",
@@ -71,7 +71,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": true,
-      "at": 1790187110799
+      "at": 1790187544511
     },
     {
       "name": "LINEFEED",
@@ -81,7 +81,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": true,
-      "at": 1790187110814
+      "at": 1790187544526
     },
     {
       "name": "LINEFEED",
@@ -91,7 +91,7 @@
       "cursorY": 3,
       "params": [],
       "altScreen": true,
-      "at": 1790187110814
+      "at": 1790187544526
     },
     {
       "name": "LINEFEED",
@@ -101,7 +101,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": true,
-      "at": 1790187110814
+      "at": 1790187544526
     }
   ],
   "frames": [
@@ -129,6 +129,7 @@
     "tui row 2",
     "tui row 3"
   ],
+  "resizes": [],
   "bytes": 55,
   "raw": "\u001b[?1049h\u001b[Htui row 0\r\ntui row 1\r\ntui row 2\r\ntui row 3\r\n"
 }

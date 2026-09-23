@@ -7,7 +7,7 @@
   "cols": 60,
   "rows": 6,
   "platform": "win32",
-  "recordedAt": "2026-09-23T18:11:30.769Z",
+  "recordedAt": "2026-09-23T18:18:43.912Z",
   "expectations": [
     {
       "from": 0,
@@ -31,7 +31,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790187090753
+      "at": 1790187523897
     }
   ],
   "frames": [
@@ -56,6 +56,7 @@
   "textLog": [
     "About to delete 12 files."
   ],
+  "resizes": [],
   "bytes": 43,
   "raw": "About to delete 12 files.\r\nContinue? [y/N] "
 }

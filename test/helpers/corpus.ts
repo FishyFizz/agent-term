@@ -60,9 +60,22 @@ export async function classifyTraceStreaming(
 ): Promise<Segment[]> {
   const screen = new ScreenModel(trace.cols, trace.rows);
   const segments: Segment[] = [];
+  // A trace has to be replayed at the size the programme was running at, or the
+  // replay describes a terminal that never existed -- and the frames, the ops
+  // and the verdicts all describe that terminal. Resizes take effect before the
+  // chunk that reaches their offset, the same way the recorder applied them.
+  const resizes = [...trace.resizes].sort((a, b) => a.offset - b.offset);
+  let nextResize = 0;
   let prevTo = 0;
 
   for (const chunk of chunker(trace.raw)) {
+    const chunkEnd = prevTo + Buffer.byteLength(chunk, 'utf8');
+    while (nextResize < resizes.length && resizes[nextResize]!.offset <= chunkEnd) {
+      const r = resizes[nextResize]!;
+      screen.resize(r.cols, r.rows);
+      nextResize++;
+    }
+
     const before = frameOf(screen);
     await screen.feed(chunk);
     const ops = [...screen.ops.recorded];

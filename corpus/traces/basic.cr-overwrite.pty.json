@@ -7,7 +7,7 @@
   "cols": 80,
   "rows": 6,
   "platform": "win32",
-  "recordedAt": "2026-09-23T18:11:54.284Z",
+  "recordedAt": "2026-09-23T18:19:07.703Z",
   "expectations": [
     {
       "from": 0,
@@ -33,7 +33,7 @@
         9001
       ],
       "altScreen": false,
-      "at": 1790187113784
+      "at": 1790187547206
     },
     {
       "name": "DECSET",
@@ -45,7 +45,7 @@
         1004
       ],
       "altScreen": false,
-      "at": 1790187113784
+      "at": 1790187547206
     },
     {
       "name": "DECRST",
@@ -57,7 +57,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790187113847
+      "at": 1790187547268
     },
     {
       "name": "ED",
@@ -69,7 +69,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790187113847
+      "at": 1790187547268
     },
     {
       "name": "SGR",
@@ -81,7 +81,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187113847
+      "at": 1790187547269
     },
     {
       "name": "CUP",
@@ -93,7 +93,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187113847
+      "at": 1790187547269
     },
     {
       "name": "LINEFEED",
@@ -103,7 +103,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790187113847
+      "at": 1790187547269
     },
     {
       "name": "TITLECHANGE",
@@ -113,7 +113,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790187113847
+      "at": 1790187547269
     },
     {
       "name": "DECSET",
@@ -125,7 +125,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790187113847
+      "at": 1790187547269
     }
   ],
   "frames": [
@@ -150,6 +150,7 @@
   "textLog": [
     "progress: 0%"
   ],
+  "resizes": [],
   "bytes": 117,
   "raw": "\u001b[?9001h\u001b[?1004h\u001b[?25l\u001b[2J\u001b[m\u001b[Hprogress: 0%\r\n\u001b]0;C:\\Program Files\\nodejs\\node.exe\u0007\u001b[?25hprogress: 50%\rprogress: 100%"
 }
