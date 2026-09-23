@@ -13,7 +13,7 @@
  * subscribe, and have a classifier that silently never runs -- a mistake
  * possible by omission, which is the kind worth removing.
  */
-import { PtySession } from './pty.js';
+import { PtySession, type PtyExitInfo } from './pty.js';
 import { ScreenModel } from './screen.js';
 import { classify, frameOf } from './classify.js';
 import type { Segment } from './classify.js';
@@ -74,6 +74,12 @@ export interface SessionIo {
   bytesPending: number | null;
 }
 
+/** A grid size a session was resized to. */
+export interface SessionSize {
+  cols: number;
+  rows: number;
+}
+
 /**
  * A terminal session that classifies its own output.
  *
@@ -87,6 +93,8 @@ export class TerminalSession {
   readonly screen: ScreenModel;
 
   private readonly listeners: ((update: SessionUpdate) => void)[] = [];
+  private readonly resizeListeners: ((size: SessionSize) => void)[] = [];
+  private readonly exitListeners: ((info: PtyExitInfo) => void)[] = [];
   private _seq = 0;
   private queue: Promise<void> = Promise.resolve();
   private pendings = 0;
@@ -98,6 +106,14 @@ export class TerminalSession {
     this.pty.on('data', (chunk) => {
       void this.feed(chunk).then((update) => {
         for (const listener of this.listeners) listener(update);
+      });
+    });
+    // Queued, not fired directly: the last bytes of a session are delivered
+    // before it exits, and a caller told "it exited" while an update is still
+    // in the queue would have to guess whether to wait.
+    this.pty.on('exit', (info) => {
+      this.enqueue(() => {
+        for (const listener of this.exitListeners) listener(info);
       });
     });
   }
@@ -113,6 +129,47 @@ export class TerminalSession {
       const i = this.listeners.indexOf(listener);
       if (i >= 0) this.listeners.splice(i, 1);
     };
+  }
+
+  /**
+   * Subscribe to resizes. Returns an unsubscribe function.
+   *
+   * Fires *after* any delivery already in flight, so a listener that records
+   * position in the update stream never has to decide whether a boundary came
+   * before or after the update it is looking at.
+   */
+  onResize(listener: (size: SessionSize) => void): () => void {
+    this.resizeListeners.push(listener);
+    return () => {
+      const i = this.resizeListeners.indexOf(listener);
+      if (i >= 0) this.resizeListeners.splice(i, 1);
+    };
+  }
+
+  /** Subscribe to the process exiting. Returns an unsubscribe function. */
+  onExit(listener: (info: PtyExitInfo) => void): () => void {
+    this.exitListeners.push(listener);
+    return () => {
+      const i = this.exitListeners.indexOf(listener);
+      if (i >= 0) this.exitListeners.splice(i, 1);
+    };
+  }
+
+  /**
+   * Run `task` after everything already queued.
+   *
+   * Same shape as `feed`'s keep-alive: the chain is reassigned to a promise
+   * that cannot reject, so one throwing listener cannot strand the deliveries
+   * behind it.
+   */
+  private enqueue(task: () => void): void {
+    const run = this.queue.then(() => {
+      task();
+    });
+    this.queue = run.then(
+      () => {},
+      () => {},
+    );
   }
 
   /** Feed one chunk of pty output and classify it. Serialized. */
@@ -190,11 +247,20 @@ export class TerminalSession {
    * Validated once here, before either is touched: if each half validated on
    * its own, one could accept the size and the other throw, leaving a session
    * with a pty at one size and a screen at another.
+   *
+   * The resize itself is applied synchronously -- the program inside must be
+   * told promptly -- but the *notification* is queued. A caller recording the
+   * boundary needs it ordered against the output, and a resize that overtook a
+   * delivery in flight would be recorded as having happened before output that
+   * was produced at the old size.
    */
   resize(cols: number, rows: number): void {
     assertGridSize(cols, rows);
     this.pty.resize(cols, rows);
     this.screen.resize(cols, rows);
+    this.enqueue(() => {
+      for (const listener of this.resizeListeners) listener({ cols, rows });
+    });
   }
 
   /**
@@ -205,6 +271,8 @@ export class TerminalSession {
    */
   dispose(): void {
     this.listeners.length = 0;
+    this.resizeListeners.length = 0;
+    this.exitListeners.length = 0;
     this.screen.dispose();
     this.pty.dispose();
   }

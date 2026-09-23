@@ -10,6 +10,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { TerminalSession } from '../src/session.js';
 import { applyDelta } from '../src/delta.js';
+import type { PtyExitInfo } from '../src/pty.js';
 
 const isWindows = process.platform === 'win32';
 const command = isWindows ? 'powershell.exe' : '/bin/sh';
@@ -196,6 +197,50 @@ test('a bulk run keeps the lines the grid cannot hold', async (t) => {
     'and the most recent one',
   );
   assert.ok(new Set(lines).size >= 150, 'distinct lines, not collapsed into a set');
+});
+
+test('a resize is reported, and only after what was already queued', async (t) => {
+  const { session } = harness();
+  t.after(() => session.dispose());
+
+  const seen: number[] = [];
+  session.onResize((size) => seen.push(size.cols));
+
+  session.resize(90, 20);
+  // The resize itself is applied synchronously -- the program inside must be
+  // told promptly -- but the boundary is queued behind anything in flight, so
+  // it cannot be reported in the middle of a delivery.
+  // `deepEqual(seen, [])` would narrow `seen` to never[] under node's assertion
+  // signature, so the emptiness check is a length.
+  assert.equal(seen.length, 0, 'not fired inline');
+  assert.equal(session.screen.cols, 90, 'but the resize has already taken effect');
+
+  const got = await waitFor(() => seen.length > 0, { label: 'resize notification' });
+  assert.ok(got, 'the boundary was reported');
+  assert.deepEqual(seen, [90]);
+
+  const unsubscribe = session.onResize(() => seen.push(-1));
+  unsubscribe();
+  session.resize(95, 25);
+  await waitFor(() => seen.length > 1, { label: 'second resize' });
+  assert.deepEqual(seen, [90, 95], 'unsubscribing stops delivery');
+});
+
+test('the process exiting is reported, with its status', async (t) => {
+  // The shell the harness already uses, told to leave -- rather than a
+  // throwaway command, whose ConPTY teardown wedges on this platform.
+  const { session } = harness();
+  t.after(() => session.dispose());
+
+  const seen: PtyExitInfo[] = [];
+  session.onExit((info) => seen.push(info));
+  session.pty.write('exit\r\n');
+
+  const got = await waitFor(() => seen.length > 0, { label: 'exit' });
+  assert.ok(got, 'the exit was reported');
+  assert.equal(seen.length, 1, 'reported once');
+  assert.equal(session.pty.alive, false, 'the session knows it is over');
+  assert.ok(seen[0]?.exitCode !== undefined, 'with a status, not an absent one');
 });
 
 test('resizing a live session keeps pty and screen in step', async (t) => {
