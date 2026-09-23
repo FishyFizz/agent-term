@@ -1,8 +1,8 @@
 /**
  * Measure the classifier against the corpus.
  *
- * The corpus (`corpus/`, in-tree) is the regression suite for L0.1: 22
- * programmes, 44 recorded traces, each with expected verdicts over byte
+ * The corpus (`corpus/`, in-tree) is the regression suite for L0.1: 23
+ * programmes, 46 recorded traces, each with expected verdicts over byte
  * ranges. This replays each trace's `raw` bytes through the real screen model
  * and classifier and scores the result.
  *
@@ -42,16 +42,13 @@ export function loadTraces(feed: 'direct' | 'pty' | 'both' = 'direct'): Trace[] 
  * visible if the content being overwritten was already on screen when some
  * delivery began. Replaying a whole trace as one delivery starts from an empty
  * screen, so nothing is ever overwritten and every repaint looks like a first
- * paint -- including the bare `
-` overwrite in CLASSIFIER.md §9.2, which
+ * paint -- including the bare `\r` overwrite in CLASSIFIER.md §9.2, which
  * emits no control op at all.
  *
- * Chunks, not single bytes: at one byte per delivery the `
-` and the text
+ * Chunks, not single bytes: at one byte per delivery the `\r` and the text
  * after it land in different deliveries, so the CR alone looks like a
  * one-character append and the verdict flips on a replay artifact. Splitting
- * after control characters keeps a `
-` with the text that follows it, which
+ * after control characters keeps a `\r` with the text that follows it, which
  * is the unit a program actually emits.
  */
 export async function classifyTraceStreaming(

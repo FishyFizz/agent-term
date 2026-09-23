@@ -44,14 +44,16 @@ carrying them, so coalescing is a classification input and not merely a
 delivery policy. See `CLASSIFIER.md` §9.
 
 Not built: the MCP tool surface, delivery and boundedness (L1.1), settle
-detection (L1.2), and retention and durability (L3.4).
+detection (L1.2), interaction (L1.4) and honest errors (L1.5), and retention
+and durability (L3.4). L1.3 is half-there — the byte watermarks exist on the
+session and on the pty, and nothing consumes them yet.
 
 ## Development
 
 ```bash
 npm install
 npm run typecheck     # src, test, scripts and corpus — one project
-npm run test          # 128 tests
+npm run test          # 131 tests
 npm run smoke         # end-to-end against a real shell
 npm run corpus        # score the classifier across replay granularities
 ```

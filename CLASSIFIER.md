@@ -53,7 +53,7 @@ list, and the list is what L0.3's timeline wants anyway.
 
 | Tap | API | Supplies |
 |---|---|---|
-| **Edit record** (op stream) | `parser.registerCsiHandler` / `registerEscHandler` / `registerDcsHandler` | *where the boundaries are* |
+| **Edit record** (op stream) | `parser.registerCsiHandler` / `registerEscHandler` | *where the boundaries are* |
 | **Screen model** | `buffer.active`, `getLine`, `translateToString`, `getCell`, `onLineFeed`, `onScroll`, `onBufferChange` | *what each segment did* |
 
 The op stream supplies **segmentation**; the screen model supplies the **verdict** per segment.
@@ -210,12 +210,13 @@ So the emulator feeds two sinks:
 
 | Sink | Nature | Fed from | Serves |
 |---|---|---|---|
-| **Text log** | append-only, ordered, addressed by cursor | `onLineFeed` / `onScroll`, reading the completed line out of the buffer before it can fall out | writing deltas, history pagination |
+| **Text log** | append-only, ordered, addressed by cursor | `onLineFeed`, reading the completed line out of the buffer before it can fall out | writing deltas, history pagination |
 | **Screen grid** | state | `buffer.active` | drawing, classifier input |
 
-Linefeeds fire during drawing too, so the text log always accumulates — but each line carries its
-sequence number, and only lines inside writing-classified segments are promoted to the feed.
-Lines from drawing segments remain in the log, marked. That is the L2 raw-stream escape hatch,
+Linefeeds fire during drawing too, so the text log always accumulates — but each line carries the
+byte stamp of the delivery that completed it and the buffer it was written on, so a caller can
+attribute every line. Promoting only the lines inside writing-classified segments into the feed is
+delivery's job (L1.1); the log keeps all of them, marked. That is the L2 raw-stream escape hatch,
 for free.
 
 ---
@@ -265,7 +266,7 @@ Update {
   segments: [{
     kind: 'writing' | 'drawing'
     confidence: 'high' | 'low'                  // low ⇒ evidence attached, both sent
-    evidence: { ops: [...], erased, reachedBack, altScreen }
+    evidence: { ops: [...], erased, overwrote, reachedBack, scrolledBy, altScreen }
   }]
 }
 ```
@@ -283,7 +284,6 @@ Update {
    segment a scrolled update, but not the ability to classify. The design is therefore not
    fully stack-neutral; declaring that is better than pretending.
 2. **Redraw without control ops.** carriage-return overwrite, and erase variants outside
-` + overwrite, and erase variants outside
    the hooked set — **closed**. Caught by the screen model (`overwrote`: text
    landing on cells that were already non-blank). Exercised by
    `basic.cr-overwrite` and `basic.spinner`.
@@ -325,26 +325,33 @@ Update {
    (`src/text-log.ts`), and the argument above is the reason: the screen grid
    holds the viewport, so a line that scrolls out is in no snapshot at all, and
    L0.3's "page back to any earlier part" is unsatisfiable without a separate
-   record. Measured: 200 lines into a 5-row terminal with 50 lines of scrollback
-   leaves 54 of them in the buffer, while reading the completed line at each
+   record. Measured: 200 lines into a 5-row terminal with 10 lines of scrollback
+   leaves 15 of them in the buffer, while reading the completed line at each
    linefeed yields all 200, distinct. See `HISTORY.md`.
 
 ---
 
 ## 10. Verification
 
-The corpus is the regression suite, and it is needed **before** the code, not after. Recorded
-real sessions, hand-labelled per segment:
+The corpus is the regression suite, and it is needed **before** the code, not after: 23
+programmes, 46 recorded traces, each expectation hand-labelled with a byte range and the reason
+it exists. The programmes themselves are written by hand (`corpus/programmes/`) rather than
+recorded from `vim` and friends — a trace has to be deterministic and need nothing installed —
+but each one reproduces the observable behaviour of a real program, and the shapes below are
+those programs':
 
-| Case | Exercises |
-|---|---|
-| long noisy build | writing under scroll; history pagination |
-| `vim` | drawing, alt screen, capture urgency |
-| `htop` | continuous repaint, collapse-to-latest |
-| `fzf` / `lazygit` | alt-screen TUI |
-| `python` REPL | interleaved writing + prompt redraw |
-| `npm` / `cargo` progress | the §4 trace — draw/erase/write/draw ordering |
-| `git log` piped to a pager, then `q` | shell → TUI → shell (criterion 3) |
-| **a program that writes on the alt screen** | the §3.4 counterexample — would have passed the rejected design for the wrong reason |
-| resize while a TUI is running | reflow is an event, not a repaint |
-| firehose output | bounded feed, no loss |
+| Shape | Programme | Exercises |
+|---|---|---|
+| long noisy build | `cli.build-log`, `basic.scroll-write` | writing under scroll; history pagination |
+| full-screen TUI | `complex.shell-tui-shell`, `cli.pager` | drawing, alt screen, capture urgency |
+| continuous repaint | `cli.dashboard`, `basic.spinner` | collapse-to-latest |
+| alt-screen selector | `cli.menu-selector` | a highlight moving over a fixed list |
+| REPL | `cli.repl` | interleaved writing + prompt redraw |
+| progress bar | `cli.progress-bar`, `complex.progress-bar-scroll` | the §4 trace — draw/erase/write/draw ordering |
+| pager, then quit | `cli.pager` | shell → TUI → shell (criterion 3) |
+| **a program that writes on the alt screen** | `basic.alt-screen-write` | the §3.4 counterexample — would have passed the rejected design for the wrong reason |
+| resize while a TUI is running | `complex.resize-during-tui`, `complex.resize-epochs` | reflow is an event, not a repaint |
+| firehose output | `complex.firehose` | bounded feed, no loss |
+
+The scores and the replay granularities they are measured at are pinned in `test/corpus.test.ts`
+and printed by `scripts/corpus-score.ts`; the timeline's own verification is `HISTORY.md` §6.

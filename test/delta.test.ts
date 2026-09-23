@@ -135,6 +135,23 @@ test('an unusable hint does not stop an exact encoding', () => {
   assert.deepEqual(applyDelta(before, d).lines, after.lines);
 });
 
+test('an exact encoding is found for shifts the hint cannot describe', () => {
+  // The same saturated case, swept: `IBuffer.baseY` freezes once the ring is
+  // full, so the hint is 0 while the content keeps moving. Every shift it fails
+  // to describe has to come back exact *and* small -- a full-grid rewrite is
+  // exact too, and would defeat the point of storing a delta at all.
+  const rows = 8;
+  for (const shift of [1, 3, 5]) {
+    const before = snap(10, rows, Array.from({ length: rows }, (_, y) => `r${y}`));
+    const after = snap(10, rows, Array.from({ length: rows }, (_, y) => `r${y + shift}`));
+
+    const d = gridDelta(before, after, 0);
+    assert.ok(d, `a ${shift}-row scroll encoded from an unusable hint`);
+    assert.deepEqual(applyDelta(before, d).lines, after.lines, `and shift ${shift} is exact`);
+    assert.ok(cells(d) < rows * 10, `in ${cells(d)} cells, not a whole grid`);
+  }
+});
+
 test('the shift chosen is whichever is cheapest, not necessarily the real one', () => {
   // A 3-line scroll across 4 rows can also be described as a smaller shift plus
   // more runs. Either is exact; the encoder takes the smaller. Safe because the

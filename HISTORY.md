@@ -68,8 +68,9 @@ A full screen per draw is the wrong shape. A 120×40 TUI repainting at 60fps is 
 MB/minute of retained state, for changes that are usually a few cells — and `GOAL.md` calls
 continuous repaint the pathological case (criterion 5).
 
-So a screen change is stored as `{ scrollBy, runs }`: the grid shifted up, then the runs that
-were written. Shift-then-write, not a shift alone — within one delivery a program writes at the
+So a screen change is stored as `{ scrollBy, runs, rows }`: the grid shifted up, then the runs
+that were written, plus a per-row payload for the rows whose appearance or glyph widths changed
+(§3 below). Shift-then-write, not a shift alone — within one delivery a program writes at the
 cursor *first* and the scroll happens *after*, so new content lands at pre-scroll positions and
 a shift-only model can never describe it. (An early attempt at whole-overlap matching found no
 candidate at all; that failure is why the shape is what it is.)
@@ -122,9 +123,9 @@ lossless point. Verified:
 
 | Claim | Result |
 |---|---|
-| The buffer is lossy; the linefeed stream is not | 200 lines into a 5-row terminal with 50 lines of scrollback: **54 kept**, **200 recovered**, distinct |
+| The buffer is lossy; the linefeed stream is not | 200 lines into a 5-row terminal with 10 lines of scrollback: **15 kept**, **200 recovered**, distinct |
 | A CUP-drawn TUI writes nothing to the log | an alt-screen menu drawn with `CUP`+`EL` per row: **0** linefeed events |
-| A program that *writes* on the alt screen does | 12 lines captured, and that content is destroyed on exit — so the sink records both buffers and stamps which one. L0.1's corollary is that the alt screen is not a verdict |
+| A program that *writes* on the alt screen does | 2 lines captured, and that content is destroyed on exit — so the sink records both buffers and stamps which one. L0.1's corollary is that the alt screen is not a verdict |
 
 It is append-only and never de-duplicated: two identical lines are two lines. A build log
 repeating "Compiling foo" is the common case, and a set-like log loses exactly the repetition
@@ -154,8 +155,10 @@ resolution limit (`CLASSIFIER.md` §9.3) and nothing here invents precision beyo
   looking correct, so this is exhaustive rather than sampled.
 - **The epoch rule, end to end** (`corpus/test/corpus.test.ts`): `complex.resize-epochs` produces
   three epochs at 60×8, 30×6 and 48×10 in both feeds, each answering at its own size.
-- **Saturation is tested on purpose** (`test/delta.test.ts`): a deliberately tiny scrollback,
-  driven past it — the case where `baseY` freezes and a heuristic encoder would corrupt silently.
+- **Saturation is tested on purpose** (`test/delta.test.ts`): the hint a saturated scrollback
+  hands over — 0, while the content keeps moving — is forced on shifts of 1, 3 and 5 rows, so
+  the search has to recover the encoding rather than the hint. That is the case where a
+  heuristic encoder would corrupt silently.
 - **Against a live shell** (`test/session.test.ts`): every screen the timeline reconstructs
   equals the screen the session actually reported, and a mid-session resize freezes the old
   epoch at 100 columns while the new one answers at 60.

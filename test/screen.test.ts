@@ -3,8 +3,9 @@
  *
  * These run against the real emulator with hand-written escape sequences, so
  * they are unit tests rather than end-to-end ones: the claim under test is
- * "our model of the grid is correct", and the differential test against real
- * terminals (PRIOR-ART.md §8) is what extends that to "faithful".
+ * "our model of the grid is correct", and the differential conformance the
+ * survey recommends (PRIOR-ART.md, "Decisions taken from this survey") is what
+ * extends that to "faithful".
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

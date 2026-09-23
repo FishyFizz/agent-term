@@ -10,7 +10,7 @@
  * Verified against `@xterm/headless` v6.0.0 (HISTORY.md):
  *
  *  - Scrollback is lossy; the linefeed stream is not. Writing 200 lines into a
- *    5-row terminal with 50 lines of scrollback leaves 54 lines in the buffer,
+ *    5-row terminal with 10 lines of scrollback leaves 15 lines in the buffer,
  *    but `onLineFeed` fires 200 times and reading the completed line at each
  *    event recovers all 200, distinct.
  *  - The alt buffer has no scrollback, so content written there is destroyed on

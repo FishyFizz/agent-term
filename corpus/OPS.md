@@ -32,8 +32,9 @@ something. `pty` is the one that says whether that logic survives reality.
 
 ## Verified platform facts
 
-Probed on this machine (Windows 11, node 22.23.2, node-pty 1.1.0,
-`@xterm/headless` 6.0.0). Re-probe rather than trusting these if a version moves.
+Probed on this machine (Windows 11, node-pty 1.1.0, `@xterm/headless` 6.0.0;
+originally under node 22.23.2, since moved to 24.18.0, where the corpus suite
+still passes). Re-probe rather than trusting these if a version moves.
 
 ### ConPTY rewrites escape sequences
 
@@ -81,15 +82,15 @@ watermarks depend on it). On Windows node-pty hands back a **string** regardless
 `Buffer.from(chunk, 'utf8')`, so byte counts are right, but on POSIX the same
 code path receives a Buffer. Do not assume a Buffer in either direction.
 
-Note: the repo's own `test/bytes.test.ts` has one failing case on this machine
-(`bytesRead counts bytes, not characters`); the `data events deliver Buffers`
-case passes because the coercion is transparent. That is pre-existing on main
-and is a pty-substrate issue, not a corpus one.
+Note: the repo's own `test/bytes.test.ts` passes both of its cases on this
+machine, `bytesRead counts bytes, not characters` included — the coercion
+above is transparent, so the byte count comes out right whether the pty hands
+back text or bytes. That is a property of this platform and not a guarantee:
+do not assume a Buffer in either direction.
 
 ### Alt screen behaves as documented
 
-Confirmed against `@xterm/headless` v6, matching CLASSIFIER.md §3.4 and
-`references/xterm-headless-facts.md`:
+Confirmed against `@xterm/headless` v6, matching CLASSIFIER.md §3.4:
 
 - `\x1b[?1049h` switches `buffer.active.type` to `alternate`; the alternate
   buffer's `length` stays pinned at `rows` and has no scrollback.

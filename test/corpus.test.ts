@@ -41,7 +41,7 @@ async function run(
 
 test('corpus is present and well-formed', () => {
   const traces = loadTraces('direct');
-  assert.ok(traces.length >= 22, `expected the full corpus, got ${traces.length}`);
+  assert.ok(traces.length >= 23, `expected the full corpus, got ${traces.length}`);
   for (const t of traces as Trace[]) {
     assert.ok(t.expectations.length > 0, `${t.id} has expectations`);
     assert.ok(t.raw.length > 0, `${t.id} has raw bytes`);

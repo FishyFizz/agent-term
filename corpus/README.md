@@ -14,7 +14,7 @@ classifier so that the classifier has something to be wrong about.
 |---|---|---|
 | `basic` | 7 | One behaviour each: append, append-under-scroll, in-place repaint, `\r`-overwrite, append on the alt screen, spinner, clear-and-redraw |
 | `cli` | 7 | Shapes of real programs: progress bar, REPL, pager, selector, build log, confirm prompt, dashboard |
-| `complex` | 8 | Combinations that break plausible designs: shell→TUI→shell, interleaved log+status, resize during a TUI, firehose, the §4 progress-bar disproof, synchronized output, alt-write-then-draw, unclean TUI exit |
+| `complex` | 9 | Combinations that break plausible designs: shell→TUI→shell, interleaved log+status, resize during a TUI, a real resize that splits history into epochs, firehose, the §4 progress-bar disproof, synchronized output, alt-write-then-draw, unclean TUI exit |
 
 ## Layout
 
