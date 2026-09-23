@@ -8,7 +8,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { SessionHistory, type HistoryInput } from '../src/history.js';
+import { SessionHistory, type HistoryInput, type HistoryToken } from '../src/history.js';
 import { gridDelta } from '../src/delta.js';
 import type { ScreenSnapshot } from '../src/screen.js';
 import type { Segment, Verdict } from '../src/classify.js';
@@ -256,14 +256,40 @@ test('text is paged from the beginning, in order, and bounded', () => {
   );
   assert.equal(some.truncated, true, 'truncation is reported, never silent (L1.1)');
 
-  // And resuming from a token does not repeat what was already read.
-  const token = history.tokenAt({ seq: 1 });
-  assert.ok(token, 'a token for a known sequence');
-  const rest = history.textSince(token, 10);
+  // And the token the page hands back resumes where it stopped -- at or after
+  // the record it addresses, the same inclusive reading `read()` uses.
+  const rest = history.textSince(some.next!, 10);
   assert.deepEqual(
     rest.lines.map((l) => l.text),
-    ['two', 'three'],
+    ['three'],
   );
+});
+
+test('a text page loses nothing and repeats nothing when it pages on', () => {
+  // A token addresses a *record*, so a page that stopped inside one could only
+  // be resumed by repeating the lines it already returned or by skipping them.
+  // Both are wrong; skipping is the silent loss L1.1 forbids. The record is
+  // therefore the unit: a page is `limit` lines rounded up to one, which is
+  // what makes the second record here come back whole rather than halved.
+  const history = new SessionHistory('s');
+  const f = feeder(history);
+  f.write(['a'], { text: ['one'] });
+  f.write(['b'], { text: ['two', 'three'] });
+  f.write(['c'], { text: ['four'] });
+
+  const collected: string[] = [];
+  const sizes: number[] = [];
+  let token: HistoryToken | undefined;
+  for (let guard = 0; guard < 10; guard++) {
+    const page = history.textSince(token, 2);
+    sizes.push(page.lines.length);
+    collected.push(...page.lines.map((l) => l.text));
+    if (!page.next) break;
+    token = page.next;
+  }
+
+  assert.deepEqual(collected, ['one', 'two', 'three', 'four'], 'every line, exactly once');
+  assert.deepEqual(sizes, [1, 2, 1], 'and each record served whole');
 });
 
 test('a bounded read reports what the limit withheld', () => {

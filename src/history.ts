@@ -367,7 +367,7 @@ export class SessionHistory {
   }
 
   /**
-   * The text recorded after an address, bounded and in order.
+   * The text recorded at or after an address, bounded and in order.
    *
    * Bounded to one epoch for the same reason a page is: the lines were wrapped
    * at that epoch's width, and mixing widths in one answer would leave the
@@ -375,6 +375,12 @@ export class SessionHistory {
    *
    * With no address this reads from the beginning, which is the useful reading
    * of "give me the text" -- unlike `screenAt`, where no address means "now".
+   *
+   * A page is `limit` lines **rounded up to a record boundary**, because a
+   * record is what a token addresses. Splitting one would leave the caller
+   * resuming from `next` either repeating lines it was already given or
+   * skipping the ones it was not -- and skipping is the silent loss L1.1
+   * forbids. So a record longer than `limit` is returned whole.
    */
   textSince(address: HistoryPoint | undefined, limit = DEFAULT_LIMIT): TextPage {
     const found = address === undefined ? null : this.locate(address);
@@ -382,20 +388,19 @@ export class SessionHistory {
     const epoch = this.list[epochIndex];
     if (!epoch) throw new RangeError(`no such history position`);
 
-    const startIndex = found ? found.index + 1 : 0;
+    // Inclusive, like `read`'s `from`: `next` from a page is the first record
+    // that page did not return, not the last one it did.
+    const startIndex = found ? found.index : 0;
     const lines: TextLine[] = [];
     let index = startIndex;
     let truncated = false;
     for (; index < epoch.records.length; index++) {
       const record = epoch.records[index];
       if (!record) break;
-      if (lines.length + record.text.length > limit) {
-        // Take what fits and stop on a line boundary, so a caller paging text
-        // never has to stitch half a line to the next page.
-        for (const line of record.text) {
-          if (lines.length === limit) break;
-          lines.push(line);
-        }
+      // `lines.length > 0` is what lets a record larger than the limit through:
+      // refusing it would return nothing and hand back the same token, and a
+      // caller paging on that would never move.
+      if (lines.length > 0 && lines.length + record.text.length > limit) {
         truncated = true;
         break;
       }
