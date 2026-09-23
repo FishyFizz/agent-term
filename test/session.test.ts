@@ -10,6 +10,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { TerminalSession } from '../src/session.js';
 import { applyDelta } from '../src/delta.js';
+import { HistoryStore } from '../src/history.js';
 import type { PtyExitInfo } from '../src/pty.js';
 
 const isWindows = process.platform === 'win32';
@@ -241,6 +242,76 @@ test('the process exiting is reported, with its status', async (t) => {
   assert.equal(seen.length, 1, 'reported once');
   assert.equal(session.pty.alive, false, 'the session knows it is over');
   assert.ok(seen[0]?.exitCode !== undefined, 'with a status, not an absent one');
+});
+
+test('history reconstructs every screen of a live session', async (t) => {
+  const { session, updates } = harness();
+  const history = new HistoryStore().open(session);
+  t.after(() => session.dispose());
+
+  session.pty.write('1..40 | % { "HIST-$_" }\r\n');
+  await waitFor(() => updates.some((u) => u.screen.lines.some((l) => l.includes('HIST-40'))), {
+    label: 'the last line',
+    timeoutMs: 15000,
+  });
+
+  const epochs = history.epochs();
+  assert.equal(epochs.length, 1, 'no resize, so one epoch');
+  assert.equal(epochs[0]?.cols, 100);
+
+  // The whole point: a reader gets the screen back exactly, having stored
+  // deltas rather than screens. Compared against the screens the session
+  // actually reported, so this checks the timeline against the live emulator
+  // and not against itself.
+  const bySeq = new Map(updates.map((u) => [u.seq, u]));
+  const page = history.read({ limit: 1000 });
+  let checked = 0;
+  for (const record of page.records) {
+    const update = bySeq.get(record.seq);
+    if (!update) continue;
+    checked++;
+    assert.deepEqual(
+      history.screenAt({ seq: record.seq })?.lines,
+      update.screen.lines,
+      `the screen at seq ${record.seq} is the screen the session reported`,
+    );
+  }
+  assert.ok(checked > 5, `compared real screens (${checked})`);
+});
+
+test('a live resize splits the timeline and freezes the old epoch at its size', async (t) => {
+  const { session, updates } = harness();
+  const history = new HistoryStore().open(session);
+  t.after(() => session.dispose());
+
+  session.pty.write('echo BEFORE-RESIZE\r\n');
+  await waitFor(
+    () => updates.some((u) => u.screen.lines.some((l) => l.includes('BEFORE-RESIZE'))),
+    { label: 'pre-resize output' },
+  );
+  const beforeResize = session.seq;
+
+  session.resize(60, 20);
+  session.pty.write('echo AFTER-RESIZE\r\n');
+  await waitFor(
+    () => updates.some((u) => u.seq > beforeResize && u.screen.lines.some((l) => l.includes('AFTER-RESIZE'))),
+    { label: 'post-resize output' },
+  );
+
+  const epochs = history.epochs();
+  assert.ok(epochs.length >= 2, `the resize split the timeline (${epochs.length} epochs)`);
+  assert.equal(epochs[0]?.cols, 100, 'what came before stays at the old size');
+  assert.equal(epochs.at(-1)?.cols, 60, 'and after the boundary, history is new');
+
+  // The delivered rule: asking for frozen history gives the size it was made at.
+  const frozen = history.read({ limit: 100 });
+  assert.equal(frozen.epoch.cols, 100);
+  assert.ok(frozen.records.length > 0, 'the old epoch still has records');
+  assert.ok(frozen.next, 'and a token leads into the new one');
+
+  const fresh = history.read({ from: frozen.next!, limit: 100 });
+  assert.equal(fresh.epoch.cols, 60, 'the next page reports the new size');
+  assert.ok(fresh.records.length > 0);
 });
 
 test('resizing a live session keeps pty and screen in step', async (t) => {
