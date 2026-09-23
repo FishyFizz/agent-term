@@ -11,6 +11,7 @@ import assert from 'node:assert/strict';
 import { TerminalSession } from '../src/session.js';
 import { applyDelta } from '../src/delta.js';
 import { HistoryStore } from '../src/history.js';
+import { SessionHost } from '../src/host.js';
 import type { PtyExitInfo } from '../src/pty.js';
 
 const isWindows = process.platform === 'win32';
@@ -312,6 +313,35 @@ test('a live resize splits the timeline and freezes the old epoch at its size', 
   const fresh = history.read({ from: frozen.next!, limit: 100 });
   assert.equal(fresh.epoch.cols, 60, 'the next page reports the new size');
   assert.ok(fresh.records.length > 0);
+});
+
+test('the host starts recording the moment it opens a session', async (t) => {
+  const host = new SessionHost();
+  t.after(() => host.disposeAll());
+
+  const { session, history } = host.open({ command, args, cols: 100, rows: 24 });
+  assert.equal(history.sessionId, session.id, 'the timeline knows whose it is');
+  assert.equal(host.historyFor(session.id), history, 'and is reachable by id');
+  assert.equal(host.session(session.id), session);
+  assert.equal(history.epochs().length, 1, 'epoch 0 exists before any output');
+
+  session.pty.write('echo HOST-MARKER\r\n');
+  const recorded = await waitFor(
+    () => history.textSince(undefined, 200).lines.some((l) => l.text.includes('HOST-MARKER')),
+    { label: 'recorded output' },
+  );
+  assert.ok(recorded, 'recorded without anyone having to ask it to');
+
+  // Closing ends the session; it must not end the record.
+  assert.equal(host.close(session.id), true);
+  assert.equal(host.session(session.id), undefined, 'gone from the registry');
+  const kept = host.historyFor(session.id);
+  assert.ok(kept, 'still in the store');
+  assert.ok(
+    kept.textSince(undefined, 200).lines.some((l) => l.text.includes('HOST-MARKER')),
+    'and still readable: that is what surviving the process means',
+  );
+  assert.ok(kept.epochs()[0]?.records, 'with its records intact');
 });
 
 test('resizing a live session keeps pty and screen in step', async (t) => {
