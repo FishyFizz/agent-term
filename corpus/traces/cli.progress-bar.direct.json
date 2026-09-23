@@ -7,7 +7,7 @@
   "cols": 60,
   "rows": 8,
   "platform": "win32",
-  "recordedAt": "2026-09-22T10:20:44.909Z",
+  "recordedAt": "2026-09-23T18:11:28.627Z",
   "expectations": [
     {
       "from": 0,
@@ -31,7 +31,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790072444770
+      "at": 1790187088486
     },
     {
       "name": "LINEFEED",
@@ -41,7 +41,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790072444785
+      "at": 1790187088502
     },
     {
       "name": "LINEFEED",
@@ -51,7 +51,7 @@
       "cursorY": 3,
       "params": [],
       "altScreen": false,
-      "at": 1790072444800
+      "at": 1790187088518
     },
     {
       "name": "CUP",
@@ -64,7 +64,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790072444801
+      "at": 1790187088518
     },
     {
       "name": "EL",
@@ -76,7 +76,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790072444801
+      "at": 1790187088518
     },
     {
       "name": "LINEFEED",
@@ -86,7 +86,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790072444832
+      "at": 1790187088549
     },
     {
       "name": "CUP",
@@ -99,7 +99,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790072444832
+      "at": 1790187088549
     },
     {
       "name": "EL",
@@ -111,7 +111,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790072444832
+      "at": 1790187088549
     },
     {
       "name": "LINEFEED",
@@ -121,7 +121,7 @@
       "cursorY": 5,
       "params": [],
       "altScreen": false,
-      "at": 1790072444863
+      "at": 1790187088580
     },
     {
       "name": "CUP",
@@ -134,7 +134,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790072444863
+      "at": 1790187088580
     },
     {
       "name": "EL",
@@ -146,7 +146,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790072444863
+      "at": 1790187088580
     },
     {
       "name": "LINEFEED",
@@ -156,7 +156,7 @@
       "cursorY": 6,
       "params": [],
       "altScreen": false,
-      "at": 1790072444893
+      "at": 1790187088611
     },
     {
       "name": "CUP",
@@ -169,7 +169,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790072444893
+      "at": 1790187088611
     },
     {
       "name": "EL",
@@ -181,7 +181,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790072444909
+      "at": 1790187088627
     }
   ],
   "frames": [
@@ -205,7 +205,14 @@
       ]
     }
   ],
-  "textLog": [],
+  "textLog": [
+    "npm install",
+    "[--------------------]   0%",
+    "added package-25 in 25ms",
+    "added package-50 in 50ms",
+    "added package-75 in 75ms",
+    "added package-100 in 100ms"
+  ],
   "bytes": 320,
   "raw": "npm install\r\n[--------------------]   0%\r\nadded package-25 in 25ms\r\n\u001b[s\u001b[8;1H\u001b[2K[#####---------------]  25%\u001b[uadded package-50 in 50ms\r\n\u001b[s\u001b[8;1H\u001b[2K[##########----------]  50%\u001b[uadded package-75 in 75ms\r\n\u001b[s\u001b[8;1H\u001b[2K[###############-----]  75%\u001b[uadded package-100 in 100ms\r\n\u001b[s\u001b[8;1H\u001b[2K[####################] 100%\u001b[u"
 }

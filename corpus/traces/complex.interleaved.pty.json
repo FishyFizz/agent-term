@@ -7,7 +7,7 @@
   "cols": 60,
   "rows": 8,
   "platform": "win32",
-  "recordedAt": "2026-09-22T10:21:20.433Z",
+  "recordedAt": "2026-09-23T18:12:04.801Z",
   "expectations": [
     {
       "from": 0,
@@ -27,7 +27,7 @@
         9001
       ],
       "altScreen": false,
-      "at": 1790072479757
+      "at": 1790187124147
     },
     {
       "name": "DECSET",
@@ -39,139 +39,129 @@
         1004
       ],
       "altScreen": false,
-      "at": 1790072479757
+      "at": 1790187124147
     },
     {
       "name": "DECRST",
       "source": "csi",
-      "byteOffset": 109,
+      "byteOffset": 89,
       "cursorX": 0,
       "cursorY": 0,
       "params": [
         25
       ],
       "altScreen": false,
-      "at": 1790072479838
+      "at": 1790187124224
     },
     {
       "name": "ED",
       "source": "csi",
-      "byteOffset": 109,
+      "byteOffset": 89,
       "cursorX": 0,
       "cursorY": 0,
       "params": [
         2
       ],
       "altScreen": false,
-      "at": 1790072479838
+      "at": 1790187124224
     },
     {
       "name": "SGR",
       "source": "csi",
-      "byteOffset": 109,
+      "byteOffset": 89,
       "cursorX": 0,
       "cursorY": 0,
       "params": [
         0
       ],
       "altScreen": false,
-      "at": 1790072479838
+      "at": 1790187124224
     },
     {
       "name": "CUP",
       "source": "csi",
-      "byteOffset": 109,
+      "byteOffset": 89,
       "cursorX": 0,
       "cursorY": 0,
       "params": [
         0
       ],
       "altScreen": false,
-      "at": 1790072479838
+      "at": 1790187124224
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 109,
+      "byteOffset": 89,
       "cursorX": 0,
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790072479838
+      "at": 1790187124224
     },
     {
       "name": "TITLECHANGE",
       "source": "event",
-      "byteOffset": 109,
+      "byteOffset": 89,
       "cursorX": 0,
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790072479838
+      "at": 1790187124224
     },
     {
       "name": "DECSET",
       "source": "csi",
-      "byteOffset": 109,
+      "byteOffset": 89,
       "cursorX": 0,
       "cursorY": 1,
       "params": [
         25
       ],
       "altScreen": false,
-      "at": 1790072479838
-    },
-    {
-      "name": "LINEFEED",
-      "source": "event",
-      "byteOffset": 131,
-      "cursorX": 0,
-      "cursorY": 2,
-      "params": [],
-      "altScreen": false,
-      "at": 1790072479867
+      "at": 1790187124224
     },
     {
       "name": "DECRST",
       "source": "csi",
-      "byteOffset": 178,
+      "byteOffset": 156,
       "cursorX": 0,
-      "cursorY": 2,
+      "cursorY": 1,
       "params": [
         25
       ],
       "altScreen": false,
-      "at": 1790072479883
+      "at": 1790187124256
     },
     {
       "name": "CUP",
       "source": "csi",
-      "byteOffset": 178,
-      "cursorX": 0,
-      "cursorY": 2,
+      "byteOffset": 156,
+      "cursorX": 20,
+      "cursorY": 1,
       "params": [
         8,
         1
       ],
       "altScreen": false,
-      "at": 1790072479883
+      "at": 1790187124256
     },
     {
       "name": "EL",
       "source": "csi",
-      "byteOffset": 178,
+      "byteOffset": 156,
       "cursorX": 20,
       "cursorY": 7,
       "params": [
         0
       ],
       "altScreen": false,
-      "at": 1790072479883
+      "at": 1790187124256
     },
     {
       "name": "CUP",
       "source": "csi",
-      "byteOffset": 178,
+      "byteOffset": 156,
       "cursorX": 20,
       "cursorY": 7,
       "params": [
@@ -179,46 +169,46 @@
         1
       ],
       "altScreen": false,
-      "at": 1790072479883
+      "at": 1790187124256
     },
     {
       "name": "DECSET",
       "source": "csi",
-      "byteOffset": 178,
+      "byteOffset": 156,
       "cursorX": 0,
       "cursorY": 2,
       "params": [
         25
       ],
       "altScreen": false,
-      "at": 1790072479883
+      "at": 1790187124256
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 200,
+      "byteOffset": 178,
       "cursorX": 0,
       "cursorY": 3,
       "params": [],
       "altScreen": false,
-      "at": 1790072479899
+      "at": 1790187124271
     },
     {
       "name": "DECRST",
       "source": "csi",
-      "byteOffset": 247,
+      "byteOffset": 225,
       "cursorX": 0,
       "cursorY": 3,
       "params": [
         25
       ],
       "altScreen": false,
-      "at": 1790072479914
+      "at": 1790187124287
     },
     {
       "name": "CUP",
       "source": "csi",
-      "byteOffset": 247,
+      "byteOffset": 225,
       "cursorX": 0,
       "cursorY": 3,
       "params": [
@@ -226,24 +216,24 @@
         1
       ],
       "altScreen": false,
-      "at": 1790072479914
+      "at": 1790187124287
     },
     {
       "name": "EL",
       "source": "csi",
-      "byteOffset": 247,
+      "byteOffset": 225,
       "cursorX": 20,
       "cursorY": 7,
       "params": [
         0
       ],
       "altScreen": false,
-      "at": 1790072479914
+      "at": 1790187124287
     },
     {
       "name": "CUP",
       "source": "csi",
-      "byteOffset": 247,
+      "byteOffset": 225,
       "cursorX": 20,
       "cursorY": 7,
       "params": [
@@ -251,46 +241,46 @@
         1
       ],
       "altScreen": false,
-      "at": 1790072479914
+      "at": 1790187124287
     },
     {
       "name": "DECSET",
       "source": "csi",
-      "byteOffset": 247,
+      "byteOffset": 225,
       "cursorX": 0,
       "cursorY": 3,
       "params": [
         25
       ],
       "altScreen": false,
-      "at": 1790072479914
+      "at": 1790187124287
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 269,
+      "byteOffset": 247,
       "cursorX": 0,
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790072479930
+      "at": 1790187124302
     },
     {
       "name": "DECRST",
       "source": "csi",
-      "byteOffset": 316,
+      "byteOffset": 294,
       "cursorX": 0,
       "cursorY": 4,
       "params": [
         25
       ],
       "altScreen": false,
-      "at": 1790072479945
+      "at": 1790187124318
     },
     {
       "name": "CUP",
       "source": "csi",
-      "byteOffset": 316,
+      "byteOffset": 294,
       "cursorX": 0,
       "cursorY": 4,
       "params": [
@@ -298,24 +288,24 @@
         1
       ],
       "altScreen": false,
-      "at": 1790072479945
+      "at": 1790187124318
     },
     {
       "name": "EL",
       "source": "csi",
-      "byteOffset": 316,
+      "byteOffset": 294,
       "cursorX": 20,
       "cursorY": 7,
       "params": [
         0
       ],
       "altScreen": false,
-      "at": 1790072479945
+      "at": 1790187124318
     },
     {
       "name": "CUP",
       "source": "csi",
-      "byteOffset": 316,
+      "byteOffset": 294,
       "cursorX": 20,
       "cursorY": 7,
       "params": [
@@ -323,46 +313,46 @@
         1
       ],
       "altScreen": false,
-      "at": 1790072479945
+      "at": 1790187124318
     },
     {
       "name": "DECSET",
       "source": "csi",
-      "byteOffset": 316,
+      "byteOffset": 294,
       "cursorX": 0,
       "cursorY": 4,
       "params": [
         25
       ],
       "altScreen": false,
-      "at": 1790072479945
+      "at": 1790187124318
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 338,
+      "byteOffset": 316,
       "cursorX": 0,
       "cursorY": 5,
       "params": [],
       "altScreen": false,
-      "at": 1790072479961
+      "at": 1790187124334
     },
     {
       "name": "DECRST",
       "source": "csi",
-      "byteOffset": 385,
+      "byteOffset": 363,
       "cursorX": 0,
       "cursorY": 5,
       "params": [
         25
       ],
       "altScreen": false,
-      "at": 1790072479977
+      "at": 1790187124334
     },
     {
       "name": "CUP",
       "source": "csi",
-      "byteOffset": 385,
+      "byteOffset": 363,
       "cursorX": 0,
       "cursorY": 5,
       "params": [
@@ -370,24 +360,24 @@
         1
       ],
       "altScreen": false,
-      "at": 1790072479977
+      "at": 1790187124334
     },
     {
       "name": "EL",
       "source": "csi",
-      "byteOffset": 385,
+      "byteOffset": 363,
       "cursorX": 20,
       "cursorY": 7,
       "params": [
         0
       ],
       "altScreen": false,
-      "at": 1790072479977
+      "at": 1790187124334
     },
     {
       "name": "CUP",
       "source": "csi",
-      "byteOffset": 385,
+      "byteOffset": 363,
       "cursorX": 20,
       "cursorY": 7,
       "params": [
@@ -395,68 +385,68 @@
         1
       ],
       "altScreen": false,
-      "at": 1790072479977
+      "at": 1790187124334
     },
     {
       "name": "DECSET",
       "source": "csi",
-      "byteOffset": 385,
+      "byteOffset": 363,
       "cursorX": 0,
       "cursorY": 5,
       "params": [
         25
       ],
       "altScreen": false,
-      "at": 1790072479977
+      "at": 1790187124334
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 407,
+      "byteOffset": 385,
       "cursorX": 0,
       "cursorY": 6,
       "params": [],
       "altScreen": false,
-      "at": 1790072479993
+      "at": 1790187124365
     },
     {
       "name": "DECRST",
       "source": "csi",
-      "byteOffset": 450,
+      "byteOffset": 428,
       "cursorX": 0,
       "cursorY": 6,
       "params": [
         25
       ],
       "altScreen": false,
-      "at": 1790072479994
+      "at": 1790187124381
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 450,
+      "byteOffset": 428,
       "cursorX": 0,
       "cursorY": 7,
       "params": [],
       "altScreen": false,
-      "at": 1790072479994
+      "at": 1790187124381
     },
     {
       "name": "EL",
       "source": "csi",
-      "byteOffset": 450,
+      "byteOffset": 428,
       "cursorX": 20,
       "cursorY": 7,
       "params": [
         0
       ],
       "altScreen": false,
-      "at": 1790072479994
+      "at": 1790187124381
     },
     {
       "name": "CUP",
       "source": "csi",
-      "byteOffset": 450,
+      "byteOffset": 428,
       "cursorX": 20,
       "cursorY": 7,
       "params": [
@@ -464,48 +454,48 @@
         1
       ],
       "altScreen": false,
-      "at": 1790072479994
+      "at": 1790187124381
     },
     {
       "name": "DECSET",
       "source": "csi",
-      "byteOffset": 450,
+      "byteOffset": 428,
       "cursorX": 0,
       "cursorY": 6,
       "params": [
         25
       ],
       "altScreen": false,
-      "at": 1790072479994
+      "at": 1790187124381
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 472,
+      "byteOffset": 450,
       "cursorX": 0,
       "cursorY": 7,
       "params": [],
       "altScreen": false,
-      "at": 1790072480025
+      "at": 1790187124397
     },
     {
       "name": "EL",
       "source": "csi",
-      "byteOffset": 497,
+      "byteOffset": 475,
       "cursorX": 21,
       "cursorY": 7,
       "params": [
         0
       ],
       "altScreen": false,
-      "at": 1790072480041
+      "at": 1790187124412
     }
   ],
   "frames": [
     {
       "index": 0,
       "label": "end",
-      "at": 497,
+      "at": 475,
       "cursorY": 7,
       "cursorX": 0,
       "buffer": "normal",
@@ -522,7 +512,15 @@
       ]
     }
   ],
-  "textLog": [],
-  "bytes": 497,
-  "raw": "\u001b[?9001h\u001b[?1004h\u001b[?25l\u001b[2J\u001b[m\u001b[Hdeploying...\r\n\u001b]0;C:\\Users\\finnywxu\\AppData\\Local\\hermes\\node\\node.exe\u0007\u001b[?25h  uploaded shard 1/6\r\n\u001b[?25l\u001b[8;1Hstatus: 17% complete\u001b[K\u001b[3;1H\u001b[?25h  uploaded shard 2/6\r\n\u001b[?25l\u001b[8;1Hstatus: 33% complete\u001b[K\u001b[4;1H\u001b[?25h  uploaded shard 3/6\r\n\u001b[?25l\u001b[8;1Hstatus: 50% complete\u001b[K\u001b[5;1H\u001b[?25h  uploaded shard 4/6\r\n\u001b[?25l\u001b[8;1Hstatus: 67% complete\u001b[K\u001b[6;1H\u001b[?25h  uploaded shard 5/6\r\n\u001b[?25l\r\nstatus: 83% complete\u001b[K\u001b[7;1H\u001b[?25h  uploaded shard 6/6\r\nstatus: 100% complete\u001b[K\r"
+  "textLog": [
+    "deploying...",
+    "  uploaded shard 2/6",
+    "  uploaded shard 3/6",
+    "  uploaded shard 4/6",
+    "  uploaded shard 5/6",
+    "",
+    "  uploaded shard 6/6"
+  ],
+  "bytes": 475,
+  "raw": "\u001b[?9001h\u001b[?1004h\u001b[?25l\u001b[2J\u001b[m\u001b[Hdeploying...\r\n\u001b]0;C:\\Program Files\\nodejs\\node.exe\u0007\u001b[?25h\u001b[?25l  uploaded shard 1/6\u001b[8;1Hstatus: 17% complete\u001b[K\u001b[3;1H\u001b[?25h  uploaded shard 2/6\r\n\u001b[?25l\u001b[8;1Hstatus: 33% complete\u001b[K\u001b[4;1H\u001b[?25h  uploaded shard 3/6\r\n\u001b[?25l\u001b[8;1Hstatus: 50% complete\u001b[K\u001b[5;1H\u001b[?25h  uploaded shard 4/6\r\n\u001b[?25l\u001b[8;1Hstatus: 67% complete\u001b[K\u001b[6;1H\u001b[?25h  uploaded shard 5/6\r\n\u001b[?25l\r\nstatus: 83% complete\u001b[K\u001b[7;1H\u001b[?25h  uploaded shard 6/6\r\nstatus: 100% complete\u001b[K\r"
 }

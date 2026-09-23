@@ -7,7 +7,7 @@
   "cols": 80,
   "rows": 4,
   "platform": "win32",
-  "recordedAt": "2026-09-22T10:21:12.099Z",
+  "recordedAt": "2026-09-23T18:11:56.034Z",
   "expectations": [
     {
       "from": 0,
@@ -27,7 +27,7 @@
         9001
       ],
       "altScreen": false,
-      "at": 1790072471410
+      "at": 1790187115361
     },
     {
       "name": "DECSET",
@@ -39,114 +39,114 @@
         1004
       ],
       "altScreen": false,
-      "at": 1790072471410
+      "at": 1790187115361
     },
     {
       "name": "DECRST",
       "source": "csi",
-      "byteOffset": 104,
+      "byteOffset": 84,
       "cursorX": 0,
       "cursorY": 0,
       "params": [
         25
       ],
       "altScreen": false,
-      "at": 1790072471488
+      "at": 1790187115424
     },
     {
       "name": "ED",
       "source": "csi",
-      "byteOffset": 104,
+      "byteOffset": 84,
       "cursorX": 0,
       "cursorY": 0,
       "params": [
         2
       ],
       "altScreen": false,
-      "at": 1790072471488
+      "at": 1790187115424
     },
     {
       "name": "SGR",
       "source": "csi",
-      "byteOffset": 104,
+      "byteOffset": 84,
       "cursorX": 0,
       "cursorY": 0,
       "params": [
         0
       ],
       "altScreen": false,
-      "at": 1790072471488
+      "at": 1790187115424
     },
     {
       "name": "CUP",
       "source": "csi",
-      "byteOffset": 104,
+      "byteOffset": 84,
       "cursorX": 0,
       "cursorY": 0,
       "params": [
         0
       ],
       "altScreen": false,
-      "at": 1790072471488
+      "at": 1790187115424
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 104,
+      "byteOffset": 84,
       "cursorX": 0,
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790072471488
+      "at": 1790187115424
     },
     {
       "name": "TITLECHANGE",
       "source": "event",
-      "byteOffset": 104,
+      "byteOffset": 84,
       "cursorX": 0,
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790072471488
+      "at": 1790187115424
     },
     {
       "name": "DECSET",
       "source": "csi",
-      "byteOffset": 104,
+      "byteOffset": 84,
       "cursorX": 0,
       "cursorY": 1,
       "params": [
         25
       ],
       "altScreen": false,
-      "at": 1790072471488
+      "at": 1790187115424
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 267,
+      "byteOffset": 247,
       "cursorX": 0,
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790072471708
+      "at": 1790187115643
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 267,
+      "byteOffset": 247,
       "cursorX": 0,
       "cursorY": 3,
       "params": [],
       "altScreen": false,
-      "at": 1790072471708
+      "at": 1790187115643
     }
   ],
   "frames": [
     {
       "index": 0,
       "label": "end",
-      "at": 267,
+      "at": 247,
       "cursorY": 3,
       "cursorX": 0,
       "buffer": "normal",
@@ -159,7 +159,11 @@
       ]
     }
   ],
-  "textLog": [],
-  "bytes": 267,
-  "raw": "\u001b[?9001h\u001b[?1004h\u001b[?25l\u001b[2J\u001b[m\u001b[Hworking\r\n\u001b]0;C:\\Users\\finnywxu\\AppData\\Local\\hermes\\node\\node.exe\u0007\u001b[?25h| working...\r/ working...\r- working...\r\\ working...\r| working...\r/ working...\r- working...\r\\ working...\r| working...\r/ working...\r- working...\r\\ working...\r\ndone\r\n"
+  "textLog": [
+    "working",
+    "\\ working...",
+    "done"
+  ],
+  "bytes": 247,
+  "raw": "\u001b[?9001h\u001b[?1004h\u001b[?25l\u001b[2J\u001b[m\u001b[Hworking\r\n\u001b]0;C:\\Program Files\\nodejs\\node.exe\u0007\u001b[?25h| working...\r/ working...\r- working...\r\\ working...\r| working...\r/ working...\r- working...\r\\ working...\r| working...\r/ working...\r- working...\r\\ working...\r\ndone\r\n"
 }

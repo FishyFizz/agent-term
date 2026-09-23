@@ -7,7 +7,7 @@
   "cols": 60,
   "rows": 8,
   "platform": "win32",
-  "recordedAt": "2026-09-22T10:20:45.097Z",
+  "recordedAt": "2026-09-23T18:11:28.814Z",
   "expectations": [
     {
       "from": 0,
@@ -25,7 +25,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790072445081
+      "at": 1790187088799
     },
     {
       "name": "LINEFEED",
@@ -35,7 +35,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790072445081
+      "at": 1790187088799
     },
     {
       "name": "LINEFEED",
@@ -45,7 +45,7 @@
       "cursorY": 3,
       "params": [],
       "altScreen": false,
-      "at": 1790072445081
+      "at": 1790187088799
     },
     {
       "name": "LINEFEED",
@@ -55,7 +55,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790072445097
+      "at": 1790187088814
     },
     {
       "name": "LINEFEED",
@@ -65,7 +65,7 @@
       "cursorY": 5,
       "params": [],
       "altScreen": false,
-      "at": 1790072445097
+      "at": 1790187088814
     }
   ],
   "frames": [
@@ -89,7 +89,13 @@
       ]
     }
   ],
-  "textLog": [],
+  "textLog": [
+    ">>> 1 + 1",
+    "2",
+    ">>> print(\"hi\")",
+    "hi",
+    ">>> exit()"
+  ],
   "bytes": 51,
   "raw": ">>> 1 + 1\r\n2\r\n>>> print(\"hi\")\r\nhi\r\n>>> exit()\r\n>>> "
 }

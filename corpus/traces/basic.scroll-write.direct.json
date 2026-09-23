@@ -7,7 +7,7 @@
   "cols": 80,
   "rows": 5,
   "platform": "win32",
-  "recordedAt": "2026-09-22T10:20:44.071Z",
+  "recordedAt": "2026-09-23T18:11:27.799Z",
   "expectations": [
     {
       "from": 0,
@@ -25,7 +25,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790072443729
+      "at": 1790187087440
     },
     {
       "name": "LINEFEED",
@@ -35,7 +35,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790072443744
+      "at": 1790187087455
     },
     {
       "name": "LINEFEED",
@@ -45,7 +45,7 @@
       "cursorY": 3,
       "params": [],
       "altScreen": false,
-      "at": 1790072443760
+      "at": 1790187087471
     },
     {
       "name": "LINEFEED",
@@ -55,7 +55,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790072443775
+      "at": 1790187087487
     },
     {
       "name": "SCROLL",
@@ -67,7 +67,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790072443790
+      "at": 1790187087502
     },
     {
       "name": "LINEFEED",
@@ -77,7 +77,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790072443790
+      "at": 1790187087502
     },
     {
       "name": "SCROLL",
@@ -89,7 +89,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790072443806
+      "at": 1790187087534
     },
     {
       "name": "LINEFEED",
@@ -99,7 +99,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790072443806
+      "at": 1790187087534
     },
     {
       "name": "SCROLL",
@@ -111,7 +111,7 @@
         3
       ],
       "altScreen": false,
-      "at": 1790072443821
+      "at": 1790187087549
     },
     {
       "name": "LINEFEED",
@@ -121,7 +121,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790072443821
+      "at": 1790187087549
     },
     {
       "name": "SCROLL",
@@ -133,7 +133,7 @@
         4
       ],
       "altScreen": false,
-      "at": 1790072443836
+      "at": 1790187087564
     },
     {
       "name": "LINEFEED",
@@ -143,7 +143,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790072443836
+      "at": 1790187087564
     },
     {
       "name": "SCROLL",
@@ -155,7 +155,7 @@
         5
       ],
       "altScreen": false,
-      "at": 1790072443852
+      "at": 1790187087580
     },
     {
       "name": "LINEFEED",
@@ -165,7 +165,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790072443852
+      "at": 1790187087580
     },
     {
       "name": "SCROLL",
@@ -177,7 +177,7 @@
         6
       ],
       "altScreen": false,
-      "at": 1790072443868
+      "at": 1790187087595
     },
     {
       "name": "LINEFEED",
@@ -187,7 +187,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790072443868
+      "at": 1790187087595
     },
     {
       "name": "SCROLL",
@@ -199,7 +199,7 @@
         7
       ],
       "altScreen": false,
-      "at": 1790072443899
+      "at": 1790187087627
     },
     {
       "name": "LINEFEED",
@@ -209,7 +209,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790072443900
+      "at": 1790187087627
     },
     {
       "name": "SCROLL",
@@ -221,7 +221,7 @@
         8
       ],
       "altScreen": false,
-      "at": 1790072443914
+      "at": 1790187087643
     },
     {
       "name": "LINEFEED",
@@ -231,7 +231,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790072443914
+      "at": 1790187087643
     },
     {
       "name": "SCROLL",
@@ -243,7 +243,7 @@
         9
       ],
       "altScreen": false,
-      "at": 1790072443930
+      "at": 1790187087658
     },
     {
       "name": "LINEFEED",
@@ -253,7 +253,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790072443930
+      "at": 1790187087658
     },
     {
       "name": "SCROLL",
@@ -265,7 +265,7 @@
         10
       ],
       "altScreen": false,
-      "at": 1790072443945
+      "at": 1790187087674
     },
     {
       "name": "LINEFEED",
@@ -275,7 +275,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790072443945
+      "at": 1790187087674
     },
     {
       "name": "SCROLL",
@@ -287,7 +287,7 @@
         11
       ],
       "altScreen": false,
-      "at": 1790072443976
+      "at": 1790187087705
     },
     {
       "name": "LINEFEED",
@@ -297,7 +297,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790072443976
+      "at": 1790187087705
     },
     {
       "name": "SCROLL",
@@ -309,7 +309,7 @@
         12
       ],
       "altScreen": false,
-      "at": 1790072443992
+      "at": 1790187087720
     },
     {
       "name": "LINEFEED",
@@ -319,7 +319,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790072443992
+      "at": 1790187087720
     },
     {
       "name": "SCROLL",
@@ -331,7 +331,7 @@
         13
       ],
       "altScreen": false,
-      "at": 1790072444008
+      "at": 1790187087736
     },
     {
       "name": "LINEFEED",
@@ -341,7 +341,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790072444008
+      "at": 1790187087736
     },
     {
       "name": "SCROLL",
@@ -353,7 +353,7 @@
         14
       ],
       "altScreen": false,
-      "at": 1790072444024
+      "at": 1790187087752
     },
     {
       "name": "LINEFEED",
@@ -363,7 +363,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790072444024
+      "at": 1790187087752
     },
     {
       "name": "SCROLL",
@@ -375,7 +375,7 @@
         15
       ],
       "altScreen": false,
-      "at": 1790072444054
+      "at": 1790187087783
     },
     {
       "name": "LINEFEED",
@@ -385,7 +385,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790072444054
+      "at": 1790187087783
     },
     {
       "name": "SCROLL",
@@ -397,7 +397,7 @@
         16
       ],
       "altScreen": false,
-      "at": 1790072444070
+      "at": 1790187087799
     },
     {
       "name": "LINEFEED",
@@ -407,7 +407,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790072444070
+      "at": 1790187087799
     }
   ],
   "frames": [
@@ -428,7 +428,28 @@
       ]
     }
   ],
-  "textLog": [],
+  "textLog": [
+    "build step 1: compiling module_1.cpp",
+    "build step 2: compiling module_2.cpp",
+    "build step 3: compiling module_3.cpp",
+    "build step 4: compiling module_4.cpp",
+    "build step 5: compiling module_5.cpp",
+    "build step 6: compiling module_6.cpp",
+    "build step 7: compiling module_7.cpp",
+    "build step 8: compiling module_8.cpp",
+    "build step 9: compiling module_9.cpp",
+    "build step 10: compiling module_10.cpp",
+    "build step 11: compiling module_11.cpp",
+    "build step 12: compiling module_12.cpp",
+    "build step 13: compiling module_13.cpp",
+    "build step 14: compiling module_14.cpp",
+    "build step 15: compiling module_15.cpp",
+    "build step 16: compiling module_16.cpp",
+    "build step 17: compiling module_17.cpp",
+    "build step 18: compiling module_18.cpp",
+    "build step 19: compiling module_19.cpp",
+    "build step 20: compiling module_20.cpp"
+  ],
   "bytes": 782,
   "raw": "build step 1: compiling module_1.cpp\r\nbuild step 2: compiling module_2.cpp\r\nbuild step 3: compiling module_3.cpp\r\nbuild step 4: compiling module_4.cpp\r\nbuild step 5: compiling module_5.cpp\r\nbuild step 6: compiling module_6.cpp\r\nbuild step 7: compiling module_7.cpp\r\nbuild step 8: compiling module_8.cpp\r\nbuild step 9: compiling module_9.cpp\r\nbuild step 10: compiling module_10.cpp\r\nbuild step 11: compiling module_11.cpp\r\nbuild step 12: compiling module_12.cpp\r\nbuild step 13: compiling module_13.cpp\r\nbuild step 14: compiling module_14.cpp\r\nbuild step 15: compiling module_15.cpp\r\nbuild step 16: compiling module_16.cpp\r\nbuild step 17: compiling module_17.cpp\r\nbuild step 18: compiling module_18.cpp\r\nbuild step 19: compiling module_19.cpp\r\nbuild step 20: compiling module_20.cpp\r\n"
 }

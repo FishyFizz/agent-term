@@ -7,7 +7,7 @@
   "cols": 80,
   "rows": 8,
   "platform": "win32",
-  "recordedAt": "2026-09-22T10:21:08.021Z",
+  "recordedAt": "2026-09-23T18:11:51.719Z",
   "expectations": [
     {
       "from": 0,
@@ -27,7 +27,7 @@
         9001
       ],
       "altScreen": false,
-      "at": 1790072467395
+      "at": 1790187111060
     },
     {
       "name": "DECSET",
@@ -39,134 +39,134 @@
         1004
       ],
       "altScreen": false,
-      "at": 1790072467395
+      "at": 1790187111060
     },
     {
       "name": "DECRST",
       "source": "csi",
-      "byteOffset": 103,
+      "byteOffset": 83,
       "cursorX": 0,
       "cursorY": 0,
       "params": [
         25
       ],
       "altScreen": false,
-      "at": 1790072467555
+      "at": 1790187111239
     },
     {
       "name": "ED",
       "source": "csi",
-      "byteOffset": 103,
+      "byteOffset": 83,
       "cursorX": 0,
       "cursorY": 0,
       "params": [
         2
       ],
       "altScreen": false,
-      "at": 1790072467555
+      "at": 1790187111239
     },
     {
       "name": "SGR",
       "source": "csi",
-      "byteOffset": 103,
+      "byteOffset": 83,
       "cursorX": 0,
       "cursorY": 0,
       "params": [
         0
       ],
       "altScreen": false,
-      "at": 1790072467556
+      "at": 1790187111240
     },
     {
       "name": "CUP",
       "source": "csi",
-      "byteOffset": 103,
+      "byteOffset": 83,
       "cursorX": 0,
       "cursorY": 0,
       "params": [
         0
       ],
       "altScreen": false,
-      "at": 1790072467556
+      "at": 1790187111240
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 103,
+      "byteOffset": 83,
       "cursorX": 0,
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790072467556
+      "at": 1790187111240
     },
     {
       "name": "TITLECHANGE",
       "source": "event",
-      "byteOffset": 103,
+      "byteOffset": 83,
       "cursorX": 0,
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790072467556
+      "at": 1790187111240
     },
     {
       "name": "DECSET",
       "source": "csi",
-      "byteOffset": 103,
+      "byteOffset": 83,
       "cursorX": 0,
       "cursorY": 1,
       "params": [
         25
       ],
       "altScreen": false,
-      "at": 1790072467556
+      "at": 1790187111240
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 111,
+      "byteOffset": 91,
       "cursorX": 0,
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790072467571
+      "at": 1790187111252
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 119,
+      "byteOffset": 99,
       "cursorX": 0,
       "cursorY": 3,
       "params": [],
       "altScreen": false,
-      "at": 1790072467602
+      "at": 1790187111299
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 127,
+      "byteOffset": 107,
       "cursorX": 0,
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790072467618
+      "at": 1790187111299
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 135,
+      "byteOffset": 115,
       "cursorX": 0,
       "cursorY": 5,
       "params": [],
       "altScreen": false,
-      "at": 1790072467633
+      "at": 1790187111316
     }
   ],
   "frames": [
     {
       "index": 0,
       "label": "end",
-      "at": 135,
+      "at": 115,
       "cursorY": 5,
       "cursorX": 0,
       "buffer": "normal",
@@ -183,7 +183,13 @@
       ]
     }
   ],
-  "textLog": [],
-  "bytes": 135,
-  "raw": "\u001b[?9001h\u001b[?1004h\u001b[?25l\u001b[2J\u001b[m\u001b[Hline 1\r\n\u001b]0;C:\\Users\\finnywxu\\AppData\\Local\\hermes\\node\\node.exe\u0007\u001b[?25hline 2\r\nline 3\r\nline 4\r\nline 5\r\n"
+  "textLog": [
+    "line 1",
+    "line 2",
+    "line 3",
+    "line 4",
+    "line 5"
+  ],
+  "bytes": 115,
+  "raw": "\u001b[?9001h\u001b[?1004h\u001b[?25l\u001b[2J\u001b[m\u001b[Hline 1\r\n\u001b]0;C:\\Program Files\\nodejs\\node.exe\u0007\u001b[?25hline 2\r\nline 3\r\nline 4\r\nline 5\r\n"
 }

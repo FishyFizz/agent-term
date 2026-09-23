@@ -7,7 +7,7 @@
   "cols": 50,
   "rows": 10,
   "platform": "win32",
-  "recordedAt": "2026-09-22T10:20:47.386Z",
+  "recordedAt": "2026-09-23T18:11:31.065Z",
   "expectations": [
     {
       "from": 110,
@@ -27,7 +27,7 @@
         1049
       ],
       "altScreen": false,
-      "at": 1790072447183
+      "at": 1790187090862
     },
     {
       "name": "SCROLL",
@@ -39,7 +39,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790072447183
+      "at": 1790187090862
     },
     {
       "name": "BUFFERCHANGE",
@@ -49,7 +49,7 @@
       "cursorY": 0,
       "params": [],
       "altScreen": true,
-      "at": 1790072447183
+      "at": 1790187090862
     },
     {
       "name": "CUP",
@@ -61,7 +61,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790072447183
+      "at": 1790187090862
     },
     {
       "name": "EL",
@@ -73,7 +73,7 @@
         2
       ],
       "altScreen": true,
-      "at": 1790072447183
+      "at": 1790187090862
     },
     {
       "name": "LINEFEED",
@@ -83,7 +83,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": true,
-      "at": 1790072447197
+      "at": 1790187090878
     },
     {
       "name": "EL",
@@ -95,7 +95,7 @@
         2
       ],
       "altScreen": true,
-      "at": 1790072447197
+      "at": 1790187090878
     },
     {
       "name": "LINEFEED",
@@ -105,7 +105,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": true,
-      "at": 1790072447198
+      "at": 1790187090878
     },
     {
       "name": "EL",
@@ -117,7 +117,7 @@
         2
       ],
       "altScreen": true,
-      "at": 1790072447213
+      "at": 1790187090893
     },
     {
       "name": "LINEFEED",
@@ -127,7 +127,7 @@
       "cursorY": 3,
       "params": [],
       "altScreen": true,
-      "at": 1790072447213
+      "at": 1790187090893
     },
     {
       "name": "EL",
@@ -139,7 +139,7 @@
         2
       ],
       "altScreen": true,
-      "at": 1790072447213
+      "at": 1790187090893
     },
     {
       "name": "LINEFEED",
@@ -149,7 +149,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": true,
-      "at": 1790072447229
+      "at": 1790187090909
     },
     {
       "name": "CUP",
@@ -161,7 +161,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790072447229
+      "at": 1790187090909
     },
     {
       "name": "EL",
@@ -173,7 +173,7 @@
         2
       ],
       "altScreen": true,
-      "at": 1790072447229
+      "at": 1790187090909
     },
     {
       "name": "LINEFEED",
@@ -183,7 +183,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": true,
-      "at": 1790072447245
+      "at": 1790187090924
     },
     {
       "name": "EL",
@@ -195,7 +195,7 @@
         2
       ],
       "altScreen": true,
-      "at": 1790072447245
+      "at": 1790187090924
     },
     {
       "name": "LINEFEED",
@@ -205,7 +205,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": true,
-      "at": 1790072447260
+      "at": 1790187090940
     },
     {
       "name": "EL",
@@ -217,7 +217,7 @@
         2
       ],
       "altScreen": true,
-      "at": 1790072447260
+      "at": 1790187090940
     },
     {
       "name": "LINEFEED",
@@ -227,7 +227,7 @@
       "cursorY": 3,
       "params": [],
       "altScreen": true,
-      "at": 1790072447260
+      "at": 1790187090940
     },
     {
       "name": "EL",
@@ -239,7 +239,7 @@
         2
       ],
       "altScreen": true,
-      "at": 1790072447260
+      "at": 1790187090940
     },
     {
       "name": "LINEFEED",
@@ -249,7 +249,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": true,
-      "at": 1790072447275
+      "at": 1790187090955
     },
     {
       "name": "CUP",
@@ -261,7 +261,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790072447275
+      "at": 1790187090955
     },
     {
       "name": "EL",
@@ -273,7 +273,7 @@
         2
       ],
       "altScreen": true,
-      "at": 1790072447275
+      "at": 1790187090955
     },
     {
       "name": "LINEFEED",
@@ -283,7 +283,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": true,
-      "at": 1790072447291
+      "at": 1790187090972
     },
     {
       "name": "EL",
@@ -295,7 +295,7 @@
         2
       ],
       "altScreen": true,
-      "at": 1790072447291
+      "at": 1790187090972
     },
     {
       "name": "LINEFEED",
@@ -305,7 +305,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": true,
-      "at": 1790072447307
+      "at": 1790187090987
     },
     {
       "name": "EL",
@@ -317,7 +317,7 @@
         2
       ],
       "altScreen": true,
-      "at": 1790072447307
+      "at": 1790187090987
     },
     {
       "name": "LINEFEED",
@@ -327,7 +327,7 @@
       "cursorY": 3,
       "params": [],
       "altScreen": true,
-      "at": 1790072447323
+      "at": 1790187091003
     },
     {
       "name": "EL",
@@ -339,7 +339,7 @@
         2
       ],
       "altScreen": true,
-      "at": 1790072447323
+      "at": 1790187091003
     },
     {
       "name": "LINEFEED",
@@ -349,7 +349,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": true,
-      "at": 1790072447323
+      "at": 1790187091003
     },
     {
       "name": "CUP",
@@ -361,7 +361,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790072447339
+      "at": 1790187091018
     },
     {
       "name": "EL",
@@ -373,7 +373,7 @@
         2
       ],
       "altScreen": true,
-      "at": 1790072447339
+      "at": 1790187091018
     },
     {
       "name": "LINEFEED",
@@ -383,7 +383,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": true,
-      "at": 1790072447339
+      "at": 1790187091018
     },
     {
       "name": "EL",
@@ -395,7 +395,7 @@
         2
       ],
       "altScreen": true,
-      "at": 1790072447339
+      "at": 1790187091018
     },
     {
       "name": "LINEFEED",
@@ -405,7 +405,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": true,
-      "at": 1790072447355
+      "at": 1790187091034
     },
     {
       "name": "EL",
@@ -417,7 +417,7 @@
         2
       ],
       "altScreen": true,
-      "at": 1790072447355
+      "at": 1790187091034
     },
     {
       "name": "LINEFEED",
@@ -427,7 +427,7 @@
       "cursorY": 3,
       "params": [],
       "altScreen": true,
-      "at": 1790072447369
+      "at": 1790187091049
     },
     {
       "name": "EL",
@@ -439,7 +439,7 @@
         2
       ],
       "altScreen": true,
-      "at": 1790072447369
+      "at": 1790187091049
     },
     {
       "name": "LINEFEED",
@@ -449,7 +449,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": true,
-      "at": 1790072447385
+      "at": 1790187091065
     },
     {
       "name": "DECRST",
@@ -461,7 +461,7 @@
         1049
       ],
       "altScreen": true,
-      "at": 1790072447385
+      "at": 1790187091065
     },
     {
       "name": "SCROLL",
@@ -473,7 +473,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790072447385
+      "at": 1790187091065
     },
     {
       "name": "BUFFERCHANGE",
@@ -483,7 +483,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790072447385
+      "at": 1790187091065
     }
   ],
   "frames": [
@@ -509,7 +509,24 @@
       ]
     }
   ],
-  "textLog": [],
+  "textLog": [
+    "  METRIC        VALUE",
+    "  cpu          20%",
+    "  mem          40%",
+    "  net          0kb",
+    "  METRIC        VALUE",
+    "  cpu          27%",
+    "  mem          45%",
+    "  net          120kb",
+    "  METRIC        VALUE",
+    "  cpu          34%",
+    "  mem          50%",
+    "  net          240kb",
+    "  METRIC        VALUE",
+    "  cpu          41%",
+    "  mem          55%",
+    "  net          360kb"
+  ],
   "bytes": 430,
   "raw": "\u001b[?1049h\u001b[H\u001b[2K  METRIC        VALUE\r\n\u001b[2K  cpu          20%\r\n\u001b[2K  mem          40%\r\n\u001b[2K  net          0kb\r\n\u001b[H\u001b[2K  METRIC        VALUE\r\n\u001b[2K  cpu          27%\r\n\u001b[2K  mem          45%\r\n\u001b[2K  net          120kb\r\n\u001b[H\u001b[2K  METRIC        VALUE\r\n\u001b[2K  cpu          34%\r\n\u001b[2K  mem          50%\r\n\u001b[2K  net          240kb\r\n\u001b[H\u001b[2K  METRIC        VALUE\r\n\u001b[2K  cpu          41%\r\n\u001b[2K  mem          55%\r\n\u001b[2K  net          360kb\r\n\u001b[?1049l"
 }

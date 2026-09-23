@@ -7,7 +7,7 @@
   "cols": 80,
   "rows": 6,
   "platform": "win32",
-  "recordedAt": "2026-09-22T10:20:44.614Z",
+  "recordedAt": "2026-09-23T18:11:28.332Z",
   "expectations": [
     {
       "from": 0,
@@ -31,7 +31,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790072444599
+      "at": 1790187088315
     },
     {
       "name": "LINEFEED",
@@ -41,7 +41,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790072444599
+      "at": 1790187088315
     },
     {
       "name": "ED",
@@ -53,7 +53,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790072444599
+      "at": 1790187088315
     },
     {
       "name": "CUP",
@@ -65,7 +65,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790072444599
+      "at": 1790187088316
     },
     {
       "name": "LINEFEED",
@@ -75,7 +75,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790072444599
+      "at": 1790187088316
     },
     {
       "name": "LINEFEED",
@@ -85,7 +85,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790072444614
+      "at": 1790187088331
     }
   ],
   "frames": [
@@ -107,7 +107,12 @@
       ]
     }
   ],
-  "textLog": [],
+  "textLog": [
+    "one",
+    "two",
+    "redrawn A",
+    "redrawn B"
+  ],
   "bytes": 39,
   "raw": "one\r\ntwo\r\n\u001b[2J\u001b[Hredrawn A\r\nredrawn B\r\n"
 }

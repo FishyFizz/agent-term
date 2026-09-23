@@ -7,7 +7,7 @@
   "cols": 80,
   "rows": 5,
   "platform": "win32",
-  "recordedAt": "2026-09-22T10:20:44.286Z",
+  "recordedAt": "2026-09-23T18:11:28.002Z",
   "expectations": [
     {
       "from": 11,
@@ -27,7 +27,7 @@
         1049
       ],
       "altScreen": false,
-      "at": 1790072444255
+      "at": 1790187087972
     },
     {
       "name": "SCROLL",
@@ -39,7 +39,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790072444255
+      "at": 1790187087972
     },
     {
       "name": "BUFFERCHANGE",
@@ -49,7 +49,7 @@
       "cursorY": 0,
       "params": [],
       "altScreen": true,
-      "at": 1790072444255
+      "at": 1790187087972
     },
     {
       "name": "CUP",
@@ -61,7 +61,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790072444255
+      "at": 1790187087972
     },
     {
       "name": "LINEFEED",
@@ -71,7 +71,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": true,
-      "at": 1790072444255
+      "at": 1790187087972
     },
     {
       "name": "LINEFEED",
@@ -81,7 +81,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": true,
-      "at": 1790072444270
+      "at": 1790187087986
     },
     {
       "name": "LINEFEED",
@@ -91,7 +91,7 @@
       "cursorY": 3,
       "params": [],
       "altScreen": true,
-      "at": 1790072444270
+      "at": 1790187087986
     },
     {
       "name": "LINEFEED",
@@ -101,7 +101,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": true,
-      "at": 1790072444270
+      "at": 1790187087986
     },
     {
       "name": "DECRST",
@@ -113,7 +113,7 @@
         1049
       ],
       "altScreen": true,
-      "at": 1790072444286
+      "at": 1790187088002
     },
     {
       "name": "SCROLL",
@@ -125,7 +125,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790072444286
+      "at": 1790187088002
     },
     {
       "name": "BUFFERCHANGE",
@@ -135,7 +135,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790072444286
+      "at": 1790187088002
     }
   ],
   "frames": [
@@ -156,7 +156,12 @@
       ]
     }
   ],
-  "textLog": [],
+  "textLog": [
+    "alt line 1",
+    "alt line 2",
+    "alt line 3",
+    "alt line 4"
+  ],
   "bytes": 67,
   "raw": "\u001b[?1049h\u001b[Halt line 1\r\nalt line 2\r\nalt line 3\r\nalt line 4\r\n\u001b[?1049l"
 }

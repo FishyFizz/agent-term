@@ -7,7 +7,7 @@
   "cols": 60,
   "rows": 8,
   "platform": "win32",
-  "recordedAt": "2026-09-22T10:20:47.603Z",
+  "recordedAt": "2026-09-23T18:11:31.285Z",
   "expectations": [
     {
       "from": 0,
@@ -37,7 +37,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790072447464
+      "at": 1790187091143
     },
     {
       "name": "LINEFEED",
@@ -47,7 +47,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790072447479
+      "at": 1790187091158
     },
     {
       "name": "LINEFEED",
@@ -57,7 +57,7 @@
       "cursorY": 3,
       "params": [],
       "altScreen": false,
-      "at": 1790072447479
+      "at": 1790187091158
     },
     {
       "name": "DECSET",
@@ -69,7 +69,7 @@
         1049
       ],
       "altScreen": false,
-      "at": 1790072447494
+      "at": 1790187091174
     },
     {
       "name": "SCROLL",
@@ -81,7 +81,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790072447494
+      "at": 1790187091174
     },
     {
       "name": "BUFFERCHANGE",
@@ -91,7 +91,7 @@
       "cursorY": 3,
       "params": [],
       "altScreen": true,
-      "at": 1790072447494
+      "at": 1790187091174
     },
     {
       "name": "CUP",
@@ -103,7 +103,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790072447494
+      "at": 1790187091174
     },
     {
       "name": "LINEFEED",
@@ -113,7 +113,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": true,
-      "at": 1790072447494
+      "at": 1790187091174
     },
     {
       "name": "LINEFEED",
@@ -123,7 +123,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": true,
-      "at": 1790072447509
+      "at": 1790187091190
     },
     {
       "name": "LINEFEED",
@@ -133,7 +133,7 @@
       "cursorY": 3,
       "params": [],
       "altScreen": true,
-      "at": 1790072447509
+      "at": 1790187091190
     },
     {
       "name": "LINEFEED",
@@ -143,7 +143,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": true,
-      "at": 1790072447525
+      "at": 1790187091206
     },
     {
       "name": "LINEFEED",
@@ -153,7 +153,7 @@
       "cursorY": 5,
       "params": [],
       "altScreen": true,
-      "at": 1790072447525
+      "at": 1790187091206
     },
     {
       "name": "LINEFEED",
@@ -163,7 +163,7 @@
       "cursorY": 6,
       "params": [],
       "altScreen": true,
-      "at": 1790072447541
+      "at": 1790187091221
     },
     {
       "name": "CUP",
@@ -175,7 +175,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790072447541
+      "at": 1790187091221
     },
     {
       "name": "EL",
@@ -187,7 +187,7 @@
         2
       ],
       "altScreen": true,
-      "at": 1790072447541
+      "at": 1790187091221
     },
     {
       "name": "LINEFEED",
@@ -197,7 +197,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": true,
-      "at": 1790072447541
+      "at": 1790187091222
     },
     {
       "name": "EL",
@@ -209,7 +209,7 @@
         2
       ],
       "altScreen": true,
-      "at": 1790072447541
+      "at": 1790187091222
     },
     {
       "name": "LINEFEED",
@@ -219,7 +219,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": true,
-      "at": 1790072447556
+      "at": 1790187091237
     },
     {
       "name": "EL",
@@ -231,7 +231,7 @@
         2
       ],
       "altScreen": true,
-      "at": 1790072447556
+      "at": 1790187091237
     },
     {
       "name": "LINEFEED",
@@ -241,7 +241,7 @@
       "cursorY": 3,
       "params": [],
       "altScreen": true,
-      "at": 1790072447556
+      "at": 1790187091237
     },
     {
       "name": "EL",
@@ -253,7 +253,7 @@
         2
       ],
       "altScreen": true,
-      "at": 1790072447572
+      "at": 1790187091253
     },
     {
       "name": "LINEFEED",
@@ -263,7 +263,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": true,
-      "at": 1790072447572
+      "at": 1790187091253
     },
     {
       "name": "EL",
@@ -275,7 +275,7 @@
         2
       ],
       "altScreen": true,
-      "at": 1790072447572
+      "at": 1790187091253
     },
     {
       "name": "LINEFEED",
@@ -285,7 +285,7 @@
       "cursorY": 5,
       "params": [],
       "altScreen": true,
-      "at": 1790072447588
+      "at": 1790187091268
     },
     {
       "name": "EL",
@@ -297,7 +297,7 @@
         2
       ],
       "altScreen": true,
-      "at": 1790072447588
+      "at": 1790187091268
     },
     {
       "name": "LINEFEED",
@@ -307,7 +307,7 @@
       "cursorY": 6,
       "params": [],
       "altScreen": true,
-      "at": 1790072447588
+      "at": 1790187091269
     },
     {
       "name": "DECRST",
@@ -319,7 +319,7 @@
         1049
       ],
       "altScreen": true,
-      "at": 1790072447588
+      "at": 1790187091269
     },
     {
       "name": "SCROLL",
@@ -331,7 +331,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790072447588
+      "at": 1790187091269
     },
     {
       "name": "BUFFERCHANGE",
@@ -341,7 +341,7 @@
       "cursorY": 6,
       "params": [],
       "altScreen": false,
-      "at": 1790072447588
+      "at": 1790187091269
     },
     {
       "name": "LINEFEED",
@@ -351,7 +351,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790072447603
+      "at": 1790187091285
     },
     {
       "name": "LINEFEED",
@@ -361,7 +361,7 @@
       "cursorY": 5,
       "params": [],
       "altScreen": false,
-      "at": 1790072447603
+      "at": 1790187091285
     }
   ],
   "frames": [
@@ -385,7 +385,25 @@
       ]
     }
   ],
-  "textLog": [],
+  "textLog": [
+    "$ git log --oneline",
+    "a1b2c3d fix parser",
+    "d4e5f6g add tests",
+    "commit line 0",
+    "commit line 1",
+    "commit line 2",
+    "commit line 3",
+    "commit line 4",
+    "commit line 5",
+    "commit line 6",
+    "commit line 7",
+    "commit line 8",
+    "commit line 9",
+    "commit line 10",
+    "commit line 11",
+    "$ echo done",
+    "done"
+  ],
   "bytes": 307,
   "raw": "$ git log --oneline\r\na1b2c3d fix parser\r\nd4e5f6g add tests\r\n\u001b[?1049h\u001b[Hcommit line 0\r\ncommit line 1\r\ncommit line 2\r\ncommit line 3\r\ncommit line 4\r\ncommit line 5\r\n\u001b[H\u001b[2Kcommit line 6\r\n\u001b[2Kcommit line 7\r\n\u001b[2Kcommit line 8\r\n\u001b[2Kcommit line 9\r\n\u001b[2Kcommit line 10\r\n\u001b[2Kcommit line 11\r\n\u001b[?1049l$ echo done\r\ndone\r\n"
 }

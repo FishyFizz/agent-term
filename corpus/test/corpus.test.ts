@@ -145,11 +145,32 @@ test('a firehose overloads the grid but keeps every line in the text log', async
   const trace = loadTrace('complex.firehose', 'direct');
   assert.ok(trace.bytes > 10000, 'expected a large burst');
 
-  // The grid is bounded; the text log must not be the place lines are lost.
   const programme = findProgramme('complex.firehose')!;
   const { trace: fresh } = await runDirect(programme);
+
+  // The grid is bounded...
   const visible = fresh.frames[fresh.frames.length - 1]!.lines.length;
   assert.ok(visible <= programme.rows!, 'the grid stays bounded at rows');
+
+  // ...and the text log is not where the rest of it goes. This is the half the
+  // test's name has always promised and its body never checked, because nothing
+  // ever drained the log -- every committed trace had `textLog: []`, so a
+  // regression here would have been invisible in the field defined for it.
+  assert.ok(
+    fresh.textLog.length > programme.rows! * 100,
+    `kept far more lines than the grid could (${fresh.textLog.length} lines, ${programme.rows} rows)`,
+  );
+  assert.equal(fresh.textLog[0], 'firehose line 1', 'from the first line emitted');
+  assert.equal(fresh.textLog.at(-1), 'firehose line 2000', 'to the last');
+  assert.equal(
+    new Set(fresh.textLog).size,
+    fresh.textLog.length,
+    'each one distinct: a log, not a set of distinct lines',
+  );
+
+  // And the committed trace carries them, so this is pinned to the file rather
+  // than merely true when someone happens to run it.
+  assert.deepEqual(trace.textLog, fresh.textLog, 'the recorded trace holds the same lines');
 });
 
 test('synchronized output frames are bracketed by the sync markers', () => {

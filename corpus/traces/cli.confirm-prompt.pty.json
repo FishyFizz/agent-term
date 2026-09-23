@@ -7,7 +7,7 @@
   "cols": 60,
   "rows": 6,
   "platform": "win32",
-  "recordedAt": "2026-09-22T10:21:18.025Z",
+  "recordedAt": "2026-09-23T18:12:02.268Z",
   "expectations": [
     {
       "from": 0,
@@ -33,7 +33,7 @@
         9001
       ],
       "altScreen": false,
-      "at": 1790072477526
+      "at": 1790187121784
     },
     {
       "name": "DECSET",
@@ -45,94 +45,94 @@
         1004
       ],
       "altScreen": false,
-      "at": 1790072477526
+      "at": 1790187121784
     },
     {
       "name": "DECRST",
       "source": "csi",
-      "byteOffset": 122,
+      "byteOffset": 102,
       "cursorX": 0,
       "cursorY": 0,
       "params": [
         25
       ],
       "altScreen": false,
-      "at": 1790072477620
+      "at": 1790187121862
     },
     {
       "name": "ED",
       "source": "csi",
-      "byteOffset": 122,
+      "byteOffset": 102,
       "cursorX": 0,
       "cursorY": 0,
       "params": [
         2
       ],
       "altScreen": false,
-      "at": 1790072477621
+      "at": 1790187121862
     },
     {
       "name": "SGR",
       "source": "csi",
-      "byteOffset": 122,
+      "byteOffset": 102,
       "cursorX": 0,
       "cursorY": 0,
       "params": [
         0
       ],
       "altScreen": false,
-      "at": 1790072477621
+      "at": 1790187121862
     },
     {
       "name": "CUP",
       "source": "csi",
-      "byteOffset": 122,
+      "byteOffset": 102,
       "cursorX": 0,
       "cursorY": 0,
       "params": [
         0
       ],
       "altScreen": false,
-      "at": 1790072477621
+      "at": 1790187121862
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 122,
+      "byteOffset": 102,
       "cursorX": 0,
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790072477621
+      "at": 1790187121862
     },
     {
       "name": "TITLECHANGE",
       "source": "event",
-      "byteOffset": 122,
+      "byteOffset": 102,
       "cursorX": 0,
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790072477621
+      "at": 1790187121862
     },
     {
       "name": "DECSET",
       "source": "csi",
-      "byteOffset": 122,
+      "byteOffset": 102,
       "cursorX": 0,
       "cursorY": 1,
       "params": [
         25
       ],
       "altScreen": false,
-      "at": 1790072477621
+      "at": 1790187121862
     }
   ],
   "frames": [
     {
       "index": 0,
       "label": "end",
-      "at": 138,
+      "at": 118,
       "cursorY": 1,
       "cursorX": 16,
       "buffer": "normal",
@@ -147,7 +147,9 @@
       ]
     }
   ],
-  "textLog": [],
-  "bytes": 138,
-  "raw": "\u001b[?9001h\u001b[?1004h\u001b[?25l\u001b[2J\u001b[m\u001b[HAbout to delete 12 files.\r\n\u001b]0;C:\\Users\\finnywxu\\AppData\\Local\\hermes\\node\\node.exe\u0007\u001b[?25hContinue? [y/N] "
+  "textLog": [
+    "About to delete 12 files."
+  ],
+  "bytes": 118,
+  "raw": "\u001b[?9001h\u001b[?1004h\u001b[?25l\u001b[2J\u001b[m\u001b[HAbout to delete 12 files.\r\n\u001b]0;C:\\Program Files\\nodejs\\node.exe\u0007\u001b[?25hContinue? [y/N] "
 }

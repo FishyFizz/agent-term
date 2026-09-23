@@ -93,15 +93,22 @@ export class Recorder {
     return frame;
   }
 
-  /** Drain the completed lines currently above the cursor into the text log. */
-  drainTextLog(): void {
-    const buf = this.screen.terminal.buffer.active;
-    for (let y = 0; y < buf.cursorY; y++) {
-      const line = buf.getLine(y);
-      if (!line) continue;
-      const text = line.translateToString(true);
-      if (text.length > 0 && !this.textLog.includes(text)) this.textLog.push(text);
-    }
+  /**
+   * Take the lines the model has captured since the last call.
+   *
+   * The model's own `TextLog` (src/text-log.ts) reads each completed line at the
+   * linefeed that finished it, which is the only lossless point: once a line
+   * falls out of a bounded scrollback the grid cannot give it back.
+   *
+   * The version this replaces re-derived lines from the buffer instead, and was
+   * wrong twice over -- it indexed `getLine(y)` absolutely, so it read the top
+   * of scrollback rather than the visible rows (the trap `screen.ts` warns
+   * about), and it de-duplicated through `includes`, which made it a set of
+   * distinct lines rather than a log. A build log repeating "Compiling foo" is
+   * the common case, and that is exactly what a set loses.
+   */
+  private collectText(): void {
+    for (const line of this.screen.text.drain()) this.textLog.push(line.text);
   }
 
   get bytesWritten(): number {
@@ -110,6 +117,9 @@ export class Recorder {
 
   /** Everything recorded, for `assemble` to fold into a `Trace`. */
   recorded(): { ops: readonly Op[]; frames: Frame[]; textLog: string[] } {
+    // Collected here rather than at each capture: the log belongs to the run,
+    // and `assemble` asks for it once the programme has finished.
+    this.collectText();
     return { ops: this.screen.ops.recorded, frames: this.frames, textLog: this.textLog };
   }
 
