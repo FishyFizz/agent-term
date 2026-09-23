@@ -23,11 +23,12 @@ scripts/corpus-score.ts
 
 ## Status
 
-L0.1–L0.5 are built: a real pty (`pty.ts`) feeding a screen model
-(`screen.ts`) whose control ops are recorded as an edit record
-(`edit-record.ts`) and whose completed lines are kept in a text log
-(`text-log.ts`), classified per segment as writing or drawing (`classify.ts`),
-exposed as a session (`session.ts`) held in a registry (`registry.ts`).
+**L0, the core model, is complete.** L0.1–L0.5 are built: a real pty (`pty.ts`) feeding a
+faithful screen model (`screen.ts`) — characters, attributes, cursor and alternate
+screen, with the grid indexed by column — whose control ops are recorded as an edit
+record (`edit-record.ts`) and whose completed lines are kept in a text log
+(`text-log.ts`), classified per segment as writing or drawing (`classify.ts`), exposed
+as a session (`session.ts`) held in a registry (`registry.ts`).
 
 L0.3 is built on top: one append-only timeline per session (`history.ts`), split
 into **epochs** at each resize — a resize freezes what came before it, and frozen
@@ -50,7 +51,7 @@ detection (L1.2), and retention and durability (L3.4).
 ```bash
 npm install
 npm run typecheck     # src, test, scripts and corpus — one project
-npm run test          # 115 tests
+npm run test          # 128 tests
 npm run smoke         # end-to-end against a real shell
 npm run corpus        # score the classifier across replay granularities
 ```

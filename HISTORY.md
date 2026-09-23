@@ -77,8 +77,21 @@ candidate at all; that failure is why the shape is what it is.)
 A keyframe is stored when a delta would not have been smaller — a wholesale repaint — and always
 at the start of an epoch, so every epoch is self-contained and a read never reaches outside it.
 
-### The shift is searched and verified, not read from the emulator
+### Appearance travels beside the text
 
+A delta carries what changed in **text** and in **appearance**. The text runs are glyph splices;
+a row's colours and its wide-glyph columns ride as a per-row payload. They are deliberately not
+merged: a row's colours are runs over *columns* while its glyphs are indexed one at a time, and
+its glyphs are what decide where its wide columns are. `screen.ts` owns the two coordinates and
+is the only place they are reconciled.
+
+The trap worth naming, because it fails silently. A repaint that changes **only colour** leaves
+every glyph identical, so a text-only encoder finds nothing changed, returns an empty delta at
+zero cost — and the zero-cost answer short-circuits the shift search, so the recolour is gone
+and the keyframe beside it still looks perfectly correct. Cost therefore counts the appearance
+payload, and the verifier compares appearance exactly as it compares the glyphs.
+
+### The shift is searched and verified, not read from the emulator
 The obvious source for `scrollBy` is the emulator. It is not there:
 
 - **`IBuffer.baseY` is exact until the scrollback ring saturates, then freezes outright** while
@@ -134,8 +147,9 @@ resolution limit (`CLASSIFIER.md` §9.3) and nothing here invents precision beyo
 ## 6. Verification
 
 - **Exhaustive, against the corpus** (`test/history-corpus.test.ts`): every recorded delivery of
-  every direct trace is replayed into a timeline, then read back, and the reconstructed screen
-  must equal the screen that session had — at **every single record**, across 23 programmes.
+  every direct trace is replayed into a timeline, then read back, and the reconstructed screen —
+  its glyphs, its appearance and its wide-glyph columns — must equal the screen that session had
+  at **every single record**, across 23 programmes.
   A single mis-encoded delta would corrupt every later read while leaving the keyframe beside it
   looking correct, so this is exhaustive rather than sampled.
 - **The epoch rule, end to end** (`corpus/test/corpus.test.ts`): `complex.resize-epochs` produces
@@ -156,5 +170,3 @@ resolution limit (`CLASSIFIER.md` §9.3) and nothing here invents precision beyo
   the process exiting" is the hosted program's process, which is what §6 verifies.
 - **Delta on the feed** — the same overkill applies to *delivering* a full screen per update, but
   that is L1.1's call, not L0.3's.
-- **Attributes.** `ScreenSnapshot` carries text only, so L0.2's "characters, attributes, cursor"
-  is unmet on the attributes axis. Pre-existing and independent of history.

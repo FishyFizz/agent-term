@@ -57,7 +57,6 @@ export interface ClassifiedUpdate {
  */
 interface Frame {
   lines: string[];
-  cursorX: number;
   cursorY: number;
   viewportY: number;
   altScreen: boolean;
@@ -395,7 +394,6 @@ export function frameOf(screen: ScreenModel, snap: ScreenSnapshot = screen.snaps
     // index a cell, but comparing padded rows against trimmed ones makes
     // every trailing-blank difference look like a real change.
     lines: snap.lines.map((l) => l.replace(/\s+$/, '')),
-    cursorX: snap.cursorX,
     cursorY: snap.cursorY,
     viewportY: screen.terminal.buffer.active.viewportY,
     altScreen: snap.buffer === 'alternate',
