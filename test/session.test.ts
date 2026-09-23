@@ -164,11 +164,18 @@ test("every update's delta reproduces that update's screen exactly", async (t) =
     const current = updates[i]!;
     if (!current.grid) continue;
     checked++;
+    const restored = applyDelta(previous.screen, current.grid);
     assert.deepEqual(
-      applyDelta(previous.screen, current.grid).lines,
+      restored.lines,
       current.screen.lines,
       `update ${current.seq}'s delta reconstructs its screen`,
     );
+    assert.deepEqual(
+      restored.styles,
+      current.screen.styles,
+      `update ${current.seq}'s delta reconstructs its colours`,
+    );
+    assert.deepEqual(restored.wide, current.screen.wide, `update ${current.seq}'s widths`);
   }
   assert.ok(checked > 0, `the run produced deltas to check (${checked})`);
 });

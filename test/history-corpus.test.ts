@@ -114,12 +114,79 @@ test('every corpus trace reconstructs exactly through the timeline', async () =>
       );
       assert.equal(got.cols, want.cols, `${trace.id}: seq ${record.seq} keeps its width`);
       assert.equal(got.rows, want.rows, `${trace.id}: seq ${record.seq} keeps its height`);
+      // Appearance is stored in the delta, not beside it, so it is exactly as
+      // capable of being silently wrong as the glyphs are.
+      assert.deepEqual(
+        got.styles,
+        want.styles,
+        `${trace.id}: seq ${record.seq} keeps its colours`,
+      );
+      assert.deepEqual(got.wide, want.wide, `${trace.id}: seq ${record.seq} keeps its widths`);
     }
     checkedTraces++;
   }
 
   assert.equal(checkedTraces, traces.length);
   assert.ok(checkedRecords > 1000, `checked a real number of records (${checkedRecords})`);
+});
+
+/**
+ * The corpus's own colours, through the whole pipeline.
+ *
+ * Two programmes emit SGR -- `cli.build-log` colours forty lines and bolds a
+ * header, `cli.menu-selector` draws the selection in reverse video -- so
+ * attribute support has real material to be checked against, with no new
+ * programme and no re-recording.
+ */
+test('the corpus colours survive the timeline', async () => {
+  const traces = loadTraces('direct');
+
+  const build = traces.find((t) => t.id === 'cli.build-log');
+  assert.ok(build, 'cli.build-log is in the corpus');
+  const buildHistory = new SessionHistory(build.id);
+  await replayIntoHistory(buildHistory, build);
+
+  const seen = new Set<string>();
+  for (const record of allRecords(buildHistory)) {
+    for (const runs of buildHistory.screenAt({ seq: record.seq })?.styles ?? []) {
+      for (const run of runs) seen.add(run.style);
+    }
+  }
+  assert.ok(
+    [...seen].some((s) => s.startsWith('fg')),
+    `coloured text came through (saw: ${[...seen].join(', ') || 'nothing'})`,
+  );
+  assert.ok([...seen].some((s) => s.includes('bold')), 'and so did the bold header');
+
+  const menu = traces.find((t) => t.id === 'cli.menu-selector');
+  assert.ok(menu, 'cli.menu-selector is in the corpus');
+  const menuHistory = new SessionHistory(menu.id);
+  await replayIntoHistory(menuHistory, menu);
+
+  // The selection is drawn with SGR 7, and that is the only thing telling it
+  // apart from the rows on either side of it. Read while the menu is up: the
+  // programme leaves the alt screen at the end, and that destroys it.
+  let highlighted: { text: string; style: string } | null = null;
+  for (const record of allRecords(menuHistory)) {
+    const screen = menuHistory.screenAt({ seq: record.seq });
+    if (screen?.buffer !== 'alternate') continue;
+    const y = screen.lines.findIndex((_, i) => (screen.styles[i] ?? []).length > 0);
+    if (y < 0) continue;
+    highlighted = {
+      text: screen.lines[y]!,
+      style: (screen.styles[y] ?? []).map((run) => run.style).join(' '),
+    };
+  }
+
+  assert.ok(highlighted, 'the menu highlighted a row while it was on screen');
+  assert.ok(
+    highlighted.text.startsWith('>'),
+    `and the highlight is on the selected row (${JSON.stringify(highlighted.text)})`,
+  );
+  assert.ok(
+    highlighted.style.includes('inverse'),
+    `drawn with reverse video (saw ${highlighted.style || 'nothing'})`,
+  );
 });
 
 test('the corpus resize programme yields three epochs, each at its own size', async () => {
