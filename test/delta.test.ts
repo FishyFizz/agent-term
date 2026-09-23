@@ -24,9 +24,10 @@ async function pair(cols: number, rows: number, before: string, after: string) {
 /**
  * A hand-built snapshot, for shapes the emulator will not make on request.
  *
- * Padded to a full grid: a delta's row runs and an epoch's row count are both
- * read off this, so a short array would test a screen the emulator cannot
- * produce. `appearance` lets a test give a row colour and wide glyphs.
+ * Padded to a full grid, and padded in **columns** rather than characters: a
+ * delta's row runs and an epoch's row count are both read off this, so a short
+ * array would test a screen the emulator cannot produce. `appearance` lets a
+ * test give rows colour and wide glyphs.
  */
 function snap(
   cols: number,
@@ -34,12 +35,19 @@ function snap(
   lines: string[],
   appearance: { styles?: StyleRun[][]; wide?: number[][] } = {},
 ): ScreenSnapshot {
+  const wide = appearance.wide ?? [];
   const padded: string[] = [];
-  for (let y = 0; y < rows; y++) padded.push((lines[y] ?? '').padEnd(cols, ' '));
+  for (let y = 0; y < rows; y++) {
+    const raw = lines[y] ?? '';
+    const starts = wide[y] ?? [];
+    let columns = 0;
+    for (let g = 0; g < raw.length; g++) columns += starts.includes(columns) ? 2 : 1;
+    padded.push(raw + ' '.repeat(Math.max(0, cols - columns)));
+  }
   return {
     lines: padded,
     styles: appearance.styles ?? padded.map(() => []),
-    wide: appearance.wide ?? padded.map(() => []),
+    wide: wide.length ? wide : padded.map(() => []),
     cols,
     rows,
     buffer: 'normal',
@@ -63,7 +71,7 @@ test('a delta round-trips to the exact screen', async () => {
 test('nothing changed: an empty delta, at no cost', async () => {
   const { a } = await pair(20, 5, 'same\r\n', '');
   const d = gridDelta(a, a);
-  assert.deepEqual(d, { scrollBy: 0, runs: [] });
+  assert.deepEqual(d, { scrollBy: 0, runs: [], rows: [] });
   assert.deepEqual(applyDelta(a, d!).lines, a.lines);
 });
 
@@ -162,4 +170,76 @@ test('a delta survives a chain of applications', async () => {
     assert.deepEqual(current.lines, next.lines, `step ${i} still exact`);
   }
   assert.notDeepEqual(current.lines, original.lines, 'and the screen really did change');
+});
+
+test('a change of colour alone is not "nothing happened"', () => {
+  // The trap, and the reason cost counts appearance. A restyle leaves every
+  // glyph identical, so a text-only encoder finds no change, returns an empty
+  // delta at zero cost -- and the recolour is silently gone. Worse, that is the
+  // *cheap* path: the zero-cost answer short-circuits the search above.
+  const before = snap(8, 2, ['same', 'text']);
+  const after = snap(8, 2, ['same', 'text'], {
+    styles: [[], [{ from: 0, to: 4, style: 'fg1' }]],
+  });
+
+  const d = gridDelta(before, after);
+  assert.ok(d, 'the restyle was encoded rather than passed over');
+  assert.deepEqual(d.runs, [], 'not one glyph changed');
+  assert.equal(d.rows.length, 1, 'but the row did');
+  assert.deepEqual(d.rows[0]?.styles, [{ from: 0, to: 4, style: 'fg1' }]);
+  assert.deepEqual(applyDelta(before, d).styles, after.styles, 'and it round-trips');
+});
+
+test('a restyle is far cheaper than storing the grid', () => {
+  const before = snap(40, 4, ['aaaa', 'bbbb', 'cccc', 'dddd']);
+  const after = snap(40, 4, ['aaaa', 'bbbb', 'cccc', 'dddd'], {
+    styles: [
+      [{ from: 0, to: 40, style: 'bg1' }],
+      [{ from: 0, to: 40, style: 'bg1' }],
+      [{ from: 0, to: 40, style: 'bg1' }],
+      [{ from: 0, to: 40, style: 'bg1' }],
+    ],
+  });
+  const d = gridDelta(before, after);
+  assert.ok(d, 'encoded');
+  assert.equal(d.rows.length, 4, 'one payload per restyled row');
+  assert.deepEqual(applyDelta(before, d).styles, after.styles);
+});
+
+test('colour is dropped from a row that goes back to default', () => {
+  const before = snap(8, 2, ['red', ''], { styles: [[{ from: 0, to: 3, style: 'fg1' }], []] });
+  const after = snap(8, 2, ['red', '']);
+  const d = gridDelta(before, after);
+  assert.ok(d, 'the removal of colour is a change too');
+  assert.deepEqual(applyDelta(before, d).styles, [[], []], 'and it round-trips back to default');
+});
+
+test('a change introducing a wide glyph carries its column mapping', () => {
+  const before = snap(8, 2, ['ab', '']);
+  const after = snap(8, 2, ['a中', ''], { wide: [[1], []] });
+
+  const d = gridDelta(before, after);
+  assert.ok(d, 'encoded');
+  assert.deepEqual(d.rows[0]?.wide, [1], 'the wide column is part of the change');
+
+  const back = applyDelta(before, d);
+  assert.deepEqual(back.lines, after.lines);
+  assert.deepEqual(back.wide, after.wide, 'and the column mapping survives');
+});
+
+test('colour rides along a scroll, in the right rows', () => {
+  // Appearance has to shift in lockstep with the glyphs, or a scrolling log
+  // repaints its colours one row off for the rest of the session.
+  const before = snap(8, 3, ['one', 'two', 'three'], {
+    styles: [[{ from: 0, to: 3, style: 'fg1' }], [], [{ from: 0, to: 5, style: 'fg2' }]],
+  });
+  const after = snap(8, 3, ['two', 'three', 'four'], {
+    styles: [[], [{ from: 0, to: 5, style: 'fg2' }], []],
+  });
+
+  const d = gridDelta(before, after, 1);
+  assert.ok(d, 'encoded');
+  const back = applyDelta(before, d);
+  assert.deepEqual(back.lines, after.lines);
+  assert.deepEqual(back.styles, after.styles, 'the colour moved with its row');
 });
