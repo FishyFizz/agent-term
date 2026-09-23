@@ -18,6 +18,7 @@
  */
 import { createTerminal, type XtermTerminal } from './xterm.js';
 import { EditRecord, type Op } from './edit-record.js';
+import { TextLog } from './text-log.js';
 import { assertGridSize } from './types.js';
 
 /** One row of the screen, as text. */
@@ -51,6 +52,11 @@ export class ScreenModel {
   readonly terminal: XtermTerminal;
   /** The op stream: control operations, in order, with byte offsets. */
   readonly ops: EditRecord;
+  /**
+   * The text log: completed lines, in order. CLASSIFIER.md §5's second sink,
+   * and the only record of lines that fell out of a bounded scrollback.
+   */
+  readonly text: TextLog;
 
   private _cols: number;
   private _rows: number;
@@ -61,6 +67,7 @@ export class ScreenModel {
     this.terminal = createTerminal({ cols, rows });
     // Installed immediately so no bytes can reach the parser unobserved.
     this.ops = new EditRecord(this.terminal);
+    this.text = new TextLog(this.terminal);
   }
 
   get cols(): number {
@@ -82,6 +89,7 @@ export class ScreenModel {
     // Counted before the write: handlers run during it, and by then the
     // offset must already include the bytes that produced them.
     this.ops.noteBytes(bytes.length);
+    this.text.noteBytes(bytes.length);
     return new Promise((resolve) => {
       this.terminal.write(new Uint8Array(bytes), () => resolve());
     });
@@ -127,6 +135,7 @@ export class ScreenModel {
 
   dispose(): void {
     this.ops.dispose();
+    this.text.dispose();
     this.terminal.dispose();
   }
 }

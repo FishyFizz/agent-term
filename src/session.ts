@@ -17,6 +17,7 @@ import { PtySession } from './pty.js';
 import { ScreenModel } from './screen.js';
 import { classify, frameOf } from './classify.js';
 import type { Segment } from './classify.js';
+import type { TextLine } from './text-log.js';
 import type { SessionOptions } from './types.js';
 import { assertGridSize } from './types.js';
 
@@ -31,6 +32,15 @@ export interface SessionUpdate {
   toByte: number;
   segments: Segment[];
   io: SessionIo;
+  /**
+   * Completed lines produced by this delivery, in order.
+   *
+   * The screen grid alone is not a record of what was written: it holds the
+   * viewport, so lines that scrolled out are in no snapshot. These are those
+   * lines, and they are the only record of alt-screen content, which is
+   * destroyed on exit (CLASSIFIER.md §5).
+   */
+  text: TextLine[];
   /** The screen after this update. Present whenever the change touched it. */
   screen: ReturnType<ScreenModel['snapshot']>;
 }
@@ -104,6 +114,9 @@ export class TerminalSession {
       const after = frameOf(this.screen);
       const ops = this.screen.ops.recorded.filter((o) => o.byteOffset >= fromByte);
       this.screen.ops.clear();
+      // Drained in the same window as the ops, so each line belongs to exactly
+      // one update and none is counted twice.
+      const text = this.screen.text.drain();
 
       this._seq++;
       const classified = classify({
@@ -121,6 +134,7 @@ export class TerminalSession {
         fromByte,
         toByte: classified.toByte,
         segments: classified.segments,
+        text,
         // Zero is a real zero here: this call has drained what it was given.
         // It is per-update, so it says *this* update is parsed, not that the
         // pty is quiet -- `bytesRead` is the watermark that answers that.
