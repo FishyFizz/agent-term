@@ -35,17 +35,16 @@ const EXPECTED = {
   /**
    * Deliveries grouped at the boundaries the programme drew.
    *
-   * Below `drawOps`, and that is a finding rather than a regression to chase:
-   * a job is bigger than an expectation. Where one job genuinely contains both
-   * kinds -- `complex.interleaved` appends a log line *and* repaints a status
-   * row -- asking which single verdict covers its byte range has no answer,
-   * and the scorer's majority vote cannot express what the programme's `why`
-   * says plainly. The other failures are the same conflict already visible at
-   * op granularity: a screen-diff inference and an op spanning the same bytes
-   * with opposite verdicts (`classify.ts` emits both). Job granularity makes
-   * it worse only because one job carries more ops, so more of them coincide.
+   * Below `drawOps`, and only part of the difference is a regression to
+   * chase. Two of the losses are the corpus asking a coalesced burst which
+   * single verdict covers it -- a question with no answer, now answered by
+   * `SegmentExpectation.also` for the genuinely mixed cases. The rest are
+   * real: a `CUP` used to home the cursor before an append reads as drawing
+   * (every alt-screen programme pays for this), a resize reflows content and
+   * the next job's diff inherits it, and one case the screen cannot settle
+   * at any granularity.
    */
-  jobs: 18,
+  jobs: 19,
 };
 
 async function run(

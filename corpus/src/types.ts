@@ -104,6 +104,21 @@ export interface SegmentExpectation {
   to: number;
   /** The verdict the classifier must reach. */
   kind: 'writing' | 'drawing';
+  /**
+   * A second verdict the span must *also* contain.
+   *
+   * Exists because a span is not always one thing. A job that appends a log
+   * line and repaints a status row is both, and CLASSIFIER.md §2 is explicit
+   * that this is a structural fact — two segments in time order — and not a
+   * third verdict to be forced into one of the other two. Asking which single
+   * verdict covers such a span has no answer; the honest question is whether
+   * both are present.
+   *
+   * With exactly two verdicts, naming the other one says "this span is
+   * mixed". A majority vote over its bytes is then meaningless, so the scorer
+   * checks presence instead of weight.
+   */
+  also?: 'writing' | 'drawing';
   /** What makes this case interesting — the reason it is in the corpus. */
   why: string;
   /**

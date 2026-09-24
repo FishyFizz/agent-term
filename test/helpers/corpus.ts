@@ -20,7 +20,7 @@ import { classify, coalesce, frameOf } from '../../src/classify.js';
 import { groupByGap } from '../../src/jobs.js';
 import { OP } from '../../src/edit-record.js';
 import type { Trace } from '../../corpus/src/types.js';
-import type { Segment } from '../../src/classify.js';
+import type { Segment, Verdict } from '../../src/classify.js';
 
 export type { Trace };
 
@@ -152,6 +152,13 @@ export function jobChunks(trace: Trace, gapMs: number): string[] {
     while (nextResize < resizes.length && resizes[nextResize]!.offset < a.offset) nextResize++;
     while (nextSwitch < switches.length && switches[nextSwitch]! < a.offset) nextSwitch++;
     const crossesResize = nextResize < resizes.length && resizes[nextResize]!.offset < end;
+    // `Op.byteOffset` is bytes fed *before* the op, so it names the end of the
+    // delivery that carried it. `<=` would also catch a switch sitting exactly
+    // at `end` -- which is what a repaint merged with the exit that destroys
+    // it looks like. Tried: it recovers `complex.resize-during-tui` and costs
+    // two others, because the switch's own segment then competes with the
+    // `CUP` that follows it and the pair is scored as mixed. Net -1, so not
+    // adopted -- the real fix is the `CUP` finding, not the boundary.
     const crossesSwitch = nextSwitch < switches.length && switches[nextSwitch]! < end;
 
     if (i > 0 && (a.at - lastAt >= gapMs || crossesResize || crossesSwitch)) {
@@ -370,9 +377,21 @@ export function scoreTrace(trace: Trace, segments: Segment[]): CaseResult {
       else otherBytes += covered;
     }
 
+    // A span declared mixed is not asked which verdict wins. It contains both
+    // by construction, so a majority over its bytes would be decided by
+    // weighting accidents -- two programmes' verdicts flip on nothing but how
+    // much text happened to be in each segment. Presence is the assertion.
+    const covers = (kind: Verdict): boolean =>
+      overlapping.some(
+        (s) =>
+          s.kind === kind && Math.min(s.toByte, exp.to) > Math.max(s.fromByte, exp.from),
+      );
+
     const pass = exp.ambiguous
       ? overlapping.every((s) => s.confidence === 'low' || s.kind === exp.kind)
-      : overlapping.length > 0 && expectedBytes > otherBytes;
+      : exp.also
+        ? covers(exp.kind) && covers(exp.also)
+        : overlapping.length > 0 && expectedBytes > otherBytes;
 
     return {
       from: exp.from,

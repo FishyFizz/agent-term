@@ -96,6 +96,12 @@ export const interleaved: Programme = {
         from: m['start'] ?? 0,
         to: m['end'] ?? 0,
         kind: 'drawing',
+        // Both, not one. Coalesced to job granularity the burst nets to seven
+        // rows of text, which reads as pure writing -- but the status row was
+        // repainted six times and only its last state survives. That is the
+        // one thing a coalesced job cannot show, and it is what `collapsed`
+        // and a replay are for.
+        also: 'writing',
         why: 'contains both kinds: appending log lines and repainting the status row. "Mixed" is the structural fact that there are segments of both kinds in one update, not a third verdict (CLASSIFIER.md §2)',
       },
     ];

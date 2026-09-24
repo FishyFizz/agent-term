@@ -7,7 +7,7 @@
   "cols": 60,
   "rows": 6,
   "platform": "win32",
-  "recordedAt": "2026-09-24T02:27:33.663Z",
+  "recordedAt": "2026-09-24T03:58:12.122Z",
   "expectations": [
     {
       "from": 0,
@@ -27,7 +27,7 @@
         9001
       ],
       "altScreen": false,
-      "at": 1790216852827
+      "at": 1790222291273
     },
     {
       "name": "DECSET",
@@ -39,7 +39,7 @@
         1004
       ],
       "altScreen": false,
-      "at": 1790216852827
+      "at": 1790222291273
     },
     {
       "name": "DECRST",
@@ -51,7 +51,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790216852889
+      "at": 1790222291336
     },
     {
       "name": "ED",
@@ -63,7 +63,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790216852889
+      "at": 1790222291336
     },
     {
       "name": "SGR",
@@ -75,7 +75,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790216852889
+      "at": 1790222291336
     },
     {
       "name": "CUP",
@@ -87,7 +87,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790216852889
+      "at": 1790222291336
     },
     {
       "name": "TITLECHANGE",
@@ -97,7 +97,7 @@
       "cursorY": 0,
       "params": [],
       "altScreen": false,
-      "at": 1790216852889
+      "at": 1790222291336
     },
     {
       "name": "DECSET",
@@ -109,7 +109,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790216852889
+      "at": 1790222291336
     },
     {
       "name": "DECSET",
@@ -121,7 +121,7 @@
         1049
       ],
       "altScreen": false,
-      "at": 1790216852889
+      "at": 1790222291336
     },
     {
       "name": "SCROLL",
@@ -133,7 +133,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790216852889
+      "at": 1790222291336
     },
     {
       "name": "BUFFERCHANGE",
@@ -143,7 +143,7 @@
       "cursorY": 0,
       "params": [],
       "altScreen": true,
-      "at": 1790216852889
+      "at": 1790222291336
     },
     {
       "name": "DECRST",
@@ -155,7 +155,7 @@
         25
       ],
       "altScreen": true,
-      "at": 1790216852889
+      "at": 1790222291336
     },
     {
       "name": "EL",
@@ -167,7 +167,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790216852889
+      "at": 1790222291336
     },
     {
       "name": "LINEFEED",
@@ -177,7 +177,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": true,
-      "at": 1790216852889
+      "at": 1790222291336
     },
     {
       "name": "EL",
@@ -189,7 +189,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790216852889
+      "at": 1790222291336
     },
     {
       "name": "LINEFEED",
@@ -199,7 +199,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": true,
-      "at": 1790216852889
+      "at": 1790222291336
     },
     {
       "name": "EL",
@@ -211,7 +211,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790216852889
+      "at": 1790222291336
     },
     {
       "name": "LINEFEED",
@@ -221,7 +221,7 @@
       "cursorY": 3,
       "params": [],
       "altScreen": true,
-      "at": 1790216852889
+      "at": 1790222291336
     },
     {
       "name": "EL",
@@ -233,7 +233,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790216852889
+      "at": 1790222291336
     },
     {
       "name": "LINEFEED",
@@ -243,7 +243,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": true,
-      "at": 1790216852889
+      "at": 1790222291336
     },
     {
       "name": "EL",
@@ -255,7 +255,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790216852889
+      "at": 1790222291336
     },
     {
       "name": "LINEFEED",
@@ -265,7 +265,7 @@
       "cursorY": 5,
       "params": [],
       "altScreen": true,
-      "at": 1790216852889
+      "at": 1790222291336
     },
     {
       "name": "EL",
@@ -277,7 +277,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790216852889
+      "at": 1790222291336
     },
     {
       "name": "CUP",
@@ -289,7 +289,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790216852889
+      "at": 1790222291336
     },
     {
       "name": "DECSET",
@@ -301,7 +301,7 @@
         25
       ],
       "altScreen": true,
-      "at": 1790216852889
+      "at": 1790222291336
     },
     {
       "name": "LINEFEED",
@@ -311,7 +311,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": true,
-      "at": 1790216852920
+      "at": 1790222291368
     },
     {
       "name": "LINEFEED",
@@ -321,7 +321,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": true,
-      "at": 1790216852920
+      "at": 1790222291368
     },
     {
       "name": "LINEFEED",
@@ -331,7 +331,7 @@
       "cursorY": 3,
       "params": [],
       "altScreen": true,
-      "at": 1790216852920
+      "at": 1790222291368
     },
     {
       "name": "LINEFEED",
@@ -341,7 +341,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": true,
-      "at": 1790216852920
+      "at": 1790222291368
     },
     {
       "name": "LINEFEED",
@@ -351,7 +351,7 @@
       "cursorY": 5,
       "params": [],
       "altScreen": true,
-      "at": 1790216852920
+      "at": 1790222291368
     },
     {
       "name": "DECRST",
@@ -363,7 +363,7 @@
         25
       ],
       "altScreen": true,
-      "at": 1790216853029
+      "at": 1790222291477
     },
     {
       "name": "CUP",
@@ -375,7 +375,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790216853029
+      "at": 1790222291477
     },
     {
       "name": "DECSET",
@@ -387,7 +387,7 @@
         25
       ],
       "altScreen": true,
-      "at": 1790216853029
+      "at": 1790222291477
     },
     {
       "name": "EL",
@@ -399,7 +399,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790216853044
+      "at": 1790222291493
     },
     {
       "name": "LINEFEED",
@@ -409,7 +409,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": true,
-      "at": 1790216853045
+      "at": 1790222291493
     },
     {
       "name": "EL",
@@ -421,7 +421,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790216853045
+      "at": 1790222291493
     },
     {
       "name": "LINEFEED",
@@ -431,7 +431,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": true,
-      "at": 1790216853045
+      "at": 1790222291493
     },
     {
       "name": "EL",
@@ -443,7 +443,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790216853045
+      "at": 1790222291493
     },
     {
       "name": "LINEFEED",
@@ -453,7 +453,7 @@
       "cursorY": 3,
       "params": [],
       "altScreen": true,
-      "at": 1790216853045
+      "at": 1790222291493
     },
     {
       "name": "EL",
@@ -465,7 +465,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790216853045
+      "at": 1790222291493
     },
     {
       "name": "LINEFEED",
@@ -475,7 +475,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": true,
-      "at": 1790216853045
+      "at": 1790222291493
     },
     {
       "name": "EL",
@@ -487,7 +487,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790216853045
+      "at": 1790222291493
     },
     {
       "name": "LINEFEED",
@@ -497,7 +497,7 @@
       "cursorY": 5,
       "params": [],
       "altScreen": true,
-      "at": 1790216853045
+      "at": 1790222291493
     },
     {
       "name": "EL",
@@ -509,7 +509,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790216853045
+      "at": 1790222291493
     },
     {
       "name": "DECRST",
@@ -521,7 +521,7 @@
         25
       ],
       "altScreen": true,
-      "at": 1790216853152
+      "at": 1790222291603
     },
     {
       "name": "CUP",
@@ -533,7 +533,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790216853152
+      "at": 1790222291603
     },
     {
       "name": "DECSET",
@@ -545,7 +545,7 @@
         25
       ],
       "altScreen": true,
-      "at": 1790216853152
+      "at": 1790222291603
     },
     {
       "name": "EL",
@@ -557,7 +557,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790216853167
+      "at": 1790222291618
     },
     {
       "name": "LINEFEED",
@@ -567,7 +567,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": true,
-      "at": 1790216853168
+      "at": 1790222291618
     },
     {
       "name": "EL",
@@ -579,7 +579,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790216853168
+      "at": 1790222291618
     },
     {
       "name": "LINEFEED",
@@ -589,7 +589,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": true,
-      "at": 1790216853168
+      "at": 1790222291618
     },
     {
       "name": "EL",
@@ -601,7 +601,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790216853168
+      "at": 1790222291618
     },
     {
       "name": "LINEFEED",
@@ -611,7 +611,7 @@
       "cursorY": 3,
       "params": [],
       "altScreen": true,
-      "at": 1790216853168
+      "at": 1790222291618
     },
     {
       "name": "EL",
@@ -623,7 +623,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790216853168
+      "at": 1790222291618
     },
     {
       "name": "LINEFEED",
@@ -633,7 +633,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": true,
-      "at": 1790216853168
+      "at": 1790222291618
     },
     {
       "name": "EL",
@@ -645,7 +645,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790216853168
+      "at": 1790222291618
     },
     {
       "name": "LINEFEED",
@@ -655,7 +655,7 @@
       "cursorY": 5,
       "params": [],
       "altScreen": true,
-      "at": 1790216853168
+      "at": 1790222291618
     },
     {
       "name": "EL",
@@ -667,7 +667,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790216853168
+      "at": 1790222291618
     },
     {
       "name": "DECRST",
@@ -679,7 +679,7 @@
         1049
       ],
       "altScreen": true,
-      "at": 1790216853276
+      "at": 1790222291729
     },
     {
       "name": "SCROLL",
@@ -691,7 +691,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790216853276
+      "at": 1790222291729
     },
     {
       "name": "BUFFERCHANGE",
@@ -701,7 +701,7 @@
       "cursorY": 5,
       "params": [],
       "altScreen": false,
-      "at": 1790216853276
+      "at": 1790222291729
     },
     {
       "name": "DECRST",
@@ -713,7 +713,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790216853276
+      "at": 1790222291729
     },
     {
       "name": "CUP",
@@ -725,7 +725,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790216853276
+      "at": 1790222291729
     },
     {
       "name": "EL",
@@ -737,7 +737,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790216853276
+      "at": 1790222291729
     },
     {
       "name": "LINEFEED",
@@ -747,7 +747,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790216853276
+      "at": 1790222291729
     },
     {
       "name": "EL",
@@ -759,7 +759,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790216853276
+      "at": 1790222291729
     },
     {
       "name": "LINEFEED",
@@ -769,7 +769,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790216853276
+      "at": 1790222291729
     },
     {
       "name": "EL",
@@ -781,7 +781,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790216853276
+      "at": 1790222291729
     },
     {
       "name": "LINEFEED",
@@ -791,7 +791,7 @@
       "cursorY": 3,
       "params": [],
       "altScreen": false,
-      "at": 1790216853276
+      "at": 1790222291729
     },
     {
       "name": "EL",
@@ -803,7 +803,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790216853276
+      "at": 1790222291729
     },
     {
       "name": "LINEFEED",
@@ -813,7 +813,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790216853276
+      "at": 1790222291729
     },
     {
       "name": "EL",
@@ -825,7 +825,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790216853276
+      "at": 1790222291729
     },
     {
       "name": "LINEFEED",
@@ -835,7 +835,7 @@
       "cursorY": 5,
       "params": [],
       "altScreen": false,
-      "at": 1790216853276
+      "at": 1790222291729
     },
     {
       "name": "EL",
@@ -847,7 +847,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790216853276
+      "at": 1790222291729
     },
     {
       "name": "CUP",
@@ -859,7 +859,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790216853276
+      "at": 1790222291729
     },
     {
       "name": "DECSET",
@@ -871,7 +871,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790216853276
+      "at": 1790222291729
     }
   ],
   "frames": [
@@ -924,35 +924,39 @@
   "arrivals": [
     {
       "offset": 0,
-      "at": 1790216852812
+      "at": 1790222291260
     },
     {
       "offset": 16,
-      "at": 1790216852883
+      "at": 1790222291332
+    },
+    {
+      "offset": 83,
+      "at": 1790222291332
     },
     {
       "offset": 126,
-      "at": 1790216852904
+      "at": 1790222291354
     },
     {
       "offset": 196,
-      "at": 1790216853014
+      "at": 1790222291462
     },
     {
       "offset": 211,
-      "at": 1790216853029
+      "at": 1790222291477
     },
     {
       "offset": 300,
-      "at": 1790216853137
+      "at": 1790222291587
     },
     {
       "offset": 315,
-      "at": 1790216853152
+      "at": 1790222291603
     },
     {
       "offset": 408,
-      "at": 1790216853261
+      "at": 1790222291713
     }
   ],
   "bytes": 462,
