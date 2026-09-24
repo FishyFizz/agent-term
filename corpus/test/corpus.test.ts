@@ -255,8 +255,9 @@ test('every programme runs and records without throwing', async (t) => {
 test('recording is deterministic apart from timestamps', async () => {
   // Re-recording must reproduce the committed trace byte for byte, or a
   // "regression" can be nothing but clock drift. Two independent runs of
-  // `--feed both` were identical everywhere except `recordedAt` and `op.at`,
-  // so those two are stripped and everything else is compared exactly.
+  // `--feed both` were identical everywhere except `recordedAt`, `op.at` and
+  // `arrivals[].at`, so those are stripped and everything else is compared
+  // exactly.
   const trace = loadTrace('basic.plain-write', 'direct');
   const programme = findProgramme('basic.plain-write')!;
   const { trace: fresh } = await runDirect(programme);
@@ -265,6 +266,9 @@ test('recording is deterministic apart from timestamps', async () => {
     ...t,
     recordedAt: '<time>',
     ops: t.ops.map(({ at: _at, ...rest }) => rest),
+    // Arrival times are *when* the bytes came in -- the whole point of
+    // recording them, and the one thing a second run cannot reproduce.
+    arrivals: t.arrivals.map(({ at: _at, ...rest }) => rest),
     frames: t.frames.map((f) => ({ ...f })),
   });
 

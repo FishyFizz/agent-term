@@ -7,7 +7,7 @@
   "cols": 60,
   "rows": 8,
   "platform": "win32",
-  "recordedAt": "2026-09-23T18:18:41.897Z",
+  "recordedAt": "2026-09-24T02:27:14.442Z",
   "expectations": [
     {
       "from": 0,
@@ -20,52 +20,52 @@
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 32,
+      "byteOffset": 11,
       "cursorX": 0,
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790187521881
+      "at": 1790216834302
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 32,
+      "byteOffset": 14,
       "cursorX": 0,
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790187521881
+      "at": 1790216834318
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 32,
+      "byteOffset": 31,
       "cursorX": 0,
       "cursorY": 3,
       "params": [],
       "altScreen": false,
-      "at": 1790187521881
+      "at": 1790216834364
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 51,
+      "byteOffset": 35,
       "cursorX": 0,
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790187521897
+      "at": 1790216834380
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 51,
+      "byteOffset": 47,
       "cursorX": 0,
       "cursorY": 5,
       "params": [],
       "altScreen": false,
-      "at": 1790187521897
+      "at": 1790216834427
     }
   ],
   "frames": [
@@ -97,6 +97,56 @@
     ">>> exit()"
   ],
   "resizes": [],
+  "arrivals": [
+    {
+      "offset": 0,
+      "at": 1790216833993
+    },
+    {
+      "offset": 4,
+      "at": 1790216834116
+    },
+    {
+      "offset": 9,
+      "at": 1790216834132
+    },
+    {
+      "offset": 11,
+      "at": 1790216834132
+    },
+    {
+      "offset": 14,
+      "at": 1790216834147
+    },
+    {
+      "offset": 18,
+      "at": 1790216834163
+    },
+    {
+      "offset": 29,
+      "at": 1790216834179
+    },
+    {
+      "offset": 31,
+      "at": 1790216834179
+    },
+    {
+      "offset": 35,
+      "at": 1790216834194
+    },
+    {
+      "offset": 39,
+      "at": 1790216834210
+    },
+    {
+      "offset": 45,
+      "at": 1790216834225
+    },
+    {
+      "offset": 47,
+      "at": 1790216834240
+    }
+  ],
   "bytes": 51,
   "raw": ">>> 1 + 1\r\n2\r\n>>> print(\"hi\")\r\nhi\r\n>>> exit()\r\n>>> "
 }

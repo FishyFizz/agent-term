@@ -7,7 +7,7 @@
   "cols": 80,
   "rows": 8,
   "platform": "win32",
-  "recordedAt": "2026-09-23T18:18:40.194Z",
+  "recordedAt": "2026-09-24T02:27:10.112Z",
   "expectations": [
     {
       "from": 0,
@@ -20,32 +20,32 @@
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 32,
+      "byteOffset": 8,
       "cursorX": 0,
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790187520179
+      "at": 1790216830054
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 32,
+      "byteOffset": 16,
       "cursorX": 0,
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790187520179
+      "at": 1790216830065
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 32,
+      "byteOffset": 24,
       "cursorX": 0,
       "cursorY": 3,
       "params": [],
       "altScreen": false,
-      "at": 1790187520179
+      "at": 1790216830080
     },
     {
       "name": "LINEFEED",
@@ -55,7 +55,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790187520179
+      "at": 1790216830096
     },
     {
       "name": "LINEFEED",
@@ -65,7 +65,7 @@
       "cursorY": 5,
       "params": [],
       "altScreen": false,
-      "at": 1790187520194
+      "at": 1790216830111
     }
   ],
   "frames": [
@@ -97,6 +97,28 @@
     "line 5"
   ],
   "resizes": [],
+  "arrivals": [
+    {
+      "offset": 0,
+      "at": 1790216829978
+    },
+    {
+      "offset": 8,
+      "at": 1790216829987
+    },
+    {
+      "offset": 16,
+      "at": 1790216830002
+    },
+    {
+      "offset": 24,
+      "at": 1790216830018
+    },
+    {
+      "offset": 32,
+      "at": 1790216830034
+    }
+  ],
   "bytes": 40,
   "raw": "line 1\r\nline 2\r\nline 3\r\nline 4\r\nline 5\r\n"
 }

@@ -7,7 +7,7 @@
   "cols": 60,
   "rows": 8,
   "platform": "win32",
-  "recordedAt": "2026-09-23T18:19:10.553Z",
+  "recordedAt": "2026-09-24T02:27:31.776Z",
   "expectations": [
     {
       "from": 0,
@@ -33,7 +33,7 @@
         9001
       ],
       "altScreen": false,
-      "at": 1790187549940
+      "at": 1790216850529
     },
     {
       "name": "DECSET",
@@ -45,7 +45,7 @@
         1004
       ],
       "altScreen": false,
-      "at": 1790187549940
+      "at": 1790216850529
     },
     {
       "name": "DECRST",
@@ -57,7 +57,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790187550021
+      "at": 1790216850612
     },
     {
       "name": "ED",
@@ -69,7 +69,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790187550021
+      "at": 1790216850612
     },
     {
       "name": "SGR",
@@ -81,7 +81,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187550021
+      "at": 1790216850612
     },
     {
       "name": "CUP",
@@ -93,7 +93,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187550021
+      "at": 1790216850612
     },
     {
       "name": "LINEFEED",
@@ -103,7 +103,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790187550021
+      "at": 1790216850612
     },
     {
       "name": "TITLECHANGE",
@@ -113,7 +113,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790187550021
+      "at": 1790216850612
     },
     {
       "name": "DECSET",
@@ -125,7 +125,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790187550021
+      "at": 1790216850612
     },
     {
       "name": "LINEFEED",
@@ -135,7 +135,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790187550037
+      "at": 1790216850643
     },
     {
       "name": "LINEFEED",
@@ -145,24 +145,24 @@
       "cursorY": 3,
       "params": [],
       "altScreen": false,
-      "at": 1790187550053
+      "at": 1790216850720
     },
     {
       "name": "DECRST",
       "source": "csi",
-      "byteOffset": 197,
+      "byteOffset": 161,
       "cursorX": 0,
       "cursorY": 3,
       "params": [
         25
       ],
       "altScreen": false,
-      "at": 1790187550068
+      "at": 1790216850798
     },
     {
       "name": "CUP",
       "source": "csi",
-      "byteOffset": 197,
+      "byteOffset": 161,
       "cursorX": 0,
       "cursorY": 3,
       "params": [
@@ -170,24 +170,48 @@
         1
       ],
       "altScreen": false,
-      "at": 1790187550068
+      "at": 1790216850798
+    },
+    {
+      "name": "DECSET",
+      "source": "csi",
+      "byteOffset": 161,
+      "cursorX": 0,
+      "cursorY": 7,
+      "params": [
+        25
+      ],
+      "altScreen": false,
+      "at": 1790216850798
+    },
+    {
+      "name": "DECRST",
+      "source": "csi",
+      "byteOffset": 209,
+      "cursorX": 0,
+      "cursorY": 7,
+      "params": [
+        25
+      ],
+      "altScreen": false,
+      "at": 1790216850829
     },
     {
       "name": "EL",
       "source": "csi",
-      "byteOffset": 197,
+      "byteOffset": 209,
       "cursorX": 27,
       "cursorY": 7,
       "params": [
         0
       ],
       "altScreen": false,
-      "at": 1790187550068
+      "at": 1790216850829
     },
     {
       "name": "CUP",
       "source": "csi",
-      "byteOffset": 197,
+      "byteOffset": 209,
       "cursorX": 27,
       "cursorY": 7,
       "params": [
@@ -195,46 +219,46 @@
         1
       ],
       "altScreen": false,
-      "at": 1790187550068
+      "at": 1790216850829
     },
     {
       "name": "DECSET",
       "source": "csi",
-      "byteOffset": 197,
+      "byteOffset": 209,
       "cursorX": 0,
       "cursorY": 3,
       "params": [
         25
       ],
       "altScreen": false,
-      "at": 1790187550068
+      "at": 1790216850829
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 223,
+      "byteOffset": 235,
       "cursorX": 0,
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790187550084
+      "at": 1790216850906
     },
     {
       "name": "DECRST",
       "source": "csi",
-      "byteOffset": 277,
+      "byteOffset": 253,
       "cursorX": 0,
       "cursorY": 4,
       "params": [
         25
       ],
       "altScreen": false,
-      "at": 1790187550100
+      "at": 1790216850999
     },
     {
       "name": "CUP",
       "source": "csi",
-      "byteOffset": 277,
+      "byteOffset": 253,
       "cursorX": 0,
       "cursorY": 4,
       "params": [
@@ -242,24 +266,48 @@
         1
       ],
       "altScreen": false,
-      "at": 1790187550100
+      "at": 1790216850999
+    },
+    {
+      "name": "DECSET",
+      "source": "csi",
+      "byteOffset": 253,
+      "cursorX": 0,
+      "cursorY": 7,
+      "params": [
+        25
+      ],
+      "altScreen": false,
+      "at": 1790216850999
+    },
+    {
+      "name": "DECRST",
+      "source": "csi",
+      "byteOffset": 301,
+      "cursorX": 0,
+      "cursorY": 7,
+      "params": [
+        25
+      ],
+      "altScreen": false,
+      "at": 1790216851014
     },
     {
       "name": "EL",
       "source": "csi",
-      "byteOffset": 277,
+      "byteOffset": 301,
       "cursorX": 27,
       "cursorY": 7,
       "params": [
         0
       ],
       "altScreen": false,
-      "at": 1790187550100
+      "at": 1790216851014
     },
     {
       "name": "CUP",
       "source": "csi",
-      "byteOffset": 277,
+      "byteOffset": 301,
       "cursorX": 27,
       "cursorY": 7,
       "params": [
@@ -267,46 +315,46 @@
         1
       ],
       "altScreen": false,
-      "at": 1790187550100
+      "at": 1790216851014
     },
     {
       "name": "DECSET",
       "source": "csi",
-      "byteOffset": 277,
+      "byteOffset": 301,
       "cursorX": 0,
       "cursorY": 4,
       "params": [
         25
       ],
       "altScreen": false,
-      "at": 1790187550100
+      "at": 1790216851014
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 303,
+      "byteOffset": 327,
       "cursorX": 0,
       "cursorY": 5,
       "params": [],
       "altScreen": false,
-      "at": 1790187550115
+      "at": 1790216851091
     },
     {
       "name": "DECRST",
       "source": "csi",
-      "byteOffset": 357,
+      "byteOffset": 345,
       "cursorX": 0,
       "cursorY": 5,
       "params": [
         25
       ],
       "altScreen": false,
-      "at": 1790187550131
+      "at": 1790216851185
     },
     {
       "name": "CUP",
       "source": "csi",
-      "byteOffset": 357,
+      "byteOffset": 345,
       "cursorX": 0,
       "cursorY": 5,
       "params": [
@@ -314,24 +362,48 @@
         1
       ],
       "altScreen": false,
-      "at": 1790187550131
+      "at": 1790216851185
+    },
+    {
+      "name": "DECSET",
+      "source": "csi",
+      "byteOffset": 345,
+      "cursorX": 0,
+      "cursorY": 7,
+      "params": [
+        25
+      ],
+      "altScreen": false,
+      "at": 1790216851185
+    },
+    {
+      "name": "DECRST",
+      "source": "csi",
+      "byteOffset": 393,
+      "cursorX": 0,
+      "cursorY": 7,
+      "params": [
+        25
+      ],
+      "altScreen": false,
+      "at": 1790216851201
     },
     {
       "name": "EL",
       "source": "csi",
-      "byteOffset": 357,
+      "byteOffset": 393,
       "cursorX": 27,
       "cursorY": 7,
       "params": [
         0
       ],
       "altScreen": false,
-      "at": 1790187550131
+      "at": 1790216851201
     },
     {
       "name": "CUP",
       "source": "csi",
-      "byteOffset": 357,
+      "byteOffset": 393,
       "cursorX": 27,
       "cursorY": 7,
       "params": [
@@ -339,68 +411,68 @@
         1
       ],
       "altScreen": false,
-      "at": 1790187550131
+      "at": 1790216851201
     },
     {
       "name": "DECSET",
       "source": "csi",
-      "byteOffset": 357,
+      "byteOffset": 393,
       "cursorX": 0,
       "cursorY": 5,
       "params": [
         25
       ],
       "altScreen": false,
-      "at": 1790187550131
+      "at": 1790216851201
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 385,
+      "byteOffset": 421,
       "cursorX": 0,
       "cursorY": 6,
       "params": [],
       "altScreen": false,
-      "at": 1790187550147
-    },
-    {
-      "name": "DECRST",
-      "source": "csi",
-      "byteOffset": 435,
-      "cursorX": 0,
-      "cursorY": 6,
-      "params": [
-        25
-      ],
-      "altScreen": false,
-      "at": 1790187550162
+      "at": 1790216851279
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 435,
+      "byteOffset": 423,
       "cursorX": 0,
       "cursorY": 7,
       "params": [],
       "altScreen": false,
-      "at": 1790187550162
+      "at": 1790216851373
+    },
+    {
+      "name": "DECRST",
+      "source": "csi",
+      "byteOffset": 471,
+      "cursorX": 0,
+      "cursorY": 7,
+      "params": [
+        25
+      ],
+      "altScreen": false,
+      "at": 1790216851373
     },
     {
       "name": "EL",
       "source": "csi",
-      "byteOffset": 435,
+      "byteOffset": 471,
       "cursorX": 27,
       "cursorY": 7,
       "params": [
         0
       ],
       "altScreen": false,
-      "at": 1790187550162
+      "at": 1790216851373
     },
     {
       "name": "CUP",
       "source": "csi",
-      "byteOffset": 435,
+      "byteOffset": 471,
       "cursorX": 27,
       "cursorY": 7,
       "params": [
@@ -408,26 +480,26 @@
         1
       ],
       "altScreen": false,
-      "at": 1790187550162
+      "at": 1790216851373
     },
     {
       "name": "DECSET",
       "source": "csi",
-      "byteOffset": 435,
+      "byteOffset": 471,
       "cursorX": 0,
       "cursorY": 6,
       "params": [
         25
       ],
       "altScreen": false,
-      "at": 1790187550162
+      "at": 1790216851373
     }
   ],
   "frames": [
     {
       "index": 0,
       "label": "end",
-      "at": 435,
+      "at": 471,
       "cursorY": 6,
       "cursorX": 0,
       "buffer": "normal",
@@ -454,6 +526,68 @@
     ""
   ],
   "resizes": [],
-  "bytes": 435,
-  "raw": "\u001b[?9001h\u001b[?1004h\u001b[?25l\u001b[2J\u001b[m\u001b[Hnpm install\r\n\u001b]0;C:\\Program Files\\nodejs\\node.exe\u0007\u001b[?25h[--------------------]   0%\r\nadded package-25 in 25ms\r\n\u001b[?25l\u001b[8;1H[#####---------------]  25%\u001b[K\u001b[4;1H\u001b[?25hadded package-50 in 50ms\r\n\u001b[?25l\u001b[8;1H[##########----------]  50%\u001b[K\u001b[5;1H\u001b[?25hadded package-75 in 75ms\r\n\u001b[?25l\u001b[8;1H[###############-----]  75%\u001b[K\u001b[6;1H\u001b[?25hadded package-100 in 100ms\r\n\u001b[?25l\r\n[####################] 100%\u001b[K\u001b[7;1H\u001b[?25h"
+  "arrivals": [
+    {
+      "offset": 0,
+      "at": 1790216850529
+    },
+    {
+      "offset": 16,
+      "at": 1790216850610
+    },
+    {
+      "offset": 88,
+      "at": 1790216850627
+    },
+    {
+      "offset": 117,
+      "at": 1790216850705
+    },
+    {
+      "offset": 143,
+      "at": 1790216850798
+    },
+    {
+      "offset": 161,
+      "at": 1790216850813
+    },
+    {
+      "offset": 209,
+      "at": 1790216850890
+    },
+    {
+      "offset": 235,
+      "at": 1790216850984
+    },
+    {
+      "offset": 253,
+      "at": 1790216850999
+    },
+    {
+      "offset": 301,
+      "at": 1790216851076
+    },
+    {
+      "offset": 327,
+      "at": 1790216851170
+    },
+    {
+      "offset": 345,
+      "at": 1790216851185
+    },
+    {
+      "offset": 393,
+      "at": 1790216851263
+    },
+    {
+      "offset": 421,
+      "at": 1790216851358
+    },
+    {
+      "offset": 423,
+      "at": 1790216851373
+    }
+  ],
+  "bytes": 471,
+  "raw": "\u001b[?9001h\u001b[?1004h\u001b[?25l\u001b[2J\u001b[m\u001b[Hnpm install\r\n\u001b]0;C:\\Program Files\\nodejs\\node.exe\u0007\u001b[?25h[--------------------]   0%\r\nadded package-25 in 25ms\r\n\u001b[?25l\u001b[8;1H\u001b[?25h\u001b[?25l[#####---------------]  25%\u001b[K\u001b[4;1H\u001b[?25hadded package-50 in 50ms\r\n\u001b[?25l\u001b[8;1H\u001b[?25h\u001b[?25l[##########----------]  50%\u001b[K\u001b[5;1H\u001b[?25hadded package-75 in 75ms\r\n\u001b[?25l\u001b[8;1H\u001b[?25h\u001b[?25l[###############-----]  75%\u001b[K\u001b[6;1H\u001b[?25hadded package-100 in 100ms\r\n\r\n\u001b[?25l[####################] 100%\u001b[K\u001b[7;1H\u001b[?25h"
 }

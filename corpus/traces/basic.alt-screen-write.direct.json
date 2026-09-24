@@ -7,7 +7,7 @@
   "cols": 80,
   "rows": 5,
   "platform": "win32",
-  "recordedAt": "2026-09-23T18:18:41.116Z",
+  "recordedAt": "2026-09-24T02:27:11.310Z",
   "expectations": [
     {
       "from": 11,
@@ -20,88 +20,88 @@
     {
       "name": "DECSET",
       "source": "csi",
-      "byteOffset": 32,
+      "byteOffset": 8,
       "cursorX": 0,
       "cursorY": 0,
       "params": [
         1049
       ],
       "altScreen": false,
-      "at": 1790187521084
+      "at": 1790216831216
     },
     {
       "name": "SCROLL",
       "source": "event",
-      "byteOffset": 32,
+      "byteOffset": 8,
       "cursorX": 0,
       "cursorY": 0,
       "params": [
         0
       ],
       "altScreen": true,
-      "at": 1790187521085
+      "at": 1790216831216
     },
     {
       "name": "BUFFERCHANGE",
       "source": "event",
-      "byteOffset": 32,
+      "byteOffset": 8,
       "cursorX": 0,
       "cursorY": 0,
       "params": [],
       "altScreen": true,
-      "at": 1790187521085
+      "at": 1790216831216
     },
     {
       "name": "CUP",
       "source": "csi",
-      "byteOffset": 32,
+      "byteOffset": 11,
       "cursorX": 0,
       "cursorY": 0,
       "params": [
         0
       ],
       "altScreen": true,
-      "at": 1790187521085
+      "at": 1790216831231
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 32,
+      "byteOffset": 23,
       "cursorX": 0,
       "cursorY": 1,
       "params": [],
       "altScreen": true,
-      "at": 1790187521085
+      "at": 1790216831247
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 64,
+      "byteOffset": 35,
       "cursorX": 0,
       "cursorY": 2,
       "params": [],
       "altScreen": true,
-      "at": 1790187521100
+      "at": 1790216831262
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 64,
+      "byteOffset": 47,
       "cursorX": 0,
       "cursorY": 3,
       "params": [],
       "altScreen": true,
-      "at": 1790187521100
+      "at": 1790216831279
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 64,
+      "byteOffset": 59,
       "cursorX": 0,
       "cursorY": 4,
       "params": [],
       "altScreen": true,
-      "at": 1790187521100
+      "at": 1790216831294
     },
     {
       "name": "DECRST",
@@ -113,7 +113,7 @@
         1049
       ],
       "altScreen": true,
-      "at": 1790187521116
+      "at": 1790216831310
     },
     {
       "name": "SCROLL",
@@ -125,7 +125,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187521116
+      "at": 1790216831310
     },
     {
       "name": "BUFFERCHANGE",
@@ -135,7 +135,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790187521116
+      "at": 1790216831310
     }
   ],
   "frames": [
@@ -163,6 +163,36 @@
     "alt line 4"
   ],
   "resizes": [],
+  "arrivals": [
+    {
+      "offset": 0,
+      "at": 1790216831138
+    },
+    {
+      "offset": 8,
+      "at": 1790216831138
+    },
+    {
+      "offset": 11,
+      "at": 1790216831138
+    },
+    {
+      "offset": 23,
+      "at": 1790216831152
+    },
+    {
+      "offset": 35,
+      "at": 1790216831169
+    },
+    {
+      "offset": 47,
+      "at": 1790216831185
+    },
+    {
+      "offset": 59,
+      "at": 1790216831200
+    }
+  ],
   "bytes": 67,
   "raw": "\u001b[?1049h\u001b[Halt line 1\r\nalt line 2\r\nalt line 3\r\nalt line 4\r\n\u001b[?1049l"
 }

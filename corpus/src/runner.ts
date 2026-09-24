@@ -14,17 +14,23 @@
 import { Writable } from 'node:stream';
 import { Recorder } from './recorder.js';
 import { resizeMarker, takeResizeMarkers } from './types.js';
-import type { Programme, ProgrammeIo, ResizeAt, Trace } from './types.js';
+import type { ArrivalAt, Programme, ProgrammeIo, ResizeAt, Trace } from './types.js';
 
 /** A stdout the programme writes to, which counts bytes and records marks. */
 class CountingSink extends Writable {
   readonly chunks: Buffer[] = [];
+  /** When each write happened, and the byte offset it started at. */
+  readonly arrivals: ArrivalAt[] = [];
   private count = 0;
   readonly marks = new Map<string, number>();
   /** Resizes asked for, with the offset the request ended at. */
   readonly resizes: ResizeAt[] = [];
 
   override _write(chunk: Buffer, _enc: BufferEncoding, cb: (e?: Error) => void): void {
+    // Stamped here, at the moment the bytes arrive, not when they are later
+    // fed to the emulator. In a direct run the programme finishes before any
+    // feeding starts, so feeding time says nothing about the programme.
+    this.arrivals.push({ offset: this.count, at: Date.now() });
     this.chunks.push(Buffer.from(chunk));
     this.count += chunk.length;
     cb();
@@ -80,23 +86,28 @@ export interface RunResult {
 }
 
 /**
- * Feed captured bytes in chunks, resizing where the programme asked.
+ * Feed the programme's own writes, one delivery each, resizing where it asked.
+ *
+ * One delivery per write is the finest granularity there is, and it is the
+ * honest one to record: a trace that throws that away cannot be regrouped
+ * later, and a pty-like delivery is a thing the *harness* should simulate
+ * (`fixedChunks`), not a thing the recording should bake in. What the
+ * recording must keep instead is when each write happened — `ArrivalAt` —
+ * because that is the only place a job boundary survives.
  *
  * A trace has to be replayed at the size the programme was running at, or the
  * frames, the ops and the classifier all describe a terminal that never
- * existed. Resizes are applied before the chunk containing their offset, so the
- * replay sees the sequence the programme did -- including a resize whose marker
- * and the redraw that follows it land in the same chunk.
+ * existed. Resizes are applied before the delivery containing their offset, so
+ * the replay sees what the programme did.
  */
-async function writeChunkedWithResizes(
+async function writeDeliveries(
   recorder: Recorder,
-  raw: Buffer,
+  chunks: readonly Buffer[],
   resizes: readonly ResizeAt[],
-  chunkSize: number,
 ): Promise<void> {
   const pending = [...resizes].sort((a, b) => a.offset - b.offset);
-  let at = 0;
   let i = 0;
+  let at = 0;
   const applyDue = (upTo: number): void => {
     while (i < pending.length && pending[i]!.offset <= upTo) {
       const r = pending[i]!;
@@ -104,20 +115,17 @@ async function writeChunkedWithResizes(
       i++;
     }
   };
-  while (at < raw.length) {
-    const end = Math.min(at + chunkSize, raw.length);
+  for (const chunk of chunks) {
+    const end = at + chunk.length;
     applyDue(end);
-    await recorder.write(raw.subarray(at, end));
+    await recorder.write(chunk);
     at = end;
   }
   applyDue(Number.POSITIVE_INFINITY);
 }
 
 /** Run in-process: capture the programme's bytes, then feed them to the emulator. */
-export async function runDirect(
-  programme: Programme,
-  opts: { chunkSize?: number } = {},
-): Promise<RunResult> {
+export async function runDirect(programme: Programme): Promise<RunResult> {
   const cols = programme.cols ?? 80;
   const rows = programme.rows ?? 24;
   const sink = new CountingSink();
@@ -129,16 +137,11 @@ export async function runDirect(
 
   const raw = sink.raw;
   const recorder = new Recorder({ cols, rows });
-  await writeChunkedWithResizes(
-    recorder,
-    Buffer.from(raw, 'utf8'),
-    sink.resizes,
-    opts.chunkSize ?? 32,
-  );
+  await writeDeliveries(recorder, sink.chunks, sink.resizes);
   recorder.capture('end');
 
   const marks = Object.fromEntries(sink.marks);
-  const trace = assemble(programme, recorder, raw, 'direct', marks, cols, rows, sink.resizes);
+  const trace = assemble(programme, recorder, raw, 'direct', marks, cols, rows, sink.resizes, sink.arrivals);
   recorder.dispose();
   return { trace, marks };
 }
@@ -242,7 +245,7 @@ export async function runPty(
     if (idx >= 0) marks[name] = idx;
   }
 
-  const trace = assemble(programme, recorder, raw, 'pty', marks, cols, rows, resizes);
+  const trace = assemble(programme, recorder, raw, 'pty', marks, cols, rows, resizes, sink.arrivals);
   recorder.dispose();
   try {
     pty.kill();
@@ -279,6 +282,7 @@ function assemble(
   cols: number,
   rows: number,
   resizes: readonly ResizeAt[],
+  arrivals: readonly ArrivalAt[],
 ): Trace {
   // Ops are the live array until the trace owns them; copy, so a recorder
   // disposed right after this cannot have cleared what we just recorded.
@@ -300,6 +304,7 @@ function assemble(
     frames,
     textLog,
     resizes: [...resizes],
+    arrivals: [...arrivals],
     bytes: recorder.bytesWritten,
     raw,
   };

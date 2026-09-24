@@ -7,7 +7,7 @@
   "cols": 60,
   "rows": 6,
   "platform": "win32",
-  "recordedAt": "2026-09-23T18:18:43.912Z",
+  "recordedAt": "2026-09-24T02:27:18.253Z",
   "expectations": [
     {
       "from": 0,
@@ -26,12 +26,12 @@
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 32,
+      "byteOffset": 27,
       "cursorX": 0,
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790187523897
+      "at": 1790216838236
     }
   ],
   "frames": [
@@ -57,6 +57,16 @@
     "About to delete 12 files."
   ],
   "resizes": [],
+  "arrivals": [
+    {
+      "offset": 0,
+      "at": 1790216837974
+    },
+    {
+      "offset": 27,
+      "at": 1790216838098
+    }
+  ],
   "bytes": 43,
   "raw": "About to delete 12 files.\r\nContinue? [y/N] "
 }

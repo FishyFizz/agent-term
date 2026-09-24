@@ -6,6 +6,7 @@
  * case can be trusted.
  */
 import type { Programme } from '../src/types.js';
+import { BURST_PAUSE_MS, FRAME_PAUSE_MS, INTERACTION_PAUSE_MS } from '../src/types.js';
 
 const CRLF = '\r\n';
 
@@ -19,7 +20,7 @@ export const plainWrite: Programme = {
     io.mark('start');
     for (let i = 1; i <= 5; i++) {
       io.out.write(`line ${i}${CRLF}`);
-      await io.wait(5);
+      await io.wait(BURST_PAUSE_MS);
     }
     io.mark('end');
   },
@@ -45,7 +46,7 @@ export const scrollWrite: Programme = {
     io.mark('start');
     for (let i = 1; i <= 20; i++) {
       io.out.write(`build step ${i}: compiling module_${i}.cpp${CRLF}`);
-      await io.wait(2);
+      await io.wait(BURST_PAUSE_MS);
     }
     io.mark('end');
   },
@@ -70,7 +71,7 @@ export const inPlaceRepaint: Programme = {
   async run(io) {
     io.mark('start');
     io.out.write(`alpha${CRLF}beta${CRLF}gamma${CRLF}`);
-    await io.wait(10);
+    await io.wait(INTERACTION_PAUSE_MS);
     io.mark('repaint');
     io.out.write('\x1b[2;1H'); // CUP to row 2
     io.out.write('\x1b[2K'); // erase the line
@@ -104,10 +105,10 @@ export const crOverwrite: Programme = {
   async run(io) {
     io.mark('start');
     io.out.write(`progress: 0%${CRLF}`);
-    await io.wait(10);
+    await io.wait(FRAME_PAUSE_MS);
     io.mark('overwrite');
     io.out.write('\rprogress: 50%');
-    await io.wait(10);
+    await io.wait(FRAME_PAUSE_MS);
     io.out.write('\rprogress: 100%');
     io.mark('end');
   },
@@ -142,7 +143,7 @@ export const altScreenWrite: Programme = {
     io.mark('append');
     for (let i = 1; i <= 4; i++) {
       io.out.write(`alt line ${i}${CRLF}`);
-      await io.wait(5);
+      await io.wait(BURST_PAUSE_MS);
     }
     io.mark('end');
     io.out.write('\x1b[?1049l'); // leave alt screen — content is destroyed
@@ -171,7 +172,7 @@ export const spinner: Programme = {
     const frames = ['|', '/', '-', '\\'];
     for (let i = 0; i < 12; i++) {
       io.out.write(`\r${frames[i % frames.length]} working...`);
-      await io.wait(8);
+      await io.wait(FRAME_PAUSE_MS);
     }
     io.mark('end');
     io.out.write(`${CRLF}done${CRLF}`);
@@ -197,7 +198,7 @@ export const clearRedraw: Programme = {
   async run(io) {
     io.mark('start');
     io.out.write(`one${CRLF}two${CRLF}`);
-    await io.wait(10);
+    await io.wait(INTERACTION_PAUSE_MS);
     io.mark('clear');
     io.out.write('\x1b[2J\x1b[H'); // ED + home
     io.out.write(`redrawn A${CRLF}redrawn B${CRLF}`);

@@ -7,7 +7,7 @@
   "cols": 80,
   "rows": 6,
   "platform": "win32",
-  "recordedAt": "2026-09-23T18:19:07.703Z",
+  "recordedAt": "2026-09-24T02:27:27.092Z",
   "expectations": [
     {
       "from": 0,
@@ -33,7 +33,7 @@
         9001
       ],
       "altScreen": false,
-      "at": 1790187547206
+      "at": 1790216846455
     },
     {
       "name": "DECSET",
@@ -45,7 +45,7 @@
         1004
       ],
       "altScreen": false,
-      "at": 1790187547206
+      "at": 1790216846455
     },
     {
       "name": "DECRST",
@@ -57,7 +57,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790187547268
+      "at": 1790216846517
     },
     {
       "name": "ED",
@@ -69,7 +69,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790187547268
+      "at": 1790216846517
     },
     {
       "name": "SGR",
@@ -81,7 +81,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187547269
+      "at": 1790216846517
     },
     {
       "name": "CUP",
@@ -93,7 +93,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187547269
+      "at": 1790216846517
     },
     {
       "name": "LINEFEED",
@@ -103,7 +103,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790187547269
+      "at": 1790216846517
     },
     {
       "name": "TITLECHANGE",
@@ -113,7 +113,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790187547269
+      "at": 1790216846517
     },
     {
       "name": "DECSET",
@@ -125,7 +125,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790187547269
+      "at": 1790216846517
     }
   ],
   "frames": [
@@ -151,6 +151,24 @@
     "progress: 0%"
   ],
   "resizes": [],
+  "arrivals": [
+    {
+      "offset": 0,
+      "at": 1790216846440
+    },
+    {
+      "offset": 16,
+      "at": 1790216846513
+    },
+    {
+      "offset": 89,
+      "at": 1790216846595
+    },
+    {
+      "offset": 102,
+      "at": 1790216846689
+    }
+  ],
   "bytes": 117,
   "raw": "\u001b[?9001h\u001b[?1004h\u001b[?25l\u001b[2J\u001b[m\u001b[Hprogress: 0%\r\n\u001b]0;C:\\Program Files\\nodejs\\node.exe\u0007\u001b[?25hprogress: 50%\rprogress: 100%"
 }

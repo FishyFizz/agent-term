@@ -7,7 +7,7 @@
   "cols": 60,
   "rows": 8,
   "platform": "win32",
-  "recordedAt": "2026-09-23T18:18:41.709Z",
+  "recordedAt": "2026-09-24T02:27:13.992Z",
   "expectations": [
     {
       "from": 0,
@@ -26,37 +26,37 @@
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 32,
+      "byteOffset": 13,
       "cursorX": 0,
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790187521570
+      "at": 1790216833650
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 64,
+      "byteOffset": 42,
       "cursorX": 0,
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790187521584
+      "at": 1790216833651
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 96,
+      "byteOffset": 68,
       "cursorX": 0,
       "cursorY": 3,
       "params": [],
       "altScreen": false,
-      "at": 1790187521599
+      "at": 1790216833652
     },
     {
       "name": "CUP",
       "source": "csi",
-      "byteOffset": 96,
+      "byteOffset": 77,
       "cursorX": 0,
       "cursorY": 3,
       "params": [
@@ -64,34 +64,34 @@
         1
       ],
       "altScreen": false,
-      "at": 1790187521600
+      "at": 1790216833680
     },
     {
       "name": "EL",
       "source": "csi",
-      "byteOffset": 96,
+      "byteOffset": 81,
       "cursorX": 0,
       "cursorY": 7,
       "params": [
         2
       ],
       "altScreen": false,
-      "at": 1790187521600
+      "at": 1790216833696
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 160,
+      "byteOffset": 137,
       "cursorX": 0,
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790187521631
+      "at": 1790216833743
     },
     {
       "name": "CUP",
       "source": "csi",
-      "byteOffset": 160,
+      "byteOffset": 146,
       "cursorX": 0,
       "cursorY": 4,
       "params": [
@@ -99,34 +99,34 @@
         1
       ],
       "altScreen": false,
-      "at": 1790187521631
+      "at": 1790216833774
     },
     {
       "name": "EL",
       "source": "csi",
-      "byteOffset": 160,
+      "byteOffset": 150,
       "cursorX": 0,
       "cursorY": 7,
       "params": [
         2
       ],
       "altScreen": false,
-      "at": 1790187521631
+      "at": 1790216833790
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 224,
+      "byteOffset": 206,
       "cursorX": 0,
       "cursorY": 5,
       "params": [],
       "altScreen": false,
-      "at": 1790187521662
+      "at": 1790216833821
     },
     {
       "name": "CUP",
       "source": "csi",
-      "byteOffset": 224,
+      "byteOffset": 215,
       "cursorX": 0,
       "cursorY": 5,
       "params": [
@@ -134,34 +134,34 @@
         1
       ],
       "altScreen": false,
-      "at": 1790187521662
+      "at": 1790216833852
     },
     {
       "name": "EL",
       "source": "csi",
-      "byteOffset": 224,
+      "byteOffset": 219,
       "cursorX": 0,
       "cursorY": 7,
       "params": [
         2
       ],
       "altScreen": false,
-      "at": 1790187521662
+      "at": 1790216833867
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 288,
+      "byteOffset": 277,
       "cursorX": 0,
       "cursorY": 6,
       "params": [],
       "altScreen": false,
-      "at": 1790187521693
+      "at": 1790216833914
     },
     {
       "name": "CUP",
       "source": "csi",
-      "byteOffset": 288,
+      "byteOffset": 286,
       "cursorX": 0,
       "cursorY": 6,
       "params": [
@@ -169,19 +169,19 @@
         1
       ],
       "altScreen": false,
-      "at": 1790187521693
+      "at": 1790216833945
     },
     {
       "name": "EL",
       "source": "csi",
-      "byteOffset": 320,
+      "byteOffset": 290,
       "cursorX": 0,
       "cursorY": 7,
       "params": [
         2
       ],
       "altScreen": false,
-      "at": 1790187521709
+      "at": 1790216833961
     }
   ],
   "frames": [
@@ -214,6 +214,112 @@
     "added package-100 in 100ms"
   ],
   "resizes": [],
+  "arrivals": [
+    {
+      "offset": 0,
+      "at": 1790216832813
+    },
+    {
+      "offset": 13,
+      "at": 1790216832813
+    },
+    {
+      "offset": 42,
+      "at": 1790216832905
+    },
+    {
+      "offset": 68,
+      "at": 1790216832999
+    },
+    {
+      "offset": 71,
+      "at": 1790216832999
+    },
+    {
+      "offset": 77,
+      "at": 1790216832999
+    },
+    {
+      "offset": 81,
+      "at": 1790216832999
+    },
+    {
+      "offset": 108,
+      "at": 1790216832999
+    },
+    {
+      "offset": 111,
+      "at": 1790216833092
+    },
+    {
+      "offset": 137,
+      "at": 1790216833185
+    },
+    {
+      "offset": 140,
+      "at": 1790216833185
+    },
+    {
+      "offset": 146,
+      "at": 1790216833185
+    },
+    {
+      "offset": 150,
+      "at": 1790216833185
+    },
+    {
+      "offset": 177,
+      "at": 1790216833185
+    },
+    {
+      "offset": 180,
+      "at": 1790216833278
+    },
+    {
+      "offset": 206,
+      "at": 1790216833371
+    },
+    {
+      "offset": 209,
+      "at": 1790216833371
+    },
+    {
+      "offset": 215,
+      "at": 1790216833371
+    },
+    {
+      "offset": 219,
+      "at": 1790216833371
+    },
+    {
+      "offset": 246,
+      "at": 1790216833371
+    },
+    {
+      "offset": 249,
+      "at": 1790216833463
+    },
+    {
+      "offset": 277,
+      "at": 1790216833556
+    },
+    {
+      "offset": 280,
+      "at": 1790216833556
+    },
+    {
+      "offset": 286,
+      "at": 1790216833556
+    },
+    {
+      "offset": 290,
+      "at": 1790216833556
+    },
+    {
+      "offset": 317,
+      "at": 1790216833556
+    }
+  ],
   "bytes": 320,
   "raw": "npm install\r\n[--------------------]   0%\r\nadded package-25 in 25ms\r\n\u001b[s\u001b[8;1H\u001b[2K[#####---------------]  25%\u001b[uadded package-50 in 50ms\r\n\u001b[s\u001b[8;1H\u001b[2K[##########----------]  50%\u001b[uadded package-75 in 75ms\r\n\u001b[s\u001b[8;1H\u001b[2K[###############-----]  75%\u001b[uadded package-100 in 100ms\r\n\u001b[s\u001b[8;1H\u001b[2K[####################] 100%\u001b[u"
 }

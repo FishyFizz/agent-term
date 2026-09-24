@@ -7,7 +7,7 @@
   "cols": 80,
   "rows": 6,
   "platform": "win32",
-  "recordedAt": "2026-09-23T18:18:41.428Z",
+  "recordedAt": "2026-09-24T02:27:12.812Z",
   "expectations": [
     {
       "from": 0,
@@ -26,56 +26,56 @@
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 32,
+      "byteOffset": 10,
       "cursorX": 0,
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790187521412
+      "at": 1790216832781
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 32,
+      "byteOffset": 10,
       "cursorX": 0,
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790187521412
+      "at": 1790216832781
     },
     {
       "name": "ED",
       "source": "csi",
-      "byteOffset": 32,
+      "byteOffset": 17,
       "cursorX": 0,
       "cursorY": 2,
       "params": [
         2
       ],
       "altScreen": false,
-      "at": 1790187521412
+      "at": 1790216832796
     },
     {
       "name": "CUP",
       "source": "csi",
-      "byteOffset": 32,
+      "byteOffset": 17,
       "cursorX": 0,
       "cursorY": 2,
       "params": [
         0
       ],
       "altScreen": false,
-      "at": 1790187521413
+      "at": 1790216832797
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 32,
+      "byteOffset": 39,
       "cursorX": 0,
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790187521413
+      "at": 1790216832812
     },
     {
       "name": "LINEFEED",
@@ -85,7 +85,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790187521428
+      "at": 1790216832812
     }
   ],
   "frames": [
@@ -114,6 +114,20 @@
     "redrawn B"
   ],
   "resizes": [],
+  "arrivals": [
+    {
+      "offset": 0,
+      "at": 1790216832643
+    },
+    {
+      "offset": 10,
+      "at": 1790216832766
+    },
+    {
+      "offset": 17,
+      "at": 1790216832766
+    }
+  ],
   "bytes": 39,
   "raw": "one\r\ntwo\r\n\u001b[2J\u001b[Hredrawn A\r\nredrawn B\r\n"
 }

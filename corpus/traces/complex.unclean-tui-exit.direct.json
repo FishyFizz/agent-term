@@ -7,7 +7,7 @@
   "cols": 50,
   "rows": 6,
   "platform": "win32",
-  "recordedAt": "2026-09-23T18:19:04.526Z",
+  "recordedAt": "2026-09-24T02:27:23.912Z",
   "expectations": [
     {
       "from": 0,
@@ -20,78 +20,78 @@
     {
       "name": "DECSET",
       "source": "csi",
-      "byteOffset": 32,
+      "byteOffset": 11,
       "cursorX": 0,
       "cursorY": 0,
       "params": [
         1049
       ],
       "altScreen": false,
-      "at": 1790187544511
+      "at": 1790216843850
     },
     {
       "name": "SCROLL",
       "source": "event",
-      "byteOffset": 32,
+      "byteOffset": 11,
       "cursorX": 0,
       "cursorY": 0,
       "params": [
         0
       ],
       "altScreen": true,
-      "at": 1790187544511
+      "at": 1790216843850
     },
     {
       "name": "BUFFERCHANGE",
       "source": "event",
-      "byteOffset": 32,
+      "byteOffset": 11,
       "cursorX": 0,
       "cursorY": 0,
       "params": [],
       "altScreen": true,
-      "at": 1790187544511
+      "at": 1790216843850
     },
     {
       "name": "CUP",
       "source": "csi",
-      "byteOffset": 32,
+      "byteOffset": 11,
       "cursorX": 0,
       "cursorY": 0,
       "params": [
         0
       ],
       "altScreen": true,
-      "at": 1790187544511
+      "at": 1790216843850
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 32,
+      "byteOffset": 22,
       "cursorX": 0,
       "cursorY": 1,
       "params": [],
       "altScreen": true,
-      "at": 1790187544511
+      "at": 1790216843865
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 55,
+      "byteOffset": 33,
       "cursorX": 0,
       "cursorY": 2,
       "params": [],
       "altScreen": true,
-      "at": 1790187544526
+      "at": 1790216843881
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 55,
+      "byteOffset": 44,
       "cursorX": 0,
       "cursorY": 3,
       "params": [],
       "altScreen": true,
-      "at": 1790187544526
+      "at": 1790216843896
     },
     {
       "name": "LINEFEED",
@@ -101,7 +101,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": true,
-      "at": 1790187544526
+      "at": 1790216843912
     }
   ],
   "frames": [
@@ -130,6 +130,28 @@
     "tui row 3"
   ],
   "resizes": [],
+  "arrivals": [
+    {
+      "offset": 0,
+      "at": 1790216843805
+    },
+    {
+      "offset": 11,
+      "at": 1790216843805
+    },
+    {
+      "offset": 22,
+      "at": 1790216843805
+    },
+    {
+      "offset": 33,
+      "at": 1790216843805
+    },
+    {
+      "offset": 44,
+      "at": 1790216843805
+    }
+  ],
   "bytes": 55,
   "raw": "\u001b[?1049h\u001b[Htui row 0\r\ntui row 1\r\ntui row 2\r\ntui row 3\r\n"
 }

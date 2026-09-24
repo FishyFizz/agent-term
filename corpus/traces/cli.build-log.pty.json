@@ -7,7 +7,7 @@
   "cols": 80,
   "rows": 10,
   "platform": "win32",
-  "recordedAt": "2026-09-23T18:19:13.928Z",
+  "recordedAt": "2026-09-24T02:27:36.143Z",
   "expectations": [
     {
       "from": 0,
@@ -27,7 +27,7 @@
         9001
       ],
       "altScreen": false,
-      "at": 1790187552865
+      "at": 1790216855042
     },
     {
       "name": "DECSET",
@@ -39,7 +39,7 @@
         1004
       ],
       "altScreen": false,
-      "at": 1790187552865
+      "at": 1790216855042
     },
     {
       "name": "DECRST",
@@ -51,7 +51,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790187552928
+      "at": 1790216855119
     },
     {
       "name": "ED",
@@ -63,7 +63,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790187552928
+      "at": 1790216855119
     },
     {
       "name": "SGR",
@@ -75,7 +75,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187552928
+      "at": 1790216855119
     },
     {
       "name": "SGR",
@@ -87,7 +87,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790187552928
+      "at": 1790216855119
     },
     {
       "name": "CUP",
@@ -99,7 +99,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187552928
+      "at": 1790216855119
     },
     {
       "name": "LINEFEED",
@@ -109,7 +109,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790187552928
+      "at": 1790216855119
     },
     {
       "name": "TITLECHANGE",
@@ -119,7 +119,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790187552928
+      "at": 1790216855119
     },
     {
       "name": "DECSET",
@@ -131,99 +131,99 @@
         25
       ],
       "altScreen": false,
-      "at": 1790187552928
+      "at": 1790216855119
     },
     {
       "name": "SGR",
       "source": "csi",
-      "byteOffset": 210,
+      "byteOffset": 175,
       "cursorX": 0,
       "cursorY": 1,
       "params": [
         22
       ],
       "altScreen": false,
-      "at": 1790187552959
+      "at": 1790216855150
     },
     {
       "name": "SGR",
       "source": "csi",
-      "byteOffset": 210,
+      "byteOffset": 175,
       "cursorX": 0,
       "cursorY": 1,
       "params": [
         32
       ],
       "altScreen": false,
-      "at": 1790187552959
+      "at": 1790216855150
     },
     {
       "name": "SGR",
       "source": "csi",
-      "byteOffset": 210,
+      "byteOffset": 175,
       "cursorX": 7,
       "cursorY": 1,
       "params": [
         0
       ],
       "altScreen": false,
-      "at": 1790187552959
+      "at": 1790216855150
     },
     {
       "name": "SGR",
       "source": "csi",
-      "byteOffset": 210,
+      "byteOffset": 175,
       "cursorX": 25,
       "cursorY": 1,
       "params": [
         32
       ],
       "altScreen": false,
-      "at": 1790187552959
+      "at": 1790216855150
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 210,
+      "byteOffset": 175,
       "cursorX": 0,
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790187552959
+      "at": 1790216855150
     },
     {
       "name": "SGR",
       "source": "csi",
-      "byteOffset": 210,
+      "byteOffset": 175,
       "cursorX": 7,
       "cursorY": 2,
       "params": [
         0
       ],
       "altScreen": false,
-      "at": 1790187552959
+      "at": 1790216855150
+    },
+    {
+      "name": "LINEFEED",
+      "source": "event",
+      "byteOffset": 175,
+      "cursorX": 0,
+      "cursorY": 3,
+      "params": [],
+      "altScreen": false,
+      "at": 1790216855150
     },
     {
       "name": "SGR",
       "source": "csi",
       "byteOffset": 210,
-      "cursorX": 25,
-      "cursorY": 2,
+      "cursorX": 0,
+      "cursorY": 3,
       "params": [
         32
       ],
       "altScreen": false,
-      "at": 1790187552959
-    },
-    {
-      "name": "LINEFEED",
-      "source": "event",
-      "byteOffset": 210,
-      "cursorX": 0,
-      "cursorY": 3,
-      "params": [],
-      "altScreen": false,
-      "at": 1790187552959
+      "at": 1790216855166
     },
     {
       "name": "SGR",
@@ -235,7 +235,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187552959
+      "at": 1790216855166
     },
     {
       "name": "LINEFEED",
@@ -245,7 +245,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790187552959
+      "at": 1790216855166
     },
     {
       "name": "SGR",
@@ -257,7 +257,7 @@
         32
       ],
       "altScreen": false,
-      "at": 1790187552975
+      "at": 1790216855181
     },
     {
       "name": "SGR",
@@ -269,7 +269,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187552975
+      "at": 1790216855181
     },
     {
       "name": "LINEFEED",
@@ -279,7 +279,7 @@
       "cursorY": 5,
       "params": [],
       "altScreen": false,
-      "at": 1790187552975
+      "at": 1790216855181
     },
     {
       "name": "SGR",
@@ -291,7 +291,7 @@
         32
       ],
       "altScreen": false,
-      "at": 1790187552991
+      "at": 1790216855197
     },
     {
       "name": "SGR",
@@ -303,7 +303,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187552991
+      "at": 1790216855198
     },
     {
       "name": "LINEFEED",
@@ -313,7 +313,7 @@
       "cursorY": 6,
       "params": [],
       "altScreen": false,
-      "at": 1790187552991
+      "at": 1790216855198
     },
     {
       "name": "SGR",
@@ -325,7 +325,7 @@
         32
       ],
       "altScreen": false,
-      "at": 1790187553006
+      "at": 1790216855198
     },
     {
       "name": "SGR",
@@ -337,7 +337,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553006
+      "at": 1790216855198
     },
     {
       "name": "LINEFEED",
@@ -347,75 +347,75 @@
       "cursorY": 7,
       "params": [],
       "altScreen": false,
-      "at": 1790187553006
+      "at": 1790216855198
     },
     {
       "name": "SGR",
       "source": "csi",
-      "byteOffset": 385,
+      "byteOffset": 350,
       "cursorX": 0,
       "cursorY": 7,
       "params": [
         33
       ],
       "altScreen": false,
-      "at": 1790187553006
+      "at": 1790216855229
     },
     {
       "name": "SGR",
       "source": "csi",
-      "byteOffset": 385,
+      "byteOffset": 350,
       "cursorX": 7,
       "cursorY": 7,
       "params": [
         0
       ],
       "altScreen": false,
-      "at": 1790187553006
+      "at": 1790216855229
+    },
+    {
+      "name": "LINEFEED",
+      "source": "event",
+      "byteOffset": 350,
+      "cursorX": 0,
+      "cursorY": 8,
+      "params": [],
+      "altScreen": false,
+      "at": 1790216855229
     },
     {
       "name": "SGR",
       "source": "csi",
-      "byteOffset": 385,
-      "cursorX": 25,
-      "cursorY": 7,
+      "byteOffset": 419,
+      "cursorX": 0,
+      "cursorY": 8,
       "params": [
         32
       ],
       "altScreen": false,
-      "at": 1790187553006
-    },
-    {
-      "name": "LINEFEED",
-      "source": "event",
-      "byteOffset": 385,
-      "cursorX": 0,
-      "cursorY": 8,
-      "params": [],
-      "altScreen": false,
-      "at": 1790187553006
+      "at": 1790216855244
     },
     {
       "name": "SGR",
       "source": "csi",
-      "byteOffset": 385,
+      "byteOffset": 419,
       "cursorX": 7,
       "cursorY": 8,
       "params": [
         0
       ],
       "altScreen": false,
-      "at": 1790187553006
+      "at": 1790216855244
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 385,
+      "byteOffset": 419,
       "cursorX": 0,
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553006
+      "at": 1790216855244
     },
     {
       "name": "SGR",
@@ -427,7 +427,7 @@
         32
       ],
       "altScreen": false,
-      "at": 1790187553021
+      "at": 1790216855244
     },
     {
       "name": "SGR",
@@ -439,7 +439,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553021
+      "at": 1790216855244
     },
     {
       "name": "SCROLL",
@@ -451,7 +451,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790187553037
+      "at": 1790216855259
     },
     {
       "name": "LINEFEED",
@@ -461,7 +461,7 @@
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553037
+      "at": 1790216855259
     },
     {
       "name": "SGR",
@@ -473,7 +473,7 @@
         32
       ],
       "altScreen": false,
-      "at": 1790187553037
+      "at": 1790216855259
     },
     {
       "name": "SGR",
@@ -485,7 +485,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553037
+      "at": 1790216855259
     },
     {
       "name": "SCROLL",
@@ -497,7 +497,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790187553038
+      "at": 1790216855260
     },
     {
       "name": "LINEFEED",
@@ -507,7 +507,7 @@
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553038
+      "at": 1790216855260
     },
     {
       "name": "SGR",
@@ -519,7 +519,7 @@
         32
       ],
       "altScreen": false,
-      "at": 1790187553038
+      "at": 1790216855260
     },
     {
       "name": "SGR",
@@ -531,7 +531,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553038
+      "at": 1790216855260
     },
     {
       "name": "SCROLL",
@@ -543,7 +543,7 @@
         3
       ],
       "altScreen": false,
-      "at": 1790187553068
+      "at": 1790216855290
     },
     {
       "name": "LINEFEED",
@@ -553,7 +553,7 @@
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553068
+      "at": 1790216855290
     },
     {
       "name": "SGR",
@@ -565,7 +565,7 @@
         32
       ],
       "altScreen": false,
-      "at": 1790187553068
+      "at": 1790216855290
     },
     {
       "name": "SGR",
@@ -577,7 +577,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553068
+      "at": 1790216855290
     },
     {
       "name": "SCROLL",
@@ -589,7 +589,7 @@
         4
       ],
       "altScreen": false,
-      "at": 1790187553084
+      "at": 1790216855306
     },
     {
       "name": "LINEFEED",
@@ -599,7 +599,7 @@
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553084
+      "at": 1790216855306
     },
     {
       "name": "SGR",
@@ -611,7 +611,7 @@
         32
       ],
       "altScreen": false,
-      "at": 1790187553084
+      "at": 1790216855306
     },
     {
       "name": "SGR",
@@ -623,7 +623,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553084
+      "at": 1790216855306
     },
     {
       "name": "SCROLL",
@@ -635,7 +635,7 @@
         5
       ],
       "altScreen": false,
-      "at": 1790187553100
+      "at": 1790216855321
     },
     {
       "name": "LINEFEED",
@@ -645,7 +645,7 @@
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553100
+      "at": 1790216855321
     },
     {
       "name": "SGR",
@@ -657,7 +657,7 @@
         33
       ],
       "altScreen": false,
-      "at": 1790187553100
+      "at": 1790216855321
     },
     {
       "name": "SGR",
@@ -669,7 +669,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553100
+      "at": 1790216855321
     },
     {
       "name": "SCROLL",
@@ -681,7 +681,7 @@
         6
       ],
       "altScreen": false,
-      "at": 1790187553115
+      "at": 1790216855337
     },
     {
       "name": "LINEFEED",
@@ -691,7 +691,7 @@
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553115
+      "at": 1790216855337
     },
     {
       "name": "SGR",
@@ -703,7 +703,7 @@
         32
       ],
       "altScreen": false,
-      "at": 1790187553115
+      "at": 1790216855337
     },
     {
       "name": "SGR",
@@ -715,7 +715,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553115
+      "at": 1790216855337
     },
     {
       "name": "SCROLL",
@@ -727,7 +727,7 @@
         7
       ],
       "altScreen": false,
-      "at": 1790187553131
+      "at": 1790216855352
     },
     {
       "name": "LINEFEED",
@@ -737,7 +737,7 @@
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553131
+      "at": 1790216855352
     },
     {
       "name": "SGR",
@@ -749,7 +749,7 @@
         32
       ],
       "altScreen": false,
-      "at": 1790187553131
+      "at": 1790216855352
     },
     {
       "name": "SGR",
@@ -761,7 +761,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553131
+      "at": 1790216855352
     },
     {
       "name": "SCROLL",
@@ -773,7 +773,7 @@
         8
       ],
       "altScreen": false,
-      "at": 1790187553146
+      "at": 1790216855368
     },
     {
       "name": "LINEFEED",
@@ -783,7 +783,7 @@
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553146
+      "at": 1790216855368
     },
     {
       "name": "SGR",
@@ -795,7 +795,7 @@
         32
       ],
       "altScreen": false,
-      "at": 1790187553146
+      "at": 1790216855368
     },
     {
       "name": "SGR",
@@ -807,7 +807,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553146
+      "at": 1790216855368
     },
     {
       "name": "SCROLL",
@@ -819,7 +819,7 @@
         9
       ],
       "altScreen": false,
-      "at": 1790187553162
+      "at": 1790216855384
     },
     {
       "name": "LINEFEED",
@@ -829,7 +829,7 @@
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553162
+      "at": 1790216855384
     },
     {
       "name": "SGR",
@@ -841,7 +841,7 @@
         32
       ],
       "altScreen": false,
-      "at": 1790187553162
+      "at": 1790216855384
     },
     {
       "name": "SGR",
@@ -853,7 +853,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553162
+      "at": 1790216855384
     },
     {
       "name": "SCROLL",
@@ -865,7 +865,7 @@
         10
       ],
       "altScreen": false,
-      "at": 1790187553178
+      "at": 1790216855399
     },
     {
       "name": "LINEFEED",
@@ -875,7 +875,7 @@
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553178
+      "at": 1790216855399
     },
     {
       "name": "SGR",
@@ -887,7 +887,7 @@
         32
       ],
       "altScreen": false,
-      "at": 1790187553178
+      "at": 1790216855399
     },
     {
       "name": "SGR",
@@ -899,7 +899,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553178
+      "at": 1790216855399
     },
     {
       "name": "SCROLL",
@@ -911,7 +911,7 @@
         11
       ],
       "altScreen": false,
-      "at": 1790187553193
+      "at": 1790216855415
     },
     {
       "name": "LINEFEED",
@@ -921,7 +921,7 @@
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553193
+      "at": 1790216855415
     },
     {
       "name": "SGR",
@@ -933,7 +933,7 @@
         32
       ],
       "altScreen": false,
-      "at": 1790187553193
+      "at": 1790216855415
     },
     {
       "name": "SGR",
@@ -945,7 +945,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553193
+      "at": 1790216855415
     },
     {
       "name": "SCROLL",
@@ -957,7 +957,7 @@
         12
       ],
       "altScreen": false,
-      "at": 1790187553209
+      "at": 1790216855430
     },
     {
       "name": "LINEFEED",
@@ -967,7 +967,7 @@
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553209
+      "at": 1790216855430
     },
     {
       "name": "SGR",
@@ -979,7 +979,7 @@
         33
       ],
       "altScreen": false,
-      "at": 1790187553209
+      "at": 1790216855431
     },
     {
       "name": "SGR",
@@ -991,7 +991,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553209
+      "at": 1790216855431
     },
     {
       "name": "SCROLL",
@@ -1003,7 +1003,7 @@
         13
       ],
       "altScreen": false,
-      "at": 1790187553224
+      "at": 1790216855446
     },
     {
       "name": "LINEFEED",
@@ -1013,7 +1013,7 @@
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553224
+      "at": 1790216855446
     },
     {
       "name": "SGR",
@@ -1025,7 +1025,7 @@
         32
       ],
       "altScreen": false,
-      "at": 1790187553224
+      "at": 1790216855446
     },
     {
       "name": "SGR",
@@ -1037,7 +1037,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553224
+      "at": 1790216855446
     },
     {
       "name": "SCROLL",
@@ -1049,7 +1049,7 @@
         14
       ],
       "altScreen": false,
-      "at": 1790187553241
+      "at": 1790216855461
     },
     {
       "name": "LINEFEED",
@@ -1059,7 +1059,7 @@
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553241
+      "at": 1790216855461
     },
     {
       "name": "SGR",
@@ -1071,7 +1071,7 @@
         32
       ],
       "altScreen": false,
-      "at": 1790187553241
+      "at": 1790216855462
     },
     {
       "name": "SGR",
@@ -1083,7 +1083,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553241
+      "at": 1790216855462
     },
     {
       "name": "SCROLL",
@@ -1095,7 +1095,7 @@
         15
       ],
       "altScreen": false,
-      "at": 1790187553256
+      "at": 1790216855477
     },
     {
       "name": "LINEFEED",
@@ -1105,7 +1105,7 @@
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553256
+      "at": 1790216855477
     },
     {
       "name": "SGR",
@@ -1117,7 +1117,7 @@
         32
       ],
       "altScreen": false,
-      "at": 1790187553256
+      "at": 1790216855477
     },
     {
       "name": "SGR",
@@ -1129,7 +1129,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553256
+      "at": 1790216855477
     },
     {
       "name": "SCROLL",
@@ -1141,7 +1141,7 @@
         16
       ],
       "altScreen": false,
-      "at": 1790187553271
+      "at": 1790216855493
     },
     {
       "name": "LINEFEED",
@@ -1151,7 +1151,7 @@
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553271
+      "at": 1790216855493
     },
     {
       "name": "SGR",
@@ -1163,7 +1163,7 @@
         32
       ],
       "altScreen": false,
-      "at": 1790187553272
+      "at": 1790216855493
     },
     {
       "name": "SGR",
@@ -1175,7 +1175,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553272
+      "at": 1790216855493
     },
     {
       "name": "SCROLL",
@@ -1187,7 +1187,7 @@
         17
       ],
       "altScreen": false,
-      "at": 1790187553287
+      "at": 1790216855509
     },
     {
       "name": "LINEFEED",
@@ -1197,7 +1197,7 @@
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553287
+      "at": 1790216855509
     },
     {
       "name": "SGR",
@@ -1209,7 +1209,7 @@
         32
       ],
       "altScreen": false,
-      "at": 1790187553287
+      "at": 1790216855509
     },
     {
       "name": "SGR",
@@ -1221,7 +1221,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553287
+      "at": 1790216855509
     },
     {
       "name": "SCROLL",
@@ -1233,7 +1233,7 @@
         18
       ],
       "altScreen": false,
-      "at": 1790187553303
+      "at": 1790216855524
     },
     {
       "name": "LINEFEED",
@@ -1243,7 +1243,7 @@
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553303
+      "at": 1790216855524
     },
     {
       "name": "SGR",
@@ -1255,7 +1255,7 @@
         32
       ],
       "altScreen": false,
-      "at": 1790187553303
+      "at": 1790216855524
     },
     {
       "name": "SGR",
@@ -1267,7 +1267,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553303
+      "at": 1790216855524
     },
     {
       "name": "SCROLL",
@@ -1279,7 +1279,7 @@
         19
       ],
       "altScreen": false,
-      "at": 1790187553318
+      "at": 1790216855539
     },
     {
       "name": "LINEFEED",
@@ -1289,7 +1289,7 @@
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553318
+      "at": 1790216855539
     },
     {
       "name": "SGR",
@@ -1301,7 +1301,7 @@
         33
       ],
       "altScreen": false,
-      "at": 1790187553318
+      "at": 1790216855539
     },
     {
       "name": "SGR",
@@ -1313,29 +1313,29 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553318
+      "at": 1790216855539
     },
     {
       "name": "SCROLL",
       "source": "event",
-      "byteOffset": 1159,
+      "byteOffset": 1123,
       "cursorX": 0,
       "cursorY": 9,
       "params": [
         20
       ],
       "altScreen": false,
-      "at": 1790187553334
+      "at": 1790216855540
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 1159,
+      "byteOffset": 1123,
       "cursorX": 0,
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553334
+      "at": 1790216855540
     },
     {
       "name": "SGR",
@@ -1347,7 +1347,7 @@
         32
       ],
       "altScreen": false,
-      "at": 1790187553334
+      "at": 1790216855555
     },
     {
       "name": "SGR",
@@ -1359,29 +1359,29 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553334
+      "at": 1790216855555
     },
     {
       "name": "SCROLL",
       "source": "event",
-      "byteOffset": 1160,
+      "byteOffset": 1196,
       "cursorX": 0,
       "cursorY": 9,
       "params": [
         21
       ],
       "altScreen": false,
-      "at": 1790187553334
+      "at": 1790216855570
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 1160,
+      "byteOffset": 1196,
       "cursorX": 0,
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553334
+      "at": 1790216855570
     },
     {
       "name": "SGR",
@@ -1393,7 +1393,7 @@
         32
       ],
       "altScreen": false,
-      "at": 1790187553349
+      "at": 1790216855570
     },
     {
       "name": "SGR",
@@ -1405,7 +1405,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553349
+      "at": 1790216855570
     },
     {
       "name": "SCROLL",
@@ -1417,7 +1417,7 @@
         22
       ],
       "altScreen": false,
-      "at": 1790187553365
+      "at": 1790216855586
     },
     {
       "name": "LINEFEED",
@@ -1427,7 +1427,7 @@
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553365
+      "at": 1790216855586
     },
     {
       "name": "SGR",
@@ -1439,7 +1439,7 @@
         32
       ],
       "altScreen": false,
-      "at": 1790187553365
+      "at": 1790216855586
     },
     {
       "name": "SGR",
@@ -1451,7 +1451,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553365
+      "at": 1790216855586
     },
     {
       "name": "SCROLL",
@@ -1463,7 +1463,7 @@
         23
       ],
       "altScreen": false,
-      "at": 1790187553381
+      "at": 1790216855601
     },
     {
       "name": "LINEFEED",
@@ -1473,7 +1473,7 @@
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553381
+      "at": 1790216855601
     },
     {
       "name": "SGR",
@@ -1485,7 +1485,7 @@
         32
       ],
       "altScreen": false,
-      "at": 1790187553381
+      "at": 1790216855601
     },
     {
       "name": "SGR",
@@ -1497,7 +1497,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553381
+      "at": 1790216855601
     },
     {
       "name": "SCROLL",
@@ -1509,7 +1509,7 @@
         24
       ],
       "altScreen": false,
-      "at": 1790187553397
+      "at": 1790216855617
     },
     {
       "name": "LINEFEED",
@@ -1519,7 +1519,7 @@
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553397
+      "at": 1790216855617
     },
     {
       "name": "SGR",
@@ -1531,7 +1531,7 @@
         32
       ],
       "altScreen": false,
-      "at": 1790187553397
+      "at": 1790216855617
     },
     {
       "name": "SGR",
@@ -1543,7 +1543,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553397
+      "at": 1790216855617
     },
     {
       "name": "EL",
@@ -1555,7 +1555,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553397
+      "at": 1790216855617
     },
     {
       "name": "SCROLL",
@@ -1567,7 +1567,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790187553397
+      "at": 1790216855617
     },
     {
       "name": "LINEFEED",
@@ -1577,7 +1577,7 @@
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553397
+      "at": 1790216855617
     },
     {
       "name": "SGR",
@@ -1589,7 +1589,7 @@
         32
       ],
       "altScreen": false,
-      "at": 1790187553397
+      "at": 1790216855632
     },
     {
       "name": "SGR",
@@ -1601,29 +1601,29 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553397
+      "at": 1790216855632
     },
     {
       "name": "SCROLL",
       "source": "event",
-      "byteOffset": 1348,
+      "byteOffset": 1384,
       "cursorX": 0,
       "cursorY": 9,
       "params": [
         26
       ],
       "altScreen": false,
-      "at": 1790187553412
+      "at": 1790216855647
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 1348,
+      "byteOffset": 1384,
       "cursorX": 0,
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553412
+      "at": 1790216855647
     },
     {
       "name": "SGR",
@@ -1635,7 +1635,7 @@
         33
       ],
       "altScreen": false,
-      "at": 1790187553428
+      "at": 1790216855647
     },
     {
       "name": "SGR",
@@ -1647,29 +1647,29 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553428
+      "at": 1790216855647
     },
     {
       "name": "SCROLL",
       "source": "event",
-      "byteOffset": 1385,
+      "byteOffset": 1421,
       "cursorX": 0,
       "cursorY": 9,
       "params": [
         27
       ],
       "altScreen": false,
-      "at": 1790187553428
+      "at": 1790216855663
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 1385,
+      "byteOffset": 1421,
       "cursorX": 0,
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553428
+      "at": 1790216855663
     },
     {
       "name": "SGR",
@@ -1681,7 +1681,7 @@
         32
       ],
       "altScreen": false,
-      "at": 1790187553444
+      "at": 1790216855663
     },
     {
       "name": "SGR",
@@ -1693,7 +1693,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553444
+      "at": 1790216855663
     },
     {
       "name": "SCROLL",
@@ -1705,7 +1705,7 @@
         28
       ],
       "altScreen": false,
-      "at": 1790187553459
+      "at": 1790216855679
     },
     {
       "name": "LINEFEED",
@@ -1715,7 +1715,7 @@
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553459
+      "at": 1790216855679
     },
     {
       "name": "SGR",
@@ -1727,7 +1727,7 @@
         32
       ],
       "altScreen": false,
-      "at": 1790187553459
+      "at": 1790216855679
     },
     {
       "name": "SGR",
@@ -1739,7 +1739,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553459
+      "at": 1790216855679
     },
     {
       "name": "SCROLL",
@@ -1751,7 +1751,7 @@
         29
       ],
       "altScreen": false,
-      "at": 1790187553475
+      "at": 1790216855694
     },
     {
       "name": "LINEFEED",
@@ -1761,7 +1761,7 @@
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553475
+      "at": 1790216855694
     },
     {
       "name": "SGR",
@@ -1773,7 +1773,7 @@
         32
       ],
       "altScreen": false,
-      "at": 1790187553475
+      "at": 1790216855694
     },
     {
       "name": "SGR",
@@ -1785,7 +1785,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553475
+      "at": 1790216855694
     },
     {
       "name": "SCROLL",
@@ -1797,7 +1797,7 @@
         30
       ],
       "altScreen": false,
-      "at": 1790187553490
+      "at": 1790216855709
     },
     {
       "name": "LINEFEED",
@@ -1807,7 +1807,7 @@
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553490
+      "at": 1790216855709
     },
     {
       "name": "SGR",
@@ -1819,7 +1819,7 @@
         32
       ],
       "altScreen": false,
-      "at": 1790187553490
+      "at": 1790216855709
     },
     {
       "name": "SGR",
@@ -1831,7 +1831,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553490
+      "at": 1790216855709
     },
     {
       "name": "SCROLL",
@@ -1843,7 +1843,7 @@
         31
       ],
       "altScreen": false,
-      "at": 1790187553506
+      "at": 1790216855725
     },
     {
       "name": "LINEFEED",
@@ -1853,7 +1853,7 @@
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553506
+      "at": 1790216855725
     },
     {
       "name": "SGR",
@@ -1865,7 +1865,7 @@
         32
       ],
       "altScreen": false,
-      "at": 1790187553506
+      "at": 1790216855725
     },
     {
       "name": "SGR",
@@ -1877,7 +1877,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553506
+      "at": 1790216855725
     },
     {
       "name": "SCROLL",
@@ -1889,7 +1889,7 @@
         32
       ],
       "altScreen": false,
-      "at": 1790187553506
+      "at": 1790216855740
     },
     {
       "name": "LINEFEED",
@@ -1899,7 +1899,7 @@
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553506
+      "at": 1790216855740
     },
     {
       "name": "SGR",
@@ -1911,7 +1911,7 @@
         31
       ],
       "altScreen": false,
-      "at": 1790187553506
+      "at": 1790216855740
     },
     {
       "name": "SGR",
@@ -1923,7 +1923,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187553506
+      "at": 1790216855740
     },
     {
       "name": "SCROLL",
@@ -1935,7 +1935,7 @@
         33
       ],
       "altScreen": false,
-      "at": 1790187553507
+      "at": 1790216855740
     },
     {
       "name": "LINEFEED",
@@ -1945,7 +1945,7 @@
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553507
+      "at": 1790216855740
     },
     {
       "name": "SCROLL",
@@ -1957,7 +1957,7 @@
         34
       ],
       "altScreen": false,
-      "at": 1790187553537
+      "at": 1790216855756
     },
     {
       "name": "LINEFEED",
@@ -1967,7 +1967,7 @@
       "cursorY": 9,
       "params": [],
       "altScreen": false,
-      "at": 1790187553537
+      "at": 1790216855756
     }
   ],
   "frames": [
@@ -2039,6 +2039,288 @@
     "Finished in 3.21s"
   ],
   "resizes": [],
+  "arrivals": [
+    {
+      "offset": 0,
+      "at": 1790216855040
+    },
+    {
+      "offset": 16,
+      "at": 1790216855112
+    },
+    {
+      "offset": 100,
+      "at": 1790216855134
+    },
+    {
+      "offset": 175,
+      "at": 1790216855150
+    },
+    {
+      "offset": 210,
+      "at": 1790216855166
+    },
+    {
+      "offset": 245,
+      "at": 1790216855182
+    },
+    {
+      "offset": 280,
+      "at": 1790216855198
+    },
+    {
+      "offset": 315,
+      "at": 1790216855213
+    },
+    {
+      "offset": 350,
+      "at": 1790216855229
+    },
+    {
+      "offset": 385,
+      "at": 1790216855229
+    },
+    {
+      "offset": 419,
+      "at": 1790216855244
+    },
+    {
+      "offset": 420,
+      "at": 1790216855244
+    },
+    {
+      "offset": 456,
+      "at": 1790216855260
+    },
+    {
+      "offset": 457,
+      "at": 1790216855260
+    },
+    {
+      "offset": 493,
+      "at": 1790216855275
+    },
+    {
+      "offset": 494,
+      "at": 1790216855275
+    },
+    {
+      "offset": 530,
+      "at": 1790216855291
+    },
+    {
+      "offset": 531,
+      "at": 1790216855291
+    },
+    {
+      "offset": 567,
+      "at": 1790216855306
+    },
+    {
+      "offset": 568,
+      "at": 1790216855306
+    },
+    {
+      "offset": 604,
+      "at": 1790216855321
+    },
+    {
+      "offset": 605,
+      "at": 1790216855322
+    },
+    {
+      "offset": 641,
+      "at": 1790216855337
+    },
+    {
+      "offset": 642,
+      "at": 1790216855337
+    },
+    {
+      "offset": 678,
+      "at": 1790216855352
+    },
+    {
+      "offset": 715,
+      "at": 1790216855368
+    },
+    {
+      "offset": 716,
+      "at": 1790216855369
+    },
+    {
+      "offset": 752,
+      "at": 1790216855384
+    },
+    {
+      "offset": 753,
+      "at": 1790216855384
+    },
+    {
+      "offset": 789,
+      "at": 1790216855400
+    },
+    {
+      "offset": 790,
+      "at": 1790216855400
+    },
+    {
+      "offset": 826,
+      "at": 1790216855415
+    },
+    {
+      "offset": 827,
+      "at": 1790216855415
+    },
+    {
+      "offset": 863,
+      "at": 1790216855431
+    },
+    {
+      "offset": 864,
+      "at": 1790216855431
+    },
+    {
+      "offset": 900,
+      "at": 1790216855446
+    },
+    {
+      "offset": 901,
+      "at": 1790216855446
+    },
+    {
+      "offset": 937,
+      "at": 1790216855462
+    },
+    {
+      "offset": 938,
+      "at": 1790216855462
+    },
+    {
+      "offset": 974,
+      "at": 1790216855477
+    },
+    {
+      "offset": 975,
+      "at": 1790216855477
+    },
+    {
+      "offset": 1011,
+      "at": 1790216855493
+    },
+    {
+      "offset": 1012,
+      "at": 1790216855493
+    },
+    {
+      "offset": 1048,
+      "at": 1790216855509
+    },
+    {
+      "offset": 1049,
+      "at": 1790216855509
+    },
+    {
+      "offset": 1085,
+      "at": 1790216855524
+    },
+    {
+      "offset": 1086,
+      "at": 1790216855524
+    },
+    {
+      "offset": 1122,
+      "at": 1790216855540
+    },
+    {
+      "offset": 1123,
+      "at": 1790216855540
+    },
+    {
+      "offset": 1159,
+      "at": 1790216855555
+    },
+    {
+      "offset": 1160,
+      "at": 1790216855555
+    },
+    {
+      "offset": 1196,
+      "at": 1790216855570
+    },
+    {
+      "offset": 1233,
+      "at": 1790216855586
+    },
+    {
+      "offset": 1234,
+      "at": 1790216855586
+    },
+    {
+      "offset": 1270,
+      "at": 1790216855601
+    },
+    {
+      "offset": 1311,
+      "at": 1790216855617
+    },
+    {
+      "offset": 1347,
+      "at": 1790216855632
+    },
+    {
+      "offset": 1348,
+      "at": 1790216855632
+    },
+    {
+      "offset": 1384,
+      "at": 1790216855647
+    },
+    {
+      "offset": 1385,
+      "at": 1790216855648
+    },
+    {
+      "offset": 1421,
+      "at": 1790216855663
+    },
+    {
+      "offset": 1422,
+      "at": 1790216855663
+    },
+    {
+      "offset": 1458,
+      "at": 1790216855679
+    },
+    {
+      "offset": 1459,
+      "at": 1790216855679
+    },
+    {
+      "offset": 1495,
+      "at": 1790216855694
+    },
+    {
+      "offset": 1532,
+      "at": 1790216855709
+    },
+    {
+      "offset": 1533,
+      "at": 1790216855710
+    },
+    {
+      "offset": 1569,
+      "at": 1790216855725
+    },
+    {
+      "offset": 1570,
+      "at": 1790216855725
+    },
+    {
+      "offset": 1620,
+      "at": 1790216855740
+    }
+  ],
   "bytes": 1621,
-  "raw": "\u001b[?9001h\u001b[?1004h\u001b[?25l\u001b[2J\u001b[m\u001b[1m\u001b[HBuilding 40 targets\r\n\u001b]0;C:\\Program Files\\nodejs\\node.exe\u0007\u001b[?25h\u001b[22m\u001b[32m[1/40] \u001b[mCompiling module_1\u001b[32m\r\n[2/40] \u001b[mCompiling module_2\u001b[32m\r\n[3/40] \u001b[mCompiling module_3\r\n\u001b[32m[4/40] \u001b[mCompiling module_4\r\n\u001b[32m[5/40] \u001b[mCompiling module_5\r\n\u001b[32m[6/40] \u001b[mCompiling module_6\r\n\u001b[33m[7/40] \u001b[mCompiling module_7\u001b[32m\r\n[8/40] \u001b[mCompiling module_8\r\n\u001b[32m[9/40] \u001b[mCompiling module_9\r\n\u001b[32m[10/40] \u001b[mCompiling module_10\r\n\u001b[32m[11/40] \u001b[mCompiling module_11\r\n\u001b[32m[12/40] \u001b[mCompiling module_12\r\n\u001b[32m[13/40] \u001b[mCompiling module_13\r\n\u001b[33m[14/40] \u001b[mCompiling module_14\r\n\u001b[32m[15/40] \u001b[mCompiling module_15\r\n\u001b[32m[16/40] \u001b[mCompiling module_16\r\n\u001b[32m[17/40] \u001b[mCompiling module_17\r\n\u001b[32m[18/40] \u001b[mCompiling module_18\r\n\u001b[32m[19/40] \u001b[mCompiling module_19\r\n\u001b[32m[20/40] \u001b[mCompiling module_20\r\n\u001b[33m[21/40] \u001b[mCompiling module_21\r\n\u001b[32m[22/40] \u001b[mCompiling module_22\r\n\u001b[32m[23/40] \u001b[mCompiling module_23\r\n\u001b[32m[24/40] \u001b[mCompiling module_24\r\n\u001b[32m[25/40] \u001b[mCompiling module_25\r\n\u001b[32m[26/40] \u001b[mCompiling module_26\r\n\u001b[32m[27/40] \u001b[mCompiling module_27\r\n\u001b[33m[28/40] \u001b[mCompiling module_28\r\n\u001b[32m[29/40] \u001b[mCompiling module_29\r\n\u001b[32m[30/40] \u001b[mCompiling module_30\r\n\u001b[32m[31/40] \u001b[mCompiling module_31\r\n\u001b[32m[32/40] \u001b[mCompiling module_32\r\n\u001b[32m[33/40] \u001b[mCompiling module_33\u001b[K\r\n\u001b[32m[34/40] \u001b[mCompiling module_34\r\n\u001b[33m[35/40] \u001b[mCompiling module_35\r\n\u001b[32m[36/40] \u001b[mCompiling module_36\r\n\u001b[32m[37/40] \u001b[mCompiling module_37\r\n\u001b[32m[38/40] \u001b[mCompiling module_38\r\n\u001b[32m[39/40] \u001b[mCompiling module_39\r\n\u001b[32m[40/40] \u001b[mCompiling module_40\r\n\u001b[31merror: 1 target failed\r\u001b[m\nFinished in 3.21s\r\n"
+  "raw": "\u001b[?9001h\u001b[?1004h\u001b[?25l\u001b[2J\u001b[m\u001b[1m\u001b[HBuilding 40 targets\r\n\u001b]0;C:\\Program Files\\nodejs\\node.exe\u0007\u001b[?25h\u001b[22m\u001b[32m[1/40] \u001b[mCompiling module_1\u001b[32m\r\n[2/40] \u001b[mCompiling module_2\r\n\u001b[32m[3/40] \u001b[mCompiling module_3\r\n\u001b[32m[4/40] \u001b[mCompiling module_4\r\n\u001b[32m[5/40] \u001b[mCompiling module_5\r\n\u001b[32m[6/40] \u001b[mCompiling module_6\r\n\u001b[33m[7/40] \u001b[mCompiling module_7\r\n\u001b[32m[8/40] \u001b[mCompiling module_8\r\n\u001b[32m[9/40] \u001b[mCompiling module_9\r\n\u001b[32m[10/40] \u001b[mCompiling module_10\r\n\u001b[32m[11/40] \u001b[mCompiling module_11\r\n\u001b[32m[12/40] \u001b[mCompiling module_12\r\n\u001b[32m[13/40] \u001b[mCompiling module_13\r\n\u001b[33m[14/40] \u001b[mCompiling module_14\r\n\u001b[32m[15/40] \u001b[mCompiling module_15\r\n\u001b[32m[16/40] \u001b[mCompiling module_16\r\n\u001b[32m[17/40] \u001b[mCompiling module_17\r\n\u001b[32m[18/40] \u001b[mCompiling module_18\r\n\u001b[32m[19/40] \u001b[mCompiling module_19\r\n\u001b[32m[20/40] \u001b[mCompiling module_20\r\n\u001b[33m[21/40] \u001b[mCompiling module_21\r\n\u001b[32m[22/40] \u001b[mCompiling module_22\r\n\u001b[32m[23/40] \u001b[mCompiling module_23\r\n\u001b[32m[24/40] \u001b[mCompiling module_24\r\n\u001b[32m[25/40] \u001b[mCompiling module_25\r\n\u001b[32m[26/40] \u001b[mCompiling module_26\r\n\u001b[32m[27/40] \u001b[mCompiling module_27\r\n\u001b[33m[28/40] \u001b[mCompiling module_28\r\n\u001b[32m[29/40] \u001b[mCompiling module_29\r\n\u001b[32m[30/40] \u001b[mCompiling module_30\r\n\u001b[32m[31/40] \u001b[mCompiling module_31\r\n\u001b[32m[32/40] \u001b[mCompiling module_32\r\n\u001b[32m[33/40] \u001b[mCompiling module_33\u001b[K\r\n\u001b[32m[34/40] \u001b[mCompiling module_34\r\n\u001b[33m[35/40] \u001b[mCompiling module_35\r\n\u001b[32m[36/40] \u001b[mCompiling module_36\r\n\u001b[32m[37/40] \u001b[mCompiling module_37\r\n\u001b[32m[38/40] \u001b[mCompiling module_38\r\n\u001b[32m[39/40] \u001b[mCompiling module_39\r\n\u001b[32m[40/40] \u001b[mCompiling module_40\r\n\u001b[31merror: 1 target failed\r\u001b[m\nFinished in 3.21s\r\n"
 }

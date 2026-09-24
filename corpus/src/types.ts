@@ -57,6 +57,24 @@ export function takeResizeMarkers(text: string): { sizes: Array<{ cols: number; 
   return { sizes, rest };
 }
 
+/**
+ * When a delivery arrived, and where it starts in the byte stream.
+ *
+ * `at` is the moment the bytes reached us — the programme's write in a direct
+ * run, the pty's `data` event in a pty run. Not the moment they were fed to
+ * the emulator: in a direct run the programme finishes before any feeding
+ * starts, so a feed-time timestamp records the feeder's cadence and erases the
+ * programme's. That mistake is why a trace used to show every delivery 15ms
+ * apart whatever the programme did, and why no job boundary could be recovered
+ * from one.
+ */
+export interface ArrivalAt {
+  /** Byte offset this delivery starts at. */
+  offset: number;
+  /** Milliseconds, same clock as `Op.at`. */
+  at: number;
+}
+
 /** A snapshot of the visible screen. */
 export interface Frame {
   index: number;
@@ -127,6 +145,15 @@ export interface Trace {
    * size the programme never saw. The history timeline splits its epochs here.
    */
   resizes: ResizeAt[];
+  /**
+   * When each delivery arrived, in order, as `{ offset, at }`.
+   *
+   * The byte stream alone cannot say where one act ended and the next began;
+   * `raw` is one flat string with no timing in it. This is the timing, kept
+   * beside the bytes it belongs to, so a replay can group deliveries the way
+   * the programme produced them rather than the way a buffer happened to fill.
+   */
+  arrivals: ArrivalAt[];
   /** Total bytes fed to the emulator. */
   bytes: number;
   /** Raw output, kept so a trace can be replayed without re-running anything. */
@@ -156,6 +183,35 @@ export interface Programme {
    */
   expectations(marks: Record<string, number>): SegmentExpectation[];
 }
+
+/**
+ * Pauses a programme puts between its own writes.
+ *
+ * These are not decoration. The classifier's verdict depends on where
+ * deliveries begin (CLASSIFIER.md §9.3), so a pause is what makes two acts
+ * two acts. Recorded with the bytes, a pause is the only signal a job
+ * boundary can be recovered from — and a corpus whose pauses are all 15ms
+ * long, or all absent, cannot distinguish a burst from a sequence at all.
+ *
+ * The values are what the thing being modelled actually does:
+ *
+ *  - a human acting — moving a cursor, pressing a key, stepping a pager —
+ *    takes roughly a tenth of a second, not a millisecond;
+ *  - a program animating on its own is faster than a human and steadier;
+ *  - output *within* one act is deliberately tight, because it is one act.
+ *    `complex.interleaved` depends on this: its log line and its status
+ *    repaint are one update, and spacing them like interactions would make
+ *    them two and falsify the programme.
+ */
+
+/** A human acting: a cursor move, a keystroke, a pager step, a TUI transition. */
+export const INTERACTION_PAUSE_MS = 120;
+
+/** A program animating by itself: a spinner frame, a progress tick, a dashboard refresh. */
+export const FRAME_PAUSE_MS = 80;
+
+/** Output within one act. Small on purpose — these are a single update. */
+export const BURST_PAUSE_MS = 6;
 
 export interface ProgrammeIo {
   out: NodeJS.WriteStream | { write(s: string): boolean };

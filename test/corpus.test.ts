@@ -14,8 +14,17 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { loadTraces, classifyTraceStreaming, scoreTrace, fixedChunks } from './helpers/corpus.js';
+import { loadTraces, classifyTraceStreaming, scoreTrace, fixedChunks, jobChunks } from './helpers/corpus.js';
 import type { Trace } from './helpers/corpus.js';
+
+/**
+ * The gap that closes a job when replaying at job granularity.
+ *
+ * Sits between the two things the corpus's pacing produces: output within one
+ * act is 6ms apart, one act to the next is 80-120ms. Anything from about 20
+ * to 70 separates them, and the measured score is identical across that range.
+ */
+const JOB_GAP_MS = 50;
 
 /** Scores are pinned so a change is visible; raise them when the classifier improves. */
 const EXPECTED = {
@@ -23,6 +32,20 @@ const EXPECTED = {
   drawOps: 21,
   /** Fixed 64-byte chunks, closer to what a pty delivers. */
   pty64: 15,
+  /**
+   * Deliveries grouped at the boundaries the programme drew.
+   *
+   * Below `drawOps`, and that is a finding rather than a regression to chase:
+   * a job is bigger than an expectation. Where one job genuinely contains both
+   * kinds -- `complex.interleaved` appends a log line *and* repaints a status
+   * row -- asking which single verdict covers its byte range has no answer,
+   * and the scorer's majority vote cannot express what the programme's `why`
+   * says plainly. The other failures are the same conflict already visible at
+   * op granularity: a screen-diff inference and an op spanning the same bytes
+   * with opposite verdicts (`classify.ts` emits both). Job granularity makes
+   * it worse only because one job carries more ops, so more of them coincide.
+   */
+  jobs: 18,
 };
 
 async function run(
@@ -52,6 +75,24 @@ test('corpus is present and well-formed', () => {
   }
 });
 
+/**
+ * Score at job granularity, which needs the trace and not just its bytes.
+ *
+ * The boundary comes from when each delivery arrived, which `raw` does not
+ * carry; see `jobChunks`.
+ */
+async function runJobs(gapMs: number): Promise<{ pass: number; total: number; fails: string[] }> {
+  const traces = loadTraces('direct');
+  let pass = 0;
+  const fails: string[] = [];
+  for (const trace of traces) {
+    const segments = await classifyTraceStreaming(trace, () => jobChunks(trace, gapMs));
+    if (scoreTrace(trace, segments).pass) pass++;
+    else fails.push(trace.id);
+  }
+  return { pass, total: traces.length, fails };
+}
+
 test('classifier scores at least the pinned rate under op-aligned replay', async () => {
   const { pass, total, fails } = await run();
   assert.ok(
@@ -78,4 +119,14 @@ test('op-aligned replay beats pty-like replay, or the gap is a real finding', as
     `      corpus: ${best.pass}/${best.total} op-aligned, ${realistic.pass}/${realistic.total} at 64-byte chunks`,
   );
   assert.ok(best.pass >= realistic.pass, 'finer deliveries should not be worse');
+});
+
+test('classifier scores at least the pinned rate under job-aligned replay', async () => {
+  const { pass, total, fails } = await runJobs(JOB_GAP_MS);
+  console.log(`      corpus: ${pass}/${total} at job granularity (${JOB_GAP_MS}ms gap)`);
+  assert.ok(
+    pass >= EXPECTED.jobs,
+    `expected >= ${EXPECTED.jobs}/${total} at job granularity, got ${pass}/${total}. ` +
+      `Failing: ${fails.join(', ')}`,
+  );
 });

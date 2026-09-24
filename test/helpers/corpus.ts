@@ -17,6 +17,8 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ScreenModel } from '../../src/screen.js';
 import { classify, coalesce, frameOf } from '../../src/classify.js';
+import { groupByGap } from '../../src/jobs.js';
+import { OP } from '../../src/edit-record.js';
 import type { Trace } from '../../corpus/src/types.js';
 import type { Segment } from '../../src/classify.js';
 
@@ -102,6 +104,68 @@ export function fixedChunks(size: number): (raw: string) => string[] {
     for (let i = 0; i < raw.length; i += size) out.push(raw.slice(i, i + size));
     return out;
   };
+}
+
+/**
+ * Split a trace into deliveries at the boundaries the *programme* drew.
+ *
+ * The other splitters cut the byte stream by structure (`splitOnDrawOps`) or
+ * by an arbitrary size (`fixedChunks`). This one cuts it by time, using the
+ * arrivals the recorder stamped when the bytes came in — so a replay can be
+ * grouped the way the programme produced it rather than the way a buffer
+ * filled. That gap is the whole of CLASSIFIER.md §9.3: same corpus, same
+ * classifier, different answer.
+ *
+ * Traces are ASCII, so an arrival's byte offset indexes `raw` directly.
+ */
+export function jobChunks(trace: Trace, gapMs: number): string[] {
+  const arrivals = trace.arrivals;
+  if (arrivals.length === 0) return [trace.raw];
+  const endOf = (i: number): number => arrivals[i + 1]?.offset ?? trace.raw.length;
+
+  // A job may not straddle a resize, for the same reason the live detector
+  // flushes on one (`session.ts`) and for the same reason history splits
+  // epochs there (HISTORY.md §2): inside one job the width is fixed, so a
+  // row-run delta means one thing and a captured line's wrapping is
+  // unambiguous. Across a resize neither is true, and a frame diff spanning
+  // two grid sizes describes a terminal that never existed.
+  const resizes = [...trace.resizes].sort((a, b) => a.offset - b.offset);
+  let nextResize = 0;
+
+  // An alt-screen switch is a boundary for the same reason, and a stronger
+  // one: entering the alternate buffer replaces the whole visible grid, and
+  // leaving it destroys what was on it (L0.1). A frame diff reaching across
+  // that compares two different surfaces and reports the swap as a repaint of
+  // everything.
+  const switches = [...new Set(trace.ops.filter(OP.isAltScreenSwitch).map((o) => o.byteOffset))].sort(
+    (a, b) => a - b,
+  );
+  let nextSwitch = 0;
+
+  const out: string[] = [];
+  let start = arrivals[0]!.offset;
+  let lastAt = arrivals[0]!.at;
+
+  for (let i = 0; i < arrivals.length; i++) {
+    const a = arrivals[i]!;
+    const end = endOf(i);
+    while (nextResize < resizes.length && resizes[nextResize]!.offset < a.offset) nextResize++;
+    while (nextSwitch < switches.length && switches[nextSwitch]! < a.offset) nextSwitch++;
+    const crossesResize = nextResize < resizes.length && resizes[nextResize]!.offset < end;
+    const crossesSwitch = nextSwitch < switches.length && switches[nextSwitch]! < end;
+
+    if (i > 0 && (a.at - lastAt >= gapMs || crossesResize || crossesSwitch)) {
+      out.push(trace.raw.slice(start, a.offset));
+      start = a.offset;
+    }
+    // The replay applies the resize before the delivery containing it, so that
+    // delivery begins the next job and the whole job is at the new size.
+    if (crossesResize) nextResize++;
+    if (crossesSwitch) nextSwitch++;
+    lastAt = a.at;
+  }
+  out.push(trace.raw.slice(start));
+  return out.filter((c) => c.length > 0);
 }
 
 /**

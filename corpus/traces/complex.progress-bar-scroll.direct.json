@@ -7,7 +7,7 @@
   "cols": 40,
   "rows": 5,
   "platform": "win32",
-  "recordedAt": "2026-09-23T18:19:04.108Z",
+  "recordedAt": "2026-09-24T02:27:22.452Z",
   "expectations": [
     {
       "from": 0,
@@ -38,32 +38,32 @@
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 32,
+      "byteOffset": 18,
       "cursorX": 0,
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790187544094
+      "at": 1790216842405
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 32,
+      "byteOffset": 18,
       "cursorX": 0,
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790187544094
+      "at": 1790216842405
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 32,
+      "byteOffset": 18,
       "cursorX": 0,
       "cursorY": 3,
       "params": [],
       "altScreen": false,
-      "at": 1790187544094
+      "at": 1790216842405
     },
     {
       "name": "LINEFEED",
@@ -73,29 +73,29 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790187544094
+      "at": 1790216842421
     },
     {
       "name": "SCROLL",
       "source": "event",
-      "byteOffset": 60,
+      "byteOffset": 38,
       "cursorX": 0,
       "cursorY": 4,
       "params": [
         1
       ],
       "altScreen": false,
-      "at": 1790187544107
+      "at": 1790216842437
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 60,
+      "byteOffset": 38,
       "cursorX": 0,
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790187544107
+      "at": 1790216842437
     },
     {
       "name": "CUP",
@@ -108,7 +108,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790187544107
+      "at": 1790216842452
     },
     {
       "name": "EL",
@@ -120,7 +120,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790187544107
+      "at": 1790216842452
     }
   ],
   "frames": [
@@ -149,6 +149,24 @@
     "log5"
   ],
   "resizes": [],
+  "arrivals": [
+    {
+      "offset": 0,
+      "at": 1790216842140
+    },
+    {
+      "offset": 18,
+      "at": 1790216842140
+    },
+    {
+      "offset": 32,
+      "at": 1790216842266
+    },
+    {
+      "offset": 38,
+      "at": 1790216842389
+    }
+  ],
   "bytes": 60,
   "raw": "log1\r\nlog2\r\nlog3\r\n[#####-----]\r\nlog5\r\n\u001b[5;1H\u001b[2K[##########]"
 }

@@ -7,7 +7,7 @@
   "cols": 60,
   "rows": 6,
   "platform": "win32",
-  "recordedAt": "2026-09-23T18:19:14.569Z",
+  "recordedAt": "2026-09-24T02:27:36.870Z",
   "expectations": [
     {
       "from": 0,
@@ -33,7 +33,7 @@
         9001
       ],
       "altScreen": false,
-      "at": 1790187554084
+      "at": 1790216856283
     },
     {
       "name": "DECSET",
@@ -45,7 +45,7 @@
         1004
       ],
       "altScreen": false,
-      "at": 1790187554084
+      "at": 1790216856283
     },
     {
       "name": "DECRST",
@@ -57,7 +57,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790187554162
+      "at": 1790216856361
     },
     {
       "name": "ED",
@@ -69,7 +69,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790187554162
+      "at": 1790216856361
     },
     {
       "name": "SGR",
@@ -81,7 +81,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187554162
+      "at": 1790216856361
     },
     {
       "name": "CUP",
@@ -93,7 +93,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187554162
+      "at": 1790216856361
     },
     {
       "name": "LINEFEED",
@@ -103,7 +103,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790187554162
+      "at": 1790216856361
     },
     {
       "name": "TITLECHANGE",
@@ -113,7 +113,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790187554162
+      "at": 1790216856361
     },
     {
       "name": "DECSET",
@@ -125,7 +125,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790187554162
+      "at": 1790216856361
     }
   ],
   "frames": [
@@ -151,6 +151,20 @@
     "About to delete 12 files."
   ],
   "resizes": [],
+  "arrivals": [
+    {
+      "offset": 0,
+      "at": 1790216856272
+    },
+    {
+      "offset": 16,
+      "at": 1790216856345
+    },
+    {
+      "offset": 102,
+      "at": 1790216856469
+    }
+  ],
   "bytes": 118,
   "raw": "\u001b[?9001h\u001b[?1004h\u001b[?25l\u001b[2J\u001b[m\u001b[HAbout to delete 12 files.\r\n\u001b]0;C:\\Program Files\\nodejs\\node.exe\u0007\u001b[?25hContinue? [y/N] "
 }

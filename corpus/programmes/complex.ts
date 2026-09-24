@@ -9,6 +9,7 @@
  * CLASSIFIER.md §4 and §6.
  */
 import type { Programme } from '../src/types.js';
+import { BURST_PAUSE_MS, FRAME_PAUSE_MS, INTERACTION_PAUSE_MS } from '../src/types.js';
 
 const CRLF = '\r\n';
 
@@ -30,11 +31,11 @@ export const shellTuiShell: Programme = {
     io.out.write(`$ git log --oneline${CRLF}`);
     io.out.write(`a1b2c3d fix parser${CRLF}`);
     io.out.write(`d4e5f6g add tests${CRLF}`);
-    await io.wait(15);
+    await io.wait(INTERACTION_PAUSE_MS);
     io.mark('tuiEnter');
     io.out.write('\x1b[?1049h\x1b[H'); // git opens its pager
     for (let i = 0; i < 6; i++) io.out.write(`commit line ${i}${CRLF}`);
-    await io.wait(15);
+    await io.wait(INTERACTION_PAUSE_MS);
     io.mark('tuiBody');
     // Repaint as if scrolling inside the pager.
     io.out.write('\x1b[H');
@@ -42,7 +43,7 @@ export const shellTuiShell: Programme = {
       io.out.write('\x1b[2K');
       io.out.write(`commit line ${i + 6}${CRLF}`);
     }
-    await io.wait(15);
+    await io.wait(INTERACTION_PAUSE_MS);
     io.mark('tuiExit');
     io.out.write('\x1b[?1049l'); // quit the pager
     io.mark('shell2');
@@ -79,13 +80,13 @@ export const interleaved: Programme = {
     for (let i = 1; i <= 6; i++) {
       // 1. a log line appends (writing)
       io.out.write(`  uploaded shard ${i}/6${CRLF}`);
-      await io.wait(6);
+      await io.wait(BURST_PAUSE_MS);
       // 2. the status row is repainted (drawing) — same update, later segment
       io.out.write('\x1b[s');
       io.out.write(`\x1b[${io.rows};1H\x1b[2K`);
       io.out.write(`status: ${Math.round((i / 6) * 100)}% complete`);
       io.out.write('\x1b[u');
-      await io.wait(6);
+      await io.wait(BURST_PAUSE_MS);
     }
     io.mark('end');
   },
@@ -118,7 +119,7 @@ export const resizeDuringTui: Programme = {
     io.mark('start');
     io.out.write('\x1b[?1049h\x1b[H');
     for (let i = 0; i < 6; i++) io.out.write(`row ${i}${CRLF}`);
-    await io.wait(20);
+    await io.wait(INTERACTION_PAUSE_MS);
     io.mark('preresize');
     // The harness resizes the emulator here; the program then redraws to fit.
     io.out.write('\x1b[H');
@@ -165,26 +166,26 @@ export const resizeEpochs: Programme = {
   async run(io) {
     io.mark('start');
     for (let i = 0; i < 10; i++) io.out.write(`build step ${i} at ${io.cols} cols${CRLF}`);
-    await io.wait(15);
+    await io.wait(INTERACTION_PAUSE_MS);
 
     io.mark('resize1');
     io.resize(30, 6);
     // The pty feed resizes through another process, so give it a moment before
     // drawing at a size it may not have taken yet.
-    await io.wait(60);
+    await io.wait(INTERACTION_PAUSE_MS);
 
     io.mark('narrow');
     for (let i = 0; i < 8; i++) io.out.write(`narrow step ${i} at ${io.cols} cols${CRLF}`);
-    await io.wait(15);
+    await io.wait(INTERACTION_PAUSE_MS);
 
     io.mark('tui');
     io.out.write('\x1b[?1049h\x1b[H');
     for (let i = 0; i < 5; i++) io.out.write(`tui row ${i}${CRLF}`);
-    await io.wait(15);
+    await io.wait(INTERACTION_PAUSE_MS);
 
     io.mark('resize2');
     io.resize(48, 10);
-    await io.wait(60);
+    await io.wait(INTERACTION_PAUSE_MS);
 
     io.mark('repaint');
     io.out.write('\x1b[H');
@@ -270,10 +271,10 @@ export const progressBarScroll: Programme = {
     io.out.write(`log1${CRLF}log2${CRLF}log3${CRLF}`);
     io.mark('draw1');
     io.out.write(`${bar(5)}${CRLF}`); // bar lands on row 4 (0-indexed 3)
-    await io.wait(15);
+    await io.wait(INTERACTION_PAUSE_MS);
     io.mark('append');
     io.out.write(`log5${CRLF}`); // scrolls; the old bar is now one row up
-    await io.wait(15);
+    await io.wait(INTERACTION_PAUSE_MS);
     io.mark('redraw');
     io.out.write(`\x1b[${io.rows};1H\x1b[2K${bar(10)}`); // erase + redraw on the last row
     io.mark('end');
@@ -316,11 +317,11 @@ export const synchronizedOutput: Programme = {
       io.out.write('\x1b[?2026l'); // end
     };
     frame(1);
-    await io.wait(15);
+    await io.wait(INTERACTION_PAUSE_MS);
     io.mark('frames');
     for (const n of [2, 3]) {
       frame(n);
-      await io.wait(15);
+      await io.wait(INTERACTION_PAUSE_MS);
     }
     io.mark('end');
     io.out.write('\x1b[?1049l');
@@ -354,7 +355,7 @@ export const altWriteThenDraw: Programme = {
     io.out.write('\x1b[?1049h\x1b[H');
     io.mark('append');
     for (let i = 1; i <= 3; i++) io.out.write(`boot ${i}${CRLF}`);
-    await io.wait(15);
+    await io.wait(INTERACTION_PAUSE_MS);
     io.mark('repaint');
     // Now start redrawing in place, still on the alt screen.
     for (const v of [1, 2, 3]) {

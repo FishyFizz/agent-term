@@ -7,7 +7,7 @@
   "cols": 80,
   "rows": 4,
   "platform": "win32",
-  "recordedAt": "2026-09-23T18:18:41.381Z",
+  "recordedAt": "2026-09-24T02:27:12.642Z",
   "expectations": [
     {
       "from": 9,
@@ -20,12 +20,12 @@
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 32,
+      "byteOffset": 9,
       "cursorX": 0,
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790187521318
+      "at": 1790216832439
     },
     {
       "name": "LINEFEED",
@@ -35,7 +35,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790187521381
+      "at": 1790216832642
     },
     {
       "name": "LINEFEED",
@@ -45,7 +45,7 @@
       "cursorY": 3,
       "params": [],
       "altScreen": false,
-      "at": 1790187521381
+      "at": 1790216832642
     }
   ],
   "frames": [
@@ -71,6 +71,64 @@
     "done"
   ],
   "resizes": [],
+  "arrivals": [
+    {
+      "offset": 0,
+      "at": 1790216831311
+    },
+    {
+      "offset": 9,
+      "at": 1790216831311
+    },
+    {
+      "offset": 22,
+      "at": 1790216831402
+    },
+    {
+      "offset": 35,
+      "at": 1790216831496
+    },
+    {
+      "offset": 48,
+      "at": 1790216831589
+    },
+    {
+      "offset": 61,
+      "at": 1790216831683
+    },
+    {
+      "offset": 74,
+      "at": 1790216831775
+    },
+    {
+      "offset": 87,
+      "at": 1790216831868
+    },
+    {
+      "offset": 100,
+      "at": 1790216831960
+    },
+    {
+      "offset": 113,
+      "at": 1790216832053
+    },
+    {
+      "offset": 126,
+      "at": 1790216832145
+    },
+    {
+      "offset": 139,
+      "at": 1790216832237
+    },
+    {
+      "offset": 152,
+      "at": 1790216832331
+    },
+    {
+      "offset": 165,
+      "at": 1790216832424
+    }
+  ],
   "bytes": 173,
   "raw": "working\r\n\r| working...\r/ working...\r- working...\r\\ working...\r| working...\r/ working...\r- working...\r\\ working...\r| working...\r/ working...\r- working...\r\\ working...\r\ndone\r\n"
 }

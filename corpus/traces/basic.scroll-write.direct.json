@@ -7,7 +7,7 @@
   "cols": 80,
   "rows": 5,
   "platform": "win32",
-  "recordedAt": "2026-09-23T18:18:40.897Z",
+  "recordedAt": "2026-09-24T02:27:10.717Z",
   "expectations": [
     {
       "from": 0,
@@ -20,372 +20,372 @@
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 64,
+      "byteOffset": 38,
       "cursorX": 0,
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790187520537
+      "at": 1790216830437
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 96,
+      "byteOffset": 76,
       "cursorX": 0,
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790187520553
+      "at": 1790216830452
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 128,
+      "byteOffset": 114,
       "cursorX": 0,
       "cursorY": 3,
       "params": [],
       "altScreen": false,
-      "at": 1790187520569
+      "at": 1790216830468
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 160,
+      "byteOffset": 152,
       "cursorX": 0,
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790187520584
+      "at": 1790216830484
     },
     {
       "name": "SCROLL",
       "source": "event",
-      "byteOffset": 192,
+      "byteOffset": 190,
       "cursorX": 0,
       "cursorY": 4,
       "params": [
         1
       ],
       "altScreen": false,
-      "at": 1790187520600
+      "at": 1790216830499
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 192,
+      "byteOffset": 190,
       "cursorX": 0,
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790187520600
+      "at": 1790216830499
     },
     {
       "name": "SCROLL",
       "source": "event",
-      "byteOffset": 256,
+      "byteOffset": 228,
       "cursorX": 0,
       "cursorY": 4,
       "params": [
         2
       ],
       "altScreen": false,
-      "at": 1790187520631
+      "at": 1790216830514
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 256,
+      "byteOffset": 228,
       "cursorX": 0,
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790187520631
+      "at": 1790216830514
     },
     {
       "name": "SCROLL",
       "source": "event",
-      "byteOffset": 288,
+      "byteOffset": 266,
       "cursorX": 0,
       "cursorY": 4,
       "params": [
         3
       ],
       "altScreen": false,
-      "at": 1790187520647
+      "at": 1790216830530
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 288,
+      "byteOffset": 266,
       "cursorX": 0,
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790187520647
+      "at": 1790216830530
     },
     {
       "name": "SCROLL",
       "source": "event",
-      "byteOffset": 320,
+      "byteOffset": 304,
       "cursorX": 0,
       "cursorY": 4,
       "params": [
         4
       ],
       "altScreen": false,
-      "at": 1790187520662
+      "at": 1790216830545
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 320,
+      "byteOffset": 304,
       "cursorX": 0,
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790187520662
+      "at": 1790216830545
     },
     {
       "name": "SCROLL",
       "source": "event",
-      "byteOffset": 352,
+      "byteOffset": 342,
       "cursorX": 0,
       "cursorY": 4,
       "params": [
         5
       ],
       "altScreen": false,
-      "at": 1790187520678
+      "at": 1790216830561
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 352,
+      "byteOffset": 342,
       "cursorX": 0,
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790187520678
+      "at": 1790216830561
     },
     {
       "name": "SCROLL",
       "source": "event",
-      "byteOffset": 384,
+      "byteOffset": 382,
       "cursorX": 0,
       "cursorY": 4,
       "params": [
         6
       ],
       "altScreen": false,
-      "at": 1790187520693
+      "at": 1790216830577
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 384,
+      "byteOffset": 382,
       "cursorX": 0,
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790187520693
+      "at": 1790216830577
     },
     {
       "name": "SCROLL",
       "source": "event",
-      "byteOffset": 448,
+      "byteOffset": 422,
       "cursorX": 0,
       "cursorY": 4,
       "params": [
         7
       ],
       "altScreen": false,
-      "at": 1790187520725
+      "at": 1790216830577
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 448,
+      "byteOffset": 422,
       "cursorX": 0,
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790187520725
+      "at": 1790216830577
     },
     {
       "name": "SCROLL",
       "source": "event",
-      "byteOffset": 480,
+      "byteOffset": 462,
       "cursorX": 0,
       "cursorY": 4,
       "params": [
         8
       ],
       "altScreen": false,
-      "at": 1790187520741
+      "at": 1790216830592
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 480,
+      "byteOffset": 462,
       "cursorX": 0,
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790187520741
+      "at": 1790216830592
     },
     {
       "name": "SCROLL",
       "source": "event",
-      "byteOffset": 512,
+      "byteOffset": 502,
       "cursorX": 0,
       "cursorY": 4,
       "params": [
         9
       ],
       "altScreen": false,
-      "at": 1790187520756
+      "at": 1790216830608
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 512,
+      "byteOffset": 502,
       "cursorX": 0,
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790187520756
+      "at": 1790216830608
     },
     {
       "name": "SCROLL",
       "source": "event",
-      "byteOffset": 544,
+      "byteOffset": 542,
       "cursorX": 0,
       "cursorY": 4,
       "params": [
         10
       ],
       "altScreen": false,
-      "at": 1790187520772
+      "at": 1790216830624
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 544,
+      "byteOffset": 542,
       "cursorX": 0,
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790187520772
+      "at": 1790216830624
     },
     {
       "name": "SCROLL",
       "source": "event",
-      "byteOffset": 608,
+      "byteOffset": 582,
       "cursorX": 0,
       "cursorY": 4,
       "params": [
         11
       ],
       "altScreen": false,
-      "at": 1790187520803
+      "at": 1790216830639
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 608,
+      "byteOffset": 582,
       "cursorX": 0,
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790187520803
+      "at": 1790216830639
     },
     {
       "name": "SCROLL",
       "source": "event",
-      "byteOffset": 640,
+      "byteOffset": 622,
       "cursorX": 0,
       "cursorY": 4,
       "params": [
         12
       ],
       "altScreen": false,
-      "at": 1790187520818
+      "at": 1790216830655
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 640,
+      "byteOffset": 622,
       "cursorX": 0,
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790187520818
+      "at": 1790216830655
     },
     {
       "name": "SCROLL",
       "source": "event",
-      "byteOffset": 672,
+      "byteOffset": 662,
       "cursorX": 0,
       "cursorY": 4,
       "params": [
         13
       ],
       "altScreen": false,
-      "at": 1790187520834
+      "at": 1790216830670
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 672,
+      "byteOffset": 662,
       "cursorX": 0,
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790187520834
+      "at": 1790216830670
     },
     {
       "name": "SCROLL",
       "source": "event",
-      "byteOffset": 704,
+      "byteOffset": 702,
       "cursorX": 0,
       "cursorY": 4,
       "params": [
         14
       ],
       "altScreen": false,
-      "at": 1790187520849
+      "at": 1790216830686
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 704,
+      "byteOffset": 702,
       "cursorX": 0,
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790187520849
+      "at": 1790216830686
     },
     {
       "name": "SCROLL",
       "source": "event",
-      "byteOffset": 768,
+      "byteOffset": 742,
       "cursorX": 0,
       "cursorY": 4,
       "params": [
         15
       ],
       "altScreen": false,
-      "at": 1790187520881
+      "at": 1790216830701
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 768,
+      "byteOffset": 742,
       "cursorX": 0,
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790187520881
+      "at": 1790216830701
     },
     {
       "name": "SCROLL",
@@ -397,7 +397,7 @@
         16
       ],
       "altScreen": false,
-      "at": 1790187520897
+      "at": 1790216830716
     },
     {
       "name": "LINEFEED",
@@ -407,7 +407,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790187520897
+      "at": 1790216830716
     }
   ],
   "frames": [
@@ -451,6 +451,88 @@
     "build step 20: compiling module_20.cpp"
   ],
   "resizes": [],
+  "arrivals": [
+    {
+      "offset": 0,
+      "at": 1790216830114
+    },
+    {
+      "offset": 38,
+      "at": 1790216830127
+    },
+    {
+      "offset": 76,
+      "at": 1790216830142
+    },
+    {
+      "offset": 114,
+      "at": 1790216830158
+    },
+    {
+      "offset": 152,
+      "at": 1790216830174
+    },
+    {
+      "offset": 190,
+      "at": 1790216830189
+    },
+    {
+      "offset": 228,
+      "at": 1790216830205
+    },
+    {
+      "offset": 266,
+      "at": 1790216830220
+    },
+    {
+      "offset": 304,
+      "at": 1790216830235
+    },
+    {
+      "offset": 342,
+      "at": 1790216830251
+    },
+    {
+      "offset": 382,
+      "at": 1790216830266
+    },
+    {
+      "offset": 422,
+      "at": 1790216830282
+    },
+    {
+      "offset": 462,
+      "at": 1790216830297
+    },
+    {
+      "offset": 502,
+      "at": 1790216830313
+    },
+    {
+      "offset": 542,
+      "at": 1790216830328
+    },
+    {
+      "offset": 582,
+      "at": 1790216830344
+    },
+    {
+      "offset": 622,
+      "at": 1790216830360
+    },
+    {
+      "offset": 662,
+      "at": 1790216830375
+    },
+    {
+      "offset": 702,
+      "at": 1790216830390
+    },
+    {
+      "offset": 742,
+      "at": 1790216830405
+    }
+  ],
   "bytes": 782,
   "raw": "build step 1: compiling module_1.cpp\r\nbuild step 2: compiling module_2.cpp\r\nbuild step 3: compiling module_3.cpp\r\nbuild step 4: compiling module_4.cpp\r\nbuild step 5: compiling module_5.cpp\r\nbuild step 6: compiling module_6.cpp\r\nbuild step 7: compiling module_7.cpp\r\nbuild step 8: compiling module_8.cpp\r\nbuild step 9: compiling module_9.cpp\r\nbuild step 10: compiling module_10.cpp\r\nbuild step 11: compiling module_11.cpp\r\nbuild step 12: compiling module_12.cpp\r\nbuild step 13: compiling module_13.cpp\r\nbuild step 14: compiling module_14.cpp\r\nbuild step 15: compiling module_15.cpp\r\nbuild step 16: compiling module_16.cpp\r\nbuild step 17: compiling module_17.cpp\r\nbuild step 18: compiling module_18.cpp\r\nbuild step 19: compiling module_19.cpp\r\nbuild step 20: compiling module_20.cpp\r\n"
 }

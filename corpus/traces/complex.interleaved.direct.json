@@ -7,7 +7,7 @@
   "cols": 60,
   "rows": 8,
   "platform": "win32",
-  "recordedAt": "2026-09-23T18:18:44.784Z",
+  "recordedAt": "2026-09-24T02:27:20.368Z",
   "expectations": [
     {
       "from": 0,
@@ -20,27 +20,27 @@
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 32,
+      "byteOffset": 14,
       "cursorX": 0,
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790187524613
+      "at": 1790216839919
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 64,
+      "byteOffset": 36,
       "cursorX": 0,
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790187524628
+      "at": 1790216839934
     },
     {
       "name": "CUP",
       "source": "csi",
-      "byteOffset": 64,
+      "byteOffset": 49,
       "cursorX": 0,
       "cursorY": 2,
       "params": [
@@ -48,34 +48,34 @@
         1
       ],
       "altScreen": false,
-      "at": 1790187524628
+      "at": 1790216839965
     },
     {
       "name": "EL",
       "source": "csi",
-      "byteOffset": 64,
+      "byteOffset": 49,
       "cursorX": 0,
       "cursorY": 7,
       "params": [
         2
       ],
       "altScreen": false,
-      "at": 1790187524628
+      "at": 1790216839965
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 96,
+      "byteOffset": 94,
       "cursorX": 0,
       "cursorY": 3,
       "params": [],
       "altScreen": false,
-      "at": 1790187524644
+      "at": 1790216840011
     },
     {
       "name": "CUP",
       "source": "csi",
-      "byteOffset": 128,
+      "byteOffset": 107,
       "cursorX": 0,
       "cursorY": 3,
       "params": [
@@ -83,34 +83,34 @@
         1
       ],
       "altScreen": false,
-      "at": 1790187524659
+      "at": 1790216840042
     },
     {
       "name": "EL",
       "source": "csi",
-      "byteOffset": 128,
+      "byteOffset": 107,
       "cursorX": 0,
       "cursorY": 7,
       "params": [
         2
       ],
       "altScreen": false,
-      "at": 1790187524659
+      "at": 1790216840042
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 160,
+      "byteOffset": 152,
       "cursorX": 0,
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790187524675
+      "at": 1790216840088
     },
     {
       "name": "CUP",
       "source": "csi",
-      "byteOffset": 192,
+      "byteOffset": 165,
       "cursorX": 0,
       "cursorY": 4,
       "params": [
@@ -118,34 +118,34 @@
         1
       ],
       "altScreen": false,
-      "at": 1790187524691
+      "at": 1790216840119
     },
     {
       "name": "EL",
       "source": "csi",
-      "byteOffset": 192,
+      "byteOffset": 165,
       "cursorX": 0,
       "cursorY": 7,
       "params": [
         2
       ],
       "altScreen": false,
-      "at": 1790187524691
+      "at": 1790216840119
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 224,
+      "byteOffset": 210,
       "cursorX": 0,
       "cursorY": 5,
       "params": [],
       "altScreen": false,
-      "at": 1790187524706
+      "at": 1790216840165
     },
     {
       "name": "CUP",
       "source": "csi",
-      "byteOffset": 224,
+      "byteOffset": 223,
       "cursorX": 0,
       "cursorY": 5,
       "params": [
@@ -153,34 +153,34 @@
         1
       ],
       "altScreen": false,
-      "at": 1790187524706
+      "at": 1790216840196
     },
     {
       "name": "EL",
       "source": "csi",
-      "byteOffset": 224,
+      "byteOffset": 223,
       "cursorX": 0,
       "cursorY": 7,
       "params": [
         2
       ],
       "altScreen": false,
-      "at": 1790187524706
+      "at": 1790216840196
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 288,
+      "byteOffset": 268,
       "cursorX": 0,
       "cursorY": 6,
       "params": [],
       "altScreen": false,
-      "at": 1790187524737
+      "at": 1790216840227
     },
     {
       "name": "CUP",
       "source": "csi",
-      "byteOffset": 288,
+      "byteOffset": 281,
       "cursorX": 0,
       "cursorY": 6,
       "params": [
@@ -188,34 +188,34 @@
         1
       ],
       "altScreen": false,
-      "at": 1790187524737
+      "at": 1790216840259
     },
     {
       "name": "EL",
       "source": "csi",
-      "byteOffset": 288,
+      "byteOffset": 281,
       "cursorX": 0,
       "cursorY": 7,
       "params": [
         2
       ],
       "altScreen": false,
-      "at": 1790187524737
+      "at": 1790216840259
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 352,
+      "byteOffset": 326,
       "cursorX": 0,
       "cursorY": 7,
       "params": [],
       "altScreen": false,
-      "at": 1790187524768
+      "at": 1790216840305
     },
     {
       "name": "CUP",
       "source": "csi",
-      "byteOffset": 352,
+      "byteOffset": 339,
       "cursorX": 0,
       "cursorY": 7,
       "params": [
@@ -223,19 +223,19 @@
         1
       ],
       "altScreen": false,
-      "at": 1790187524768
+      "at": 1790216840336
     },
     {
       "name": "EL",
       "source": "csi",
-      "byteOffset": 352,
+      "byteOffset": 339,
       "cursorX": 0,
       "cursorY": 7,
       "params": [
         2
       ],
       "altScreen": false,
-      "at": 1790187524768
+      "at": 1790216840336
     }
   ],
   "frames": [
@@ -269,6 +269,132 @@
     "  uploaded shard 6/6"
   ],
   "resizes": [],
+  "arrivals": [
+    {
+      "offset": 0,
+      "at": 1790216839733
+    },
+    {
+      "offset": 14,
+      "at": 1790216839733
+    },
+    {
+      "offset": 36,
+      "at": 1790216839748
+    },
+    {
+      "offset": 39,
+      "at": 1790216839748
+    },
+    {
+      "offset": 49,
+      "at": 1790216839748
+    },
+    {
+      "offset": 69,
+      "at": 1790216839748
+    },
+    {
+      "offset": 72,
+      "at": 1790216839763
+    },
+    {
+      "offset": 94,
+      "at": 1790216839779
+    },
+    {
+      "offset": 97,
+      "at": 1790216839779
+    },
+    {
+      "offset": 107,
+      "at": 1790216839779
+    },
+    {
+      "offset": 127,
+      "at": 1790216839779
+    },
+    {
+      "offset": 130,
+      "at": 1790216839794
+    },
+    {
+      "offset": 152,
+      "at": 1790216839810
+    },
+    {
+      "offset": 155,
+      "at": 1790216839810
+    },
+    {
+      "offset": 165,
+      "at": 1790216839810
+    },
+    {
+      "offset": 185,
+      "at": 1790216839810
+    },
+    {
+      "offset": 188,
+      "at": 1790216839825
+    },
+    {
+      "offset": 210,
+      "at": 1790216839841
+    },
+    {
+      "offset": 213,
+      "at": 1790216839841
+    },
+    {
+      "offset": 223,
+      "at": 1790216839841
+    },
+    {
+      "offset": 243,
+      "at": 1790216839841
+    },
+    {
+      "offset": 246,
+      "at": 1790216839856
+    },
+    {
+      "offset": 268,
+      "at": 1790216839872
+    },
+    {
+      "offset": 271,
+      "at": 1790216839872
+    },
+    {
+      "offset": 281,
+      "at": 1790216839872
+    },
+    {
+      "offset": 301,
+      "at": 1790216839872
+    },
+    {
+      "offset": 304,
+      "at": 1790216839887
+    },
+    {
+      "offset": 326,
+      "at": 1790216839903
+    },
+    {
+      "offset": 329,
+      "at": 1790216839903
+    },
+    {
+      "offset": 339,
+      "at": 1790216839903
+    },
+    {
+      "offset": 360,
+      "at": 1790216839903
+    }
+  ],
   "bytes": 363,
   "raw": "deploying...\r\n  uploaded shard 1/6\r\n\u001b[s\u001b[8;1H\u001b[2Kstatus: 17% complete\u001b[u  uploaded shard 2/6\r\n\u001b[s\u001b[8;1H\u001b[2Kstatus: 33% complete\u001b[u  uploaded shard 3/6\r\n\u001b[s\u001b[8;1H\u001b[2Kstatus: 50% complete\u001b[u  uploaded shard 4/6\r\n\u001b[s\u001b[8;1H\u001b[2Kstatus: 67% complete\u001b[u  uploaded shard 5/6\r\n\u001b[s\u001b[8;1H\u001b[2Kstatus: 83% complete\u001b[u  uploaded shard 6/6\r\n\u001b[s\u001b[8;1H\u001b[2Kstatus: 100% complete\u001b[u"
 }

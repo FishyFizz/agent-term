@@ -7,7 +7,7 @@
   "cols": 40,
   "rows": 5,
   "platform": "win32",
-  "recordedAt": "2026-09-23T18:19:19.432Z",
+  "recordedAt": "2026-09-24T02:27:43.175Z",
   "expectations": [
     {
       "from": 0,
@@ -45,7 +45,7 @@
         9001
       ],
       "altScreen": false,
-      "at": 1790187558916
+      "at": 1790216862444
     },
     {
       "name": "DECSET",
@@ -57,7 +57,7 @@
         1004
       ],
       "altScreen": false,
-      "at": 1790187558916
+      "at": 1790216862444
     },
     {
       "name": "DECRST",
@@ -69,7 +69,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790187558994
+      "at": 1790216862523
     },
     {
       "name": "ED",
@@ -81,7 +81,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790187558994
+      "at": 1790216862523
     },
     {
       "name": "SGR",
@@ -93,7 +93,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187558994
+      "at": 1790216862523
     },
     {
       "name": "CUP",
@@ -105,7 +105,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187558994
+      "at": 1790216862523
     },
     {
       "name": "LINEFEED",
@@ -115,7 +115,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790187558994
+      "at": 1790216862523
     },
     {
       "name": "LINEFEED",
@@ -125,7 +125,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790187558994
+      "at": 1790216862523
     },
     {
       "name": "LINEFEED",
@@ -135,7 +135,7 @@
       "cursorY": 3,
       "params": [],
       "altScreen": false,
-      "at": 1790187558994
+      "at": 1790216862523
     },
     {
       "name": "TITLECHANGE",
@@ -145,7 +145,7 @@
       "cursorY": 3,
       "params": [],
       "altScreen": false,
-      "at": 1790187558994
+      "at": 1790216862523
     },
     {
       "name": "DECSET",
@@ -157,7 +157,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790187558994
+      "at": 1790216862523
     },
     {
       "name": "LINEFEED",
@@ -167,7 +167,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790187559010
+      "at": 1790216862554
     },
     {
       "name": "SCROLL",
@@ -179,7 +179,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790187559025
+      "at": 1790216862648
     },
     {
       "name": "LINEFEED",
@@ -189,7 +189,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790187559025
+      "at": 1790216862648
     },
     {
       "name": "EL",
@@ -201,7 +201,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790187559041
+      "at": 1790216862787
     }
   ],
   "frames": [
@@ -230,6 +230,32 @@
     "log5"
   ],
   "resizes": [],
+  "arrivals": [
+    {
+      "offset": 0,
+      "at": 1790216862443
+    },
+    {
+      "offset": 16,
+      "at": 1790216862517
+    },
+    {
+      "offset": 93,
+      "at": 1790216862539
+    },
+    {
+      "offset": 107,
+      "at": 1790216862648
+    },
+    {
+      "offset": 112,
+      "at": 1790216862648
+    },
+    {
+      "offset": 113,
+      "at": 1790216862772
+    }
+  ],
   "bytes": 128,
   "raw": "\u001b[?9001h\u001b[?1004h\u001b[?25l\u001b[2J\u001b[m\u001b[Hlog1\r\nlog2\r\nlog3\r\n\u001b]0;C:\\Program Files\\nodejs\\node.exe\u0007\u001b[?25h[#####-----]\r\nlog5\r\n[##########]\u001b[K"
 }

@@ -18,13 +18,17 @@ import {
   scoreTrace,
   splitOnDrawOps,
   fixedChunks,
+  jobChunks,
 } from '../test/helpers/corpus.js';
 
-const chunkers: Array<[string, (raw: string) => string[]]> = [
-  ['drawOps', splitOnDrawOps],
-  ['fixed64', fixedChunks(64)],
-  ['fixed256', fixedChunks(256)],
-  ['whole', (raw) => [raw]],
+const JOB_GAP_MS = 50;
+
+const chunkers: Array<[string, (trace: Parameters<typeof jobChunks>[0]) => string[]]> = [
+  ['drawOps', (trace) => splitOnDrawOps(trace.raw)],
+  ['jobs50', (trace) => jobChunks(trace, JOB_GAP_MS)],
+  ['fixed64', (trace) => fixedChunks(64)(trace.raw)],
+  ['fixed256', (trace) => fixedChunks(256)(trace.raw)],
+  ['whole', (trace) => [trace.raw]],
 ];
 
 const traces = loadTraces('direct');
@@ -32,7 +36,9 @@ const traces = loadTraces('direct');
 for (const [label, chunker] of chunkers) {
   const fails: string[] = [];
   for (const trace of traces) {
-    const segments = await classifyTraceStreaming(trace, chunker);
+    // Every splitter is given the trace, not just its bytes: the job one needs
+    // the arrival times, which `raw` does not carry.
+    const segments = await classifyTraceStreaming(trace, () => chunker(trace));
     if (!scoreTrace(trace, segments).pass) fails.push(trace.id);
   }
   const pass = traces.length - fails.length;

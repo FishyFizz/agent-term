@@ -7,7 +7,7 @@
   "cols": 80,
   "rows": 6,
   "platform": "win32",
-  "recordedAt": "2026-09-23T18:18:41.006Z",
+  "recordedAt": "2026-09-24T02:27:11.137Z",
   "expectations": [
     {
       "from": 0,
@@ -26,12 +26,12 @@
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 32,
+      "byteOffset": 14,
       "cursorX": 0,
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790187520990
+      "at": 1790216831106
     }
   ],
   "frames": [
@@ -57,6 +57,20 @@
     "progress: 0%"
   ],
   "resizes": [],
+  "arrivals": [
+    {
+      "offset": 0,
+      "at": 1790216830905
+    },
+    {
+      "offset": 14,
+      "at": 1790216830997
+    },
+    {
+      "offset": 28,
+      "at": 1790216831090
+    }
+  ],
   "bytes": 43,
   "raw": "progress: 0%\r\n\rprogress: 50%\rprogress: 100%"
 }

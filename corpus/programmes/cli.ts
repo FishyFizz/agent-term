@@ -6,6 +6,7 @@
  * dependency installed.
  */
 import type { Programme } from '../src/types.js';
+import { BURST_PAUSE_MS, FRAME_PAUSE_MS, INTERACTION_PAUSE_MS } from '../src/types.js';
 
 const CRLF = '\r\n';
 
@@ -33,20 +34,20 @@ export const progressBar: Programme = {
     // Draw the bar once, at the bottom.
     io.out.write(`npm install${CRLF}`);
     io.out.write(`${bar(0)}${CRLF}`);
-    await io.wait(10);
+    await io.wait(FRAME_PAUSE_MS);
     io.mark('barDrawn');
 
     for (const pct of [25, 50, 75, 100]) {
       // A log line appends, scrolling the bar up by one row...
       io.out.write(`added package-${pct} in ${pct}ms${CRLF}`);
-      await io.wait(8);
+      await io.wait(FRAME_PAUSE_MS);
       // ...then the bar is redrawn on the bottom row.
       io.out.write('\x1b[s'); // save cursor
       io.out.write(`\x1b[${io.rows};1H`); // last row
       io.out.write('\x1b[2K'); // erase it
       io.out.write(bar(pct));
       io.out.write('\x1b[u'); // restore cursor
-      await io.wait(8);
+      await io.wait(FRAME_PAUSE_MS);
     }
     io.mark('end');
   },
@@ -74,7 +75,7 @@ export const repl: Programme = {
     io.mark('start');
     const prompt = '>>> ';
     io.out.write(prompt);
-    await io.wait(10);
+    await io.wait(INTERACTION_PAUSE_MS);
 
     for (const [cmd, result] of [
       ['1 + 1', '2'],
@@ -120,7 +121,7 @@ export const pager: Programme = {
       io.out.write(`${lines[i]}${CRLF}`);
     }
     io.out.write('(END)'); // status line
-    await io.wait(20);
+    await io.wait(INTERACTION_PAUSE_MS);
     io.mark('firstPage');
 
     // Scroll: repaint the whole viewport from a new offset.
@@ -131,7 +132,7 @@ export const pager: Programme = {
         io.out.write(`${lines[start + i] ?? ''}${CRLF}`);
       }
       io.out.write('\x1b[2K(END)');
-      await io.wait(20);
+      await io.wait(INTERACTION_PAUSE_MS);
     }
     io.mark('scrolled');
     io.out.write('\x1b[?1049l'); // quit: restore the shell underneath
@@ -168,11 +169,11 @@ export const menuSelector: Programme = {
       }
     };
     drawList(0);
-    await io.wait(15);
+    await io.wait(INTERACTION_PAUSE_MS);
     io.mark('moves');
     for (const sel of [1, 2, 3, 0]) {
       drawList(sel);
-      await io.wait(15);
+      await io.wait(INTERACTION_PAUSE_MS);
     }
     io.mark('end');
     io.out.write('\x1b[?1049l');
@@ -202,7 +203,7 @@ export const buildLog: Programme = {
     for (let i = 1; i <= 40; i++) {
       const colour = i % 7 === 0 ? '\x1b[33m' : '\x1b[32m';
       io.out.write(`${colour}[${i}/40]\x1b[0m Compiling module_${i}${CRLF}`);
-      await io.wait(1);
+      await io.wait(BURST_PAUSE_MS);
     }
     io.mark('summary');
     io.out.write(`\x1b[31merror: 1 target failed\x1b[0m${CRLF}`);
@@ -231,7 +232,7 @@ export const confirmPrompt: Programme = {
   async run(io) {
     io.mark('start');
     io.out.write(`About to delete 12 files.${CRLF}`);
-    await io.wait(10);
+    await io.wait(INTERACTION_PAUSE_MS);
     io.mark('prompt');
     io.out.write('Continue? [y/N] ');
     // No newline: the program is blocked. This is L1.4's pending prompt.
@@ -241,7 +242,7 @@ export const confirmPrompt: Programme = {
         io.mark('answered');
       }
     });
-    await io.wait(60);
+    await io.wait(INTERACTION_PAUSE_MS);
     io.mark('end');
   },
   expectations(m) {
@@ -275,11 +276,11 @@ export const dashboard: Programme = {
       io.out.write(`\x1b[2K  net          ${tick * 120}kb${CRLF}`);
     };
     draw(0);
-    await io.wait(15);
+    await io.wait(FRAME_PAUSE_MS);
     io.mark('ticks');
     for (let t = 1; t <= 3; t++) {
       draw(t);
-      await io.wait(15);
+      await io.wait(FRAME_PAUSE_MS);
     }
     io.mark('end');
     io.out.write('\x1b[?1049l');
