@@ -143,6 +143,41 @@ test('a command producing many lines is classified without drowning', async (t) 
   }
 });
 
+test('bytesPending is a count the parser disagrees with, never a hardcoded zero', async (t) => {
+  const { session, updates } = harness();
+  t.after(() => session.dispose());
+
+  session.pty.write('1..200 | % { $_ }\r\n');
+  await waitFor(() => session.seq > 0 && updates.at(-1)!.io.bytesRead > 500, {
+    label: 'bulk output',
+    timeoutMs: 15000,
+  });
+
+  // A real count, not a placeholder: a number for a live session, and never
+  // negative. (That it is sometimes *positive* is not asserted here — it needs
+  // bytes to arrive from the pty while a parse is in flight, which only a real
+  // pty schedules, and a test that only sometimes holds is worse than none.)
+  for (const u of updates) {
+    assert.equal(typeof u.io.bytesPending, 'number', 'pending is knowable for a live session');
+    assert.ok(u.io.bytesPending! >= 0, 'and never negative');
+  }
+
+  // Drained is reached, not assumed: once the shell is quiet and the queue is
+  // empty, nothing it handed us is unparsed.
+  assert.ok(
+    await waitFor(() => session.pending === 0 && updates.at(-1)!.io.bytesPending === 0, {
+      label: 'the pipeline to drain',
+      timeoutMs: 15000,
+    }),
+  );
+  assert.equal(updates.at(-1)!.io.bytesPending, 0, 'a real zero');
+
+  // Fed from somewhere other than the pty, the two counters are not a
+  // difference of the same thing: null, never a clamped zero.
+  const direct = await session.feed(Buffer.from('x'));
+  assert.equal(direct.io.bytesPending, null, 'unknown, not zero');
+});
+
 test("every update's delta reproduces that update's screen exactly", async (t) => {
   const { session, updates } = harness();
   t.after(() => session.dispose());

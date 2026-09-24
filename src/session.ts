@@ -147,10 +147,16 @@ export interface Delivery {
  * `bytesRead` is a watermark: monotonic, never reset, so comparing an earlier
  * value against the current one says whether anything arrived since.
  *
- * `bytesPending` is bytes read but not yet through the parser. `null` when the
- * number is not knowable, and 0 only when it is genuinely zero — GOAL.md L1.3:
- * unknown values are `null`, never `0`, because conflating the two is a whole
- * class of interaction bug.
+ * `bytesPending` is bytes the pty handed us that the parser has not finished
+ * with. `null` when the number is not knowable, and 0 only when it is genuinely
+ * zero — GOAL.md L1.3: unknown values are `null`, never `0`, because conflating
+ * the two is a whole class of interaction bug.
+ *
+ * It is `null` rather than `0` when the parser has also been handed bytes that
+ * did not come from this pty — a caller feeding buffers directly. The two
+ * counters are then not a difference of the same thing, and reporting a clamped
+ * zero would answer a question that was never asked with a number that looks
+ * like an answer to it.
  */
 export interface SessionIo {
   /** Total bytes read from the pty. Monotonic. */
@@ -196,6 +202,15 @@ export class TerminalSession {
   private _rawSeq = 0;
   private queue: Promise<void> = Promise.resolve();
   private pendings = 0;
+  /**
+   * Bytes the parser has finished with. Monotonic.
+   *
+   * Not `screen.ops.bytesFed`, which is counted *before* the write because op
+   * handlers run during it and their offsets must already include the bytes
+   * that produced them. That makes it a count of bytes handed over, so a chunk
+   * mid-parse reads as done — the opposite of what "pending" asks.
+   */
+  private _bytesParsed = 0;
 
   constructor(id: string, options: SessionOptions = {}) {
     this.id = id;
@@ -330,6 +345,8 @@ export class TerminalSession {
         // call, which was a second witness to the same bytes.
         const partFromByte = this.screen.ops.bytesFed;
         const facts = await this.screen.feed(part);
+        // Counted after the write resolves, unlike `bytesFed` — see the field.
+        this._bytesParsed += part.length;
         // Dropped here, so a long session's op stream does not accumulate.
         this.screen.ops.clear();
         const beforeSnap = facts.before;
@@ -385,10 +402,12 @@ export class TerminalSession {
         // saturates; past that it is useless, and the encoder falls back to
         // searching for a shift it can verify (see `delta.ts`).
         grid: gridDelta(jobStartSnap, afterSnap, after.viewportY - jobStart.viewportY),
-        // Zero is a real zero here: this call has drained what it was given.
-        // It is per-update, so it says *this* update is parsed, not that the
-        // pty is quiet -- `bytesRead` is the watermark that answers that.
-        io: { bytesRead: this.pty.bytesRead, bytesPending: 0 },
+        // Not zero by construction. Everything this update covers is already
+        // parsed, so what is left is what arrived *behind* it: bytes that came
+        // in while it was being written, still held by the job detector or
+        // queued behind this feed. That is the number L1.3 is asking for -- a
+        // hardcoded 0 would make "nothing pending" unfalsifiable.
+        io: { bytesRead: this.pty.bytesRead, bytesPending: this.pendingBytes() },
         screen: afterSnap,
         collapsed: job
           ? {
@@ -420,6 +439,18 @@ export class TerminalSession {
   /** Feeds queued but not yet processed. */
   get pending(): number {
     return this.pendings;
+  }
+
+  /**
+   * Bytes the pty handed us that the parser has not finished with.
+   *
+   * `null` when the parser has also been fed from somewhere other than the
+   * pty — the two counters are then not a difference of the same thing.
+   */
+  private pendingBytes(): number | null {
+    const read = this.pty.bytesRead;
+    if (this._bytesParsed > read) return null;
+    return read - this._bytesParsed;
   }
 
   get seq(): number {
