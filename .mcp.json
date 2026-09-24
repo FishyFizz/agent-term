@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "agent-term": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["tsx", "scripts/mcp-stdio.ts"]
+    }
+  }
+}
