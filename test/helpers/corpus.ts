@@ -82,7 +82,7 @@ export async function classifyTraceStreaming(
     screen.ops.clear();
     const after = frameOf(screen);
 
-    for (const seg of classify({ before, after, ops, fromByte: prevTo, toByte }).segments) {
+    for (const seg of classify({ before, after, fromByte: prevTo, toByte }).segments) {
       segments.push(seg);
     }
     prevTo = toByte;
@@ -261,49 +261,21 @@ export function splitOnDrawOps(raw: string): string[] {
  * A replay classifies one batch per delivery, so the batches need joining
  * before they can be scored against expectations that span several of them.
  *
- * Two rules on top of the classifier's own coalescing, both about replay
- * artifacts rather than about meaning:
+ * One rule on top of the classifier's own coalescing, and it is about a
+ * replay artifact rather than about meaning: a zero-width segment is dropped.
+ * A control byte delivered on its own produces one, and merging it in flips
+ * the verdict of the run around it.
  *
- *  - a zero-width segment is dropped. A control byte delivered on its own
- *    produces one, and merging it in flips the verdict of the run around it.
- *  - op-less text immediately following a drawing segment is part of that
- *    repaint. A repaint is `CUP` + erase + text, and the text carries no op
- *    of its own, so it reads as an append.
- *
- * The second is bounded by adjacency, so a later append after a pause is its
- * own segment: a selector draws its list and then stops.
+ * A second rule used to live here -- op-less text following a drawing segment
+ * was absorbed into that repaint -- and it went when the verdict stopped
+ * reading ops. It existed to rejoin a `CUP` segment with the text it
+ * governed, which is a distinction only the op stream made.
  */
 function merge(segments: readonly Segment[]): Segment[] {
   // Zero-width segments first: a control byte delivered on its own produces
   // one, and merging one in flips the verdict of the run around it on a
   // delivery artifact.
-  const kept = segments.filter((s) => s.toByte > s.fromByte);
-
-  // Repaint absorption runs *before* coalescing, and that order is load
-  // bearing: absorbing afterwards lets coalesce() join the op segment to the
-  // op-less one first, and the op-less text then lands under the op segment
-  // instead of extending the repaint. Measured on the corpus: the other
-  // order loses `complex.resize-during-tui` (19/22 vs 20/22).
-  const absorbed: Segment[] = [];
-  for (const seg of kept) {
-    const prev = absorbed[absorbed.length - 1];
-    const continuesRepaint =
-      prev?.kind === 'drawing' &&
-      seg.evidence.ops.length === 0 &&
-      // Adjacency: the text must start exactly where the drawing segment
-      // ended, so a later append after a pause is its own segment.
-      seg.fromByte === prev.toByte &&
-      // One CRLF-sized step, not a run of new lines.
-      seg.toByte - seg.fromByte <= 2;
-
-    if (continuesRepaint) {
-      prev.toByte = Math.max(prev.toByte, seg.toByte);
-      continue;
-    }
-    absorbed.push({ ...seg, evidence: { ...seg.evidence, ops: [...seg.evidence.ops] } });
-  }
-
-  return coalesce(absorbed);
+  return coalesce(segments.filter((s) => s.toByte > s.fromByte));
 }
 
 /**
@@ -385,11 +357,12 @@ export function scoreTrace(trace: Trace, segments: Segment[]): CaseResult {
           s.kind === kind && Math.min(s.toByte, exp.to) > Math.max(s.fromByte, exp.from),
       );
 
-    const pass = exp.ambiguous
-      ? overlapping.every((s) => s.confidence === 'low' || s.kind === exp.kind)
-      : exp.also
-        ? covers(exp.kind) && covers(exp.also)
-        : overlapping.length > 0 && expectedBytes > otherBytes;
+    // No abstention branch: nothing reports doubt any more. An update that
+    // collapsed many deliveries and changed little says so by its collapsed
+    // count, which is the replacement for "I am not sure" (CLASSIFIER.md §3.5).
+    const pass = exp.also
+      ? covers(exp.kind) && covers(exp.also)
+      : overlapping.length > 0 && expectedBytes > otherBytes;
 
     return {
       from: exp.from,

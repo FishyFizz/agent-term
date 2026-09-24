@@ -1,28 +1,33 @@
 /**
- * Classification: per segment, `writing` or `drawing`.
+ * Classification: what the screen did, per segment.
  *
- * CLASSIFIER.md §2 — the unit is the **segment**, a run of activity bounded by
- * the program's own control operations. Not the update, and not a region of
- * the screen (§4 shows why a region cannot work). An update carries one or
- * more ordered segments; "mixed" is the structural fact that an update
- * contains more than one kind.
+ * The verdict is read off the screen and nowhere else. Not off the escape
+ * sequences, not off what the program appears to have intended: a human at
+ * the terminal sees a screen, and the agent is meant to see the same thing.
+ * The op stream is how output is *replayed* and how a caller reads raw bytes
+ * when the screen model is under suspicion (L2); it is not an input to the
+ * verdict, because an op's meaning depends on what the program meant by it
+ * and that is semantics, which GOAL.md puts out of scope.
  *
- * §3.3 — the tests are **structural and threshold-free**: did it erase, did it
- * overwrite, did it reach back. Never "more than N% changed". A tuned
- * classifier needs tuning per program, and GOAL.md's success criteria are all
- * "without special-casing any program".
+ * The tests are **structural and threshold-free**: did content arrive, was it
+ * replaced in place, did it move, did the surface change. Never "more than
+ * N% changed". A tuned classifier needs tuning per program, and GOAL.md's
+ * success criteria are all "without special-casing any program".
+ *
+ * There is deliberately no abstention. Nothing here declines to answer, and
+ * nothing here reports doubt: a verdict is either supported by the screen or
+ * the screen says it did not happen. What replaces doubt is *volume* — an
+ * update that collapsed many deliveries and changed little is reported as
+ * having collapsed many deliveries, and a caller that cares can read the
+ * intermediates. See CLASSIFIER.md §3.5.
  */
 import type { ScreenModel } from './screen.js';
 import type { ScreenSnapshot } from './screen.js';
-import { OP, type Op, type OpName } from './edit-record.js';
 
 export type Verdict = 'writing' | 'drawing';
-export type Confidence = 'high' | 'low';
 
 /** Why a verdict was reached. Attached to every segment (L0.1: a bug you can't see is a bug you can't fix). */
 export interface Evidence {
-  /** Ops that bounded or drove this segment. */
-  ops: OpName[];
   /** The segment erased cells outside the scrolled region. */
   erased: boolean;
   /** The segment wrote onto cells that were non-blank. */
@@ -37,7 +42,6 @@ export interface Evidence {
 
 export interface Segment {
   kind: Verdict;
-  confidence: Confidence;
   /** Byte range this segment covers, half-open. */
   fromByte: number;
   toByte: number;
@@ -66,79 +70,19 @@ interface Frame {
  * Classify one update for a session.
  *
  * `before` is the screen as of `fromByte`; `after` is the live model once the
- * update has been fed in. `ops` are the ops recorded during it.
+ * update has been fed in.
  *
- * An op's `byteOffset` is the end of the delivery that carried it: the byte
- * counter advances per feed, not per op. Two ops in one delivery therefore
- * always share an offset, which means ops can be *counted* but never ordered
- * or bounded against each other inside a delivery. Every segment below spans
- * the whole delivery for that reason.
+ * One segment per delivery, spanning the whole delivery: a segment cannot
+ * claim a finer range than the thing it was measured over.
  */
 export function classify(params: {
   before: Frame;
   after: Frame;
-  ops: readonly Op[];
   fromByte: number;
   toByte: number;
 }): ClassifiedUpdate {
-  const { before, after, ops, fromByte, toByte } = params;
-
-  // The screen's own account, with no op to interpret it: did the content
-  // land where an append would put it? Emitted first and spanning the whole
-  // delivery, so an op that agrees absorbs it rather than replacing it.
-  const segments: Segment[] = [inferSegment(before, after, fromByte, toByte)];
-
-  // A `CUP` immediately after a buffer switch is the home a full-screen
-  // program emits before it writes, not a repaint. `buildSegment` lets `CUP`
-  // corroborate drawing on its own -- correctly, for a redraw that restores
-  // the content a row already held and so leaves no screen fact behind -- but
-  // that rule cannot tell a home from a redraw, because both are the same op
-  // and the frames look identical. So every alt-screen programme was carrying
-  // a `drawing` segment for merely opening, competing with the switch's own
-  // `writing` over the same bytes.
-  //
-  // The switch already reports that boundary, so the home after it is not a
-  // second act. Only the immediately following `CUP` is dropped: a later one
-  // in the same delivery is a repaint and must still be reported.
-  const homed = new Set<number>();
-  ops.forEach((op, i) => {
-    if (!OP.isAltScreenSwitch(op)) return;
-    // Structural events -- `SCROLL`, `BUFFERCHANGE` -- fire between the switch
-    // and the home, so the next *drawing* op is the one to look at, not the
-    // next op.
-    for (let j = i + 1; j < ops.length; j++) {
-      if (!OP.isDrawing(ops[j]!.name)) continue;
-      if (ops[j]!.name === 'CUP') homed.add(j);
-      break;
-    }
-  });
-
-  for (const [i, op] of ops.entries()) {
-    // Most ops are evidence, not segments: a mode change alters shape or
-    // behaviour, and a structural event is the emulator reporting what it did
-    // in response. Neither is a segment of its own.
-    //
-    // A buffer switch is the exception. It draws nothing and erases nothing,
-    // but content on the alt screen is destroyed when the program leaves it
-    // (L0.3), so the boundary has to survive into the stream -- neither
-    // swallowed by the repaint that follows nor lost as mode-change noise.
-    // Asking for the switch alone is enough: it is a mode change already.
-    if (!OP.isDrawing(op.name) && !OP.isAltScreenSwitch(op)) continue;
-    if (homed.has(i)) continue;
-
-    segments.push(
-      buildSegment({
-        kind: OP.isAltScreenSwitch(op) ? 'writing' : 'drawing',
-        before,
-        after,
-        op,
-        fromByte,
-        toByte,
-      }),
-    );
-  }
-
-  return { segments: coalesce(segments), fromByte, toByte };
+  const { before, after, fromByte, toByte } = params;
+  return { segments: [inferSegment(before, after, fromByte, toByte)], fromByte, toByte };
 }
 
 /**
@@ -160,48 +104,38 @@ export function coalesce(segments: readonly Segment[]): Segment[] {
     const prev = out[out.length - 1];
     if (prev && prev.kind === seg.kind) {
       prev.toByte = Math.max(prev.toByte, seg.toByte);
-      // An op-less segment is an inference from the screen; a segment carrying
-      // an op is the program stating what it did, which is strictly better
-      // evidence. Replace the inference's empty op list rather than appending
-      // to it, so the verdict is attributed to the op. Otherwise union, since
-      // a run of ops draws from more than one.
-      if (prev.evidence.ops.length === 0) prev.evidence.ops.push(...seg.evidence.ops);
-      else for (const name of seg.evidence.ops) if (!prev.evidence.ops.includes(name)) prev.evidence.ops.push(name);
-
       prev.evidence.erased ||= seg.evidence.erased;
       prev.evidence.overwrote ||= seg.evidence.overwrote;
       prev.evidence.reachedBack ||= seg.evidence.reachedBack;
       prev.evidence.scrolledBy += seg.evidence.scrolledBy;
-      if (seg.confidence === 'low') prev.confidence = 'low';
       continue;
     }
     // Clone: coalescing mutates the accumulated segment.
     out.push({
       kind: seg.kind,
-      confidence: seg.confidence,
       fromByte: seg.fromByte,
       toByte: seg.toByte,
-      evidence: { ...seg.evidence, ops: [...seg.evidence.ops] },
+      evidence: { ...seg.evidence },
     });
   }
   return out;
 }
 
 /**
- * The verdict the screen supports on its own, with no control op to interpret.
+ * The verdict the screen supports.
  *
- * Every update gets one: L0.1 says the server reports every change, so an
- * update carrying only mode changes -- evidence, not segments -- must still
- * produce a segment rather than nothing.
+ * Every update gets exactly one: L0.1 says the server reports every change,
+ * so an update that changed nothing visible still produces a segment rather
+ * than nothing.
  *
- * With no op to read, the screen is the only witness, and a change is drawing
- * exactly when it damaged something: erased a cell, wrote over a non-blank one,
- * or reached back above the cursor. The decisive test when no control op fired
- * is "did the content land where an append would put it?" -- but that is the
- * same question as `reachedBack` asked the other way round, so an inferred
- * drawing always carries positive evidence and this path never abstains.
- * Abstention is `buildSegment`'s: an op that claims a drawing the screen cannot
- * corroborate. (CLASSIFIER.md §3.5.)
+ * A change is drawing exactly when it damaged something: erased a cell, wrote
+ * over a non-blank one, or reached back above the cursor. Otherwise the
+ * content landed where an append would put it, and that is writing.
+ *
+ * The decision is the same question `reachedBack` asks the other way round,
+ * so a drawing always carries positive evidence: something was erased,
+ * overwritten, or reached. Nothing here abstains, reports doubt, or declines
+ * -- see the file header and CLASSIFIER.md §3.5.
  */
 function inferSegment(before: Frame, after: Frame, fromByte: number, toByte: number): Segment {
   const scrolledBy = scrollDelta(before, after);
@@ -221,52 +155,14 @@ function inferSegment(before: Frame, after: Frame, fromByte: number, toByte: num
 
   return {
     kind: !bufferSwitch && damaged ? 'drawing' : 'writing',
-    confidence: 'high',
     fromByte,
     toByte,
     evidence: {
-      ops: [],
       erased,
       overwrote,
       reachedBack,
       scrolledBy,
       altScreen: after.altScreen,
-    },
-  };
-}
-
-function buildSegment(params: {
-  kind: Verdict;
-  before: Frame;
-  after: Frame;
-  op: Op;
-  fromByte: number;
-  toByte: number;
-}): Segment {
-  const { kind, before, after, op, fromByte, toByte } = params;
-  const scrolledBy = scrollDelta(before, after);
-  const { erased, overwrote, reachedBack } = diffFacts(before, after, scrolledBy);
-
-  // Structural corroboration: an op said "drawing", so believe it unless the
-  // screen says nothing changed at all.
-  //
-  // `CUP` alone corroborates because a repaint that redraws a row with the
-  // content it already held leaves no screen fact behind -- the op is the
-  // program stating its intent, and nothing here can contradict it.
-  const agrees = kind === 'drawing' ? op.name === 'CUP' || erased || overwrote || reachedBack : !erased && !reachedBack;
-
-  return {
-    kind,
-    confidence: agrees ? 'high' : 'low',
-    fromByte,
-    toByte,
-    evidence: {
-      ops: [op.name],
-      erased,
-      overwrote,
-      reachedBack,
-      scrolledBy,
-      altScreen: op.altScreen,
     },
   };
 }

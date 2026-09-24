@@ -68,7 +68,7 @@ async function replayIntoHistory(history: SessionHistory, trace: ReturnType<type
 
     const snap = screen.snapshot();
     const text: TextLine[] = screen.text.drain();
-    const segments = classify({ before, after, ops, fromByte: prevTo, toByte }).segments;
+    const segments = classify({ before, after, fromByte: prevTo, toByte }).segments;
 
     seq++;
     history.push({

@@ -41,11 +41,9 @@ function snapshot(cols: number, rows: number, lines: string[]): ScreenSnapshot {
 function segment(fromByte: number, toByte: number, kind: Verdict): Segment {
   return {
     kind,
-    confidence: 'high',
     fromByte,
     toByte,
     evidence: {
-      ops: [],
       erased: false,
       overwrote: false,
       reachedBack: false,

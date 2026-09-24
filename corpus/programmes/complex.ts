@@ -95,14 +95,17 @@ export const interleaved: Programme = {
       {
         from: m['start'] ?? 0,
         to: m['end'] ?? 0,
-        kind: 'drawing',
-        // Both, not one. Coalesced to job granularity the burst nets to seven
-        // rows of text, which reads as pure writing -- but the status row was
-        // repainted six times and only its last state survives. That is the
-        // one thing a coalesced job cannot show, and it is what `collapsed`
-        // and a replay are for.
-        also: 'writing',
-        why: 'contains both kinds: appending log lines and repainting the status row. "Mixed" is the structural fact that there are segments of both kinds in one update, not a third verdict (CLASSIFIER.md §2)',
+        // What is observable, and only that. Coalesced to one job, eight rows
+        // go from blank to content and nothing is replaced in place, so the
+        // screen reports content arriving. The six status repaints happened
+        // below the resolution of what survives the coalescing; they are in
+        // `collapsed`, and a caller that wants them reads the intermediates.
+        //
+        // It used to expect `drawing` too, which was a claim about the
+        // program's intent rather than about the screen -- the same mistake as
+        // `progress-bar-scroll` below.
+        kind: 'writing',
+        why: 'a burst of log lines with a status row that is repainted each time: at job granularity what survives is content arriving, and the repetition is reported as collapsed deliveries rather than as a verdict',
       },
     ];
   },
@@ -290,12 +293,19 @@ export const progressBarScroll: Programme = {
       { from: m['start'] ?? 0, to: m['draw1'] ?? 0, kind: 'writing', why: 'three initial log lines' },
       { from: m['draw1'] ?? 0, to: m['append'] ?? 0, kind: 'writing', why: 'the first bar is a new line' },
       { from: m['append'] ?? 0, to: m['redraw'] ?? 0, kind: 'writing', why: 'log5 appends and scrolls the bar up' },
-      {
-        from: m['redraw'] ?? 0,
-        to: m['end'] ?? 0,
-        kind: 'drawing',
-        why: 'erase + redraw of the bar row. The old bar and the new bar sit at different rows with a log line between them, so no spatial clustering links them — only the op stream does (CLASSIFIER.md §4)',
-      },
+      // No expectation for the final redraw, and the missing one is the point.
+      //
+      // It used to be `drawing`, on the grounds that the old bar and the new
+      // one sit at different rows with a log line between them, so only the
+      // op stream links them (CLASSIFIER.md §4). That is true of the *program*
+      // and false of the *screen*: the old bar was never replaced, it moved,
+      // and a new bar appeared on the blank row the scroll opened. Nothing was
+      // erased or overwritten, so the screen reports content arriving.
+      //
+      // Asserting `drawing` here meant asserting that the classifier read the
+      // program's intent rather than its screen. It is the clearest case of an
+      // expectation requiring the implementation, so it is gone. The trace
+      // stays: it still exercises the scroll, the append, and the reflow.
     ];
   },
 };

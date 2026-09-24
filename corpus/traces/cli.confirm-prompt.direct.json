@@ -7,7 +7,7 @@
   "cols": 60,
   "rows": 6,
   "platform": "win32",
-  "recordedAt": "2026-09-24T03:57:55.620Z",
+  "recordedAt": "2026-09-24T05:07:59.800Z",
   "expectations": [
     {
       "from": 0,
@@ -31,7 +31,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790222275605
+      "at": 1790226479784
     }
   ],
   "frames": [
@@ -60,11 +60,11 @@
   "arrivals": [
     {
       "offset": 0,
-      "at": 1790222275354
+      "at": 1790226479522
     },
     {
       "offset": 27,
-      "at": 1790222275478
+      "at": 1790226479643
     }
   ],
   "bytes": 43,

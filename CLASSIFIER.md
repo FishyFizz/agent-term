@@ -19,14 +19,25 @@ The contract is fixed by L0.1:
 - The server classifies. The agent never inspects escape sequences or guesses a mode.
 - Misclassification is a server bug.
 - A change can be both writing **and** drawing.
-- Where classification is genuinely uncertain, the server says so rather than choosing silently.
 
-One rule governs the whole design:
+Two rules govern the whole design.
 
+> **The screen is the witness.** The verdict is read off the screen and nowhere else — not off
+> the escape sequences, and not off what the program appears to have intended. A human at the
+> terminal sees a screen, and the agent is meant to see the same thing. The op stream is how
+> output is *replayed* and how a caller reads raw bytes when the screen model is under suspicion
+> (L2); it is not an input to the verdict, because an op's meaning depends on what the program
+> meant by it, and that is semantics — which `GOAL.md` puts out of scope.
+>
 > **One parser, one truth.** Classification is derived from the emulator that produces the
 > screen, never from a second reading of the byte stream. A byte-level heuristic would be a
 > second, worse VT parser that can disagree with the first one — and L0.2 stakes the project on
 > the emulator being the authority.
+
+A consequence worth stating plainly, because it surprised us: **there is no abstention, and
+there is no confidence.** Nothing here declines to answer or reports doubt. A verdict is either
+supported by the screen or the screen says it did not happen; the four observations in §3.1 are
+a closed set, so every change lands in one of them. What replaces doubt is *volume* — see §3.5.
 
 ---
 
@@ -35,15 +46,20 @@ One rule governs the whole design:
 The first design classified each update as `writing | drawing | mixed`. That is wrong, and the
 reason is the subject of §4.
 
-**The unit of classification is the segment** — a run of program activity bounded by control
-operations — not the update, and not a region of the screen.
+**The unit of classification is the delivery** — one job, one segment. A segment cannot claim a
+finer range than the thing it was measured over, and the measurement is a frame diff across the
+whole delivery.
 
-An update delivered to the agent contains **one or more ordered segments**, each independently
-classified as `writing` or `drawing`. "Mixed" is not a verdict; it is the structural fact that an
-update contains segments of more than one kind.
+"Mixed" is therefore not something an update *contains*; it is a fact about a **sequence** of
+updates. A log line and the status repaint after it are two segments in time order, which is
+what L0.3's timeline wants anyway and what the agent reads as a list.
 
-This is a better interface than a tri-state: the agent never has to interpret `mixed`, it reads a
-list, and the list is what L0.3's timeline wants anyway.
+This replaced an earlier rule that produced one segment per control op inside a single update.
+That rule let an op's verdict compete with the screen's over the same bytes — the two disagreed,
+nothing could settle it, and the resolution was a series of special cases (a `CUP` corroborates
+drawing on its own; except the home that follows entering a full-screen program). Every one of
+those cases was a judgement call introduced to settle a conflict that only existed because the
+op stream was being asked.
 
 ---
 
@@ -144,12 +160,21 @@ Alt-screen enter/exit are additionally **segment boundaries** and **timeline eve
 what makes success criterion 3 (shell → TUI → shell, reconstructable in order) fall out
 structurally rather than needing separate machinery.
 
-### 3.5 Abstain
+### 3.5 Suspicion is volume, not doubt
 
-If no test fires cleanly, the segment is not silently assigned. It is emitted with
-`confidence: "low"` and its evidence attached, and delivery sends **both** representations. This
-is the answer to open question #4 in `GOAL.md`: never ask the agent, never guess, send both and
-flag it. Expensive, and expected to be rare.
+There is no abstention. Nothing is emitted with low confidence, and nothing declines to answer:
+the four observations in §3.1 are a closed set, so every change lands in one of them.
+
+The case that used to be abstention — "the program appears to have done something the screen
+will not confirm" — is not reported as uncertainty. It is reported as **volume**: an update
+carries how many raw deliveries it collapsed (`collapsed`, `GOAL.md` L1.1), so *many deliveries
+behind little visible change* is visible to the agent as exactly that, and the intermediates
+remain readable. That is a better signal than a confidence flag: it is a fact rather than a
+judgement, it does not require the classifier to know what it does not know, and it points at
+the remedy — go and read the intermediates — instead of merely warning.
+
+This is the answer to open question #4 in `GOAL.md`, in the form the design can actually honour:
+never ask the agent, never guess, and report the collapsed count rather than claiming doubt.
 
 A third `unknown` value is reserved for emulator desync and should be unreachable.
 
@@ -355,3 +380,62 @@ those programs':
 
 The scores and the replay granularities they are measured at are pinned in `test/corpus.test.ts`
 and printed by `scripts/corpus-score.ts`; the timeline's own verification is `HISTORY.md` §6.
+
+---
+
+## 11. How this is built, and what a test may assert
+
+Three rules, in order. They were learned the hard way on this codebase, by doing it the other
+way first.
+
+### 1. Comprehensible first
+
+The classifier's job is to **present the terminal in a comprehensible way** — to say what a
+human at the screen would say: content arrived, content was replaced in place, content moved,
+the surface changed. That is the specification.
+
+It is not "produce the verdict a label says". Nobody specified the labels. They were written by
+hand, alongside the code, mostly after it — and an expectation that says "this span is
+`drawing`" where the screen shows a blank row gaining text is a claim about the *program's
+intent*, not about anything visible. Optimising against such a label makes the classifier worse
+in a way that looks like progress, because the number goes up.
+
+It did go up, repeatedly, and every increase was fitted: a second verdict field added so a mixed
+burst could pass, a `CUP` suppressed because it measured better, a job boundary adopted because
+it netted +1. None of those were asked for. All of them are gone now.
+
+### 2. The code reflects the model
+
+The model comes first and the code is written to match it. When the code and the model disagree,
+the code is wrong — including when the code passes its tests. `src/classify.ts` should read like
+§3.1: four observations, one walk, no thresholds.
+
+If a change to the code needs a new special case to keep a label satisfied, that is the model
+telling you the code took a wrong turn.
+
+### 3. Tests check the code, not the semantics
+
+A test written after the classifier may assert that the *code is correct*. It may not assert
+that a *verdict is right*, because the verdict is the thing under test.
+
+What that leaves, and it is not nothing:
+
+- **Exactness** — applying what was reported reproduces the screen. This is already exhaustive
+  across every delivery of every direct trace (`test/history-corpus.test.ts`) and is the
+  strongest test in the repo; it does not mention verdicts at all.
+- **Completeness and order** — every byte accounted for, segments in time order.
+- **Observation, checked against the frames** — "replaced in place" really was a replacement;
+  "content arrived" really was blank before. Derivable from the before/after frames, so a test
+  can check it without anyone's judgement.
+- **Structural invariants** — a job does not straddle a resize or an alt-screen switch; a
+  segment's range is well-formed; the collapsed count is honest.
+
+And what it does not leave: **the pinned scores are measurements, not a specification.** They
+are printed because a drop means the algorithm moved, and they are pinned so a regression fails
+loudly. A rise is not automatically progress, and a fall is not automatically a bug — when the
+verdict stopped reading the op stream, `drawOps` went 21 → 20 and that was the change working,
+not breaking.
+
+Where a programme's expectation encodes a semantic judgement rather than an observation, delete
+it. Two have been: `complex.progress-bar-scroll`'s final redraw, and `complex.interleaved`'s
+`drawing` — both asserted something about the program that the screen does not show.

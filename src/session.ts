@@ -266,7 +266,6 @@ export class TerminalSession {
       const classified = classify({
         before,
         after,
-        ops,
         fromByte,
         toByte: this.screen.ops.bytesFed,
       });

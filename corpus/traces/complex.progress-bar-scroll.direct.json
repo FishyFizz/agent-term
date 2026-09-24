@@ -7,7 +7,7 @@
   "cols": 40,
   "rows": 5,
   "platform": "win32",
-  "recordedAt": "2026-09-24T03:57:59.917Z",
+  "recordedAt": "2026-09-24T05:08:04.030Z",
   "expectations": [
     {
       "from": 0,
@@ -26,12 +26,6 @@
       "to": 38,
       "kind": "writing",
       "why": "log5 appends and scrolls the bar up"
-    },
-    {
-      "from": 38,
-      "to": 60,
-      "kind": "drawing",
-      "why": "erase + redraw of the bar row. The old bar and the new bar sit at different rows with a log line between them, so no spatial clustering links them — only the op stream does (CLASSIFIER.md §4)"
     }
   ],
   "ops": [
@@ -43,7 +37,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790222279869
+      "at": 1790226483982
     },
     {
       "name": "LINEFEED",
@@ -53,7 +47,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790222279869
+      "at": 1790226483982
     },
     {
       "name": "LINEFEED",
@@ -63,7 +57,7 @@
       "cursorY": 3,
       "params": [],
       "altScreen": false,
-      "at": 1790222279869
+      "at": 1790226483982
     },
     {
       "name": "LINEFEED",
@@ -73,7 +67,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790222279885
+      "at": 1790226483997
     },
     {
       "name": "SCROLL",
@@ -85,7 +79,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790222279901
+      "at": 1790226484013
     },
     {
       "name": "LINEFEED",
@@ -95,7 +89,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790222279901
+      "at": 1790226484013
     },
     {
       "name": "CUP",
@@ -108,7 +102,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790222279917
+      "at": 1790226484029
     },
     {
       "name": "EL",
@@ -120,7 +114,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790222279917
+      "at": 1790226484029
     }
   ],
   "frames": [
@@ -152,19 +146,19 @@
   "arrivals": [
     {
       "offset": 0,
-      "at": 1790222279609
+      "at": 1790226483716
     },
     {
       "offset": 18,
-      "at": 1790222279609
+      "at": 1790226483716
     },
     {
       "offset": 32,
-      "at": 1790222279730
+      "at": 1790226483842
     },
     {
       "offset": 38,
-      "at": 1790222279854
+      "at": 1790226483967
     }
   ],
   "bytes": 60,

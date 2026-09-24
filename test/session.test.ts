@@ -85,7 +85,7 @@ test('a real shell session reports its output as ordered writing segments', asyn
     assert.ok(u.segments.length > 0, `update ${u.seq} has segments`);
     for (const s of u.segments) {
       assert.ok(s.toByte >= s.fromByte, 'segment range well-formed');
-      assert.ok(Array.isArray(s.evidence.ops), 'evidence attached');
+      assert.equal(typeof s.evidence.erased, 'boolean', 'evidence attached');
     }
     assert.equal(u.screen.lines.length, 24, 'screen is a full grid');
     for (const line of u.screen.lines) assert.equal(line.length, 100, 'row is full width');

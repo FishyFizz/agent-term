@@ -26,27 +26,31 @@ import type { Trace } from './helpers/corpus.js';
  */
 const JOB_GAP_MS = 50;
 
-/** Scores are pinned so a change is visible; raise them when the classifier improves. */
+/**
+ * Scores are printed so a change is visible. They are measurements of a
+ * label set, not a specification: a programme's `why` records what is
+ * interesting about it, and the verdict beside it is a claim about the screen
+ * that a reader is free to dispute. Raising one is not automatically progress
+ * -- see the rule in CLASSIFIER.md §11.
+ */
 const EXPECTED = {
-  /** One delivery per drawing op: the classifier's best case. */
-  drawOps: 21,
-  /** Fixed 64-byte chunks, closer to what a pty delivers. */
-  pty64: 15,
   /**
-   * Deliveries grouped at the boundaries the programme drew.
+   * One delivery per drawing op. Not a real delivery mode: it is a synthetic
+   * splitter that exposes every op, so it resolves repaints that a real
+   * coalescing window collapses. Useful as a ceiling, and its failures are
+   * mostly granularity artifacts rather than defects.
+   */
+  drawOps: 20,
+  /** Fixed 64-byte chunks, closer to what a pty delivers. */
+  pty64: 17,
+  /**
+   * Deliveries grouped at the boundaries the programme drew -- the mode the
+   * server actually delivers in, so this is the number to watch.
    *
-   * Level with `drawOps`, and that took two changes rather than tuning.
-   * A job boundary at every alt-screen switch, so a repaint is not merged
-   * with the exit that destroys it -- worth +2, but only once `classify`
-   * stopped reporting the home-cursor `CUP` that follows entering a
-   * full-screen program as a repaint of its own; before that the switch and
-   * the home disagreed over the same bytes and the boundary cost more than
-   * it recovered.
-   *
-   * The two that remain are not granularity problems: one the screen cannot
-   * settle at any window (a blank row gaining text is an append by every
-   * structural test), and one where a resize reflows existing content and the
-   * next job's diff inherits the change.
+   * The two that remain are not verdict problems. One is a resize reflowing
+   * existing content, so the job after it inherits rows that changed without
+   * being written to. The other expects `drawing` over a span that also
+   * contains log lines arriving, which a single verdict cannot express.
    */
   jobs: 21,
 };

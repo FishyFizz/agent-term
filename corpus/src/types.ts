@@ -121,11 +121,6 @@ export interface SegmentExpectation {
   also?: 'writing' | 'drawing';
   /** What makes this case interesting — the reason it is in the corpus. */
   why: string;
-  /**
-   * `true` when the case is genuinely ambiguous and abstention
-   * (`confidence: 'low'`, both representations sent) is the correct answer.
-   */
-  ambiguous?: boolean;
 }
 
 /** A resize a programme requested, and where in the byte stream it asked. */

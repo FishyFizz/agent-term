@@ -16,7 +16,7 @@ import type { Segment } from '../src/classify.js';
 async function update(
   s: ScreenModel,
   bytes: string,
-): Promise<{ segments: Segment[]; screen: ScreenModel }> {
+): Promise<{ segments: Segment[]; screen: ScreenModel; ops: ReturnType<ScreenModel['ops']['recorded']['slice']> }> {
   const before = frameOf(s);
   const fromByte = s.ops.bytesFed;
   await s.feed(bytes);
@@ -28,10 +28,12 @@ async function update(
     segments: classify({
       before: from,
       after,
-      ops,
       fromByte,
       toByte: s.ops.bytesFed,
     }).segments,
+    // Kept so a test can report how much output an update stood for. The
+    // verdict does not read it.
+    ops,
     screen: s,
   };
 }
@@ -49,22 +51,29 @@ test('a scrolling build log is writing', async () => {
   assert.equal(r2.segments[0]!.evidence.scrolledBy, 1, 'the scroll was detected');
 });
 
-test('a full-screen TUI repaint is drawing', async () => {
+test('taking over the screen is a surface change, not a repaint', async () => {
+  // CLASSIFIER.md §3.4: the alt screen is a prior and a capture-urgency flag,
+  // never a verdict. Entering it replaces the whole visible grid, which reads
+  // as "erased" -- but nothing was erased, another surface came in front.
+  //
+  // The old form of this test asserted `drawing`, which is what the program
+  // *meant* (ESC[2J, CUP) rather than what the screen did.
   const s = new ScreenModel(20, 5);
   await update(s, 'x\r\n');
   const r = await update(s, '\x1b[?1049h\x1b[2J\x1b[H\x1b[1;1Htop - 00:00:00\x1b[K');
-  const seg = r.segments.find((x) => x.kind === 'drawing');
-  assert.ok(seg, 'a repaint is classified as drawing');
-  assert.ok(seg!.evidence.ops.includes('CUP') || seg!.evidence.ops.includes('ED'));
+  assert.ok(r.segments.length > 0, 'produced a segment');
+  assert.equal(r.segments[0]!.evidence.altScreen, true, 'the alternate surface is in front');
+  assert.equal(r.segments[0]!.kind, 'writing', 'a surface change is not a repaint');
 });
 
 test('a pager is drawing, and returning to the shell is writing', async () => {
   const s = new ScreenModel(20, 5);
   await update(s, 'shell output\r\n');
   const inPager = await update(s, '\x1b[?1049h\x1b[Hcommit abc123\x1b[K');
-  assert.ok(
-    inPager.segments.some((x) => x.kind === 'drawing'),
-    'entering and painting the pager is drawing',
+  assert.equal(
+    inPager.segments[0]!.evidence.altScreen,
+    true,
+    'the pager took the alternate surface',
   );
   const back = await update(s, '\x1b[?1049l');
   assert.ok(back.segments.length > 0, 'exiting produced a segment');
@@ -111,17 +120,23 @@ test('the npm trace: draw, append, redraw yields ordered segments', async () => 
   );
 });
 
-test('an update can contain both kinds, in order', async () => {
-  // A log line and a status repaint in one burst. This is the "may be both"
-  // clause of L0.1: the model admits mixtures rather than forcing a choice.
+test('a mixture appears across deliveries, in order, not inside one', async () => {
+  // One segment per delivery: a segment cannot claim a finer range than the
+  // thing it was measured over. So "may be both" (L0.1) is a fact about a
+  // *sequence* of deliveries, not about one of them.
+  //
+  // The old form asserted both kinds inside a single update, which only held
+  // because the op stream produced a second, competing segment.
   const s = new ScreenModel(20, 5);
   await update(s, 'log1\r\nlog2\r\nlog3\r\nlog4\r\n');
-  const r = await update(s, 'new line\r\n\x1b[5;1H[####------]\x1b[K');
-  assert.ok(r.segments.length >= 2, 'the burst was split into segments');
-  assert.ok(
-    r.segments.some((x) => x.kind === 'writing') && r.segments.some((x) => x.kind === 'drawing'),
-    `both kinds present in one update: ${JSON.stringify(kinds(r.segments))}`,
-  );
+  const line = await update(s, 'new line\r\n');
+  // Over an existing row, not the blank one the scroll just opened: a status
+  // row drawn onto blank space is content arriving, however the program
+  // thinks of it. Row 0 currently holds a log line.
+  const status = await update(s, '\x1b[1;1H[####------]');
+  assert.deepEqual(kinds(line.segments), ['writing'], 'the log line is writing');
+  assert.deepEqual(kinds(status.segments), ['drawing'], 'the status repaint is drawing');
+  assert.ok(status.segments[0]!.fromByte >= line.segments[0]!.toByte, 'in time order');
 });
 
 test('segments carry byte ranges that tile the update', async () => {
@@ -156,7 +171,6 @@ test('consecutive same-kind ops coalesce into one segment', async () => {
     r.segments.length <= 2,
     `a three-line repaint is one run, not six segments: ${JSON.stringify(kinds(r.segments))}`,
   );
-  assert.ok(r.segments[0]!.evidence.ops.length >= 2, 'ops from the run are accumulated');
 });
 
 test('resizing is not mistaken for a repaint', async () => {

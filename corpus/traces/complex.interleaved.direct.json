@@ -7,14 +7,13 @@
   "cols": 60,
   "rows": 8,
   "platform": "win32",
-  "recordedAt": "2026-09-24T03:57:57.779Z",
+  "recordedAt": "2026-09-24T05:08:01.921Z",
   "expectations": [
     {
       "from": 0,
       "to": 363,
-      "kind": "drawing",
-      "also": "writing",
-      "why": "contains both kinds: appending log lines and repainting the status row. \"Mixed\" is the structural fact that there are segments of both kinds in one update, not a third verdict (CLASSIFIER.md §2)"
+      "kind": "writing",
+      "why": "a burst of log lines with a status row that is repainted each time: at job granularity what survives is content arriving, and the repetition is reported as collapsed deliveries rather than as a verdict"
     }
   ],
   "ops": [
@@ -26,7 +25,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790222277311
+      "at": 1790226481451
     },
     {
       "name": "LINEFEED",
@@ -36,7 +35,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790222277326
+      "at": 1790226481467
     },
     {
       "name": "CUP",
@@ -49,7 +48,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790222277357
+      "at": 1790226481498
     },
     {
       "name": "EL",
@@ -61,7 +60,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790222277357
+      "at": 1790226481498
     },
     {
       "name": "LINEFEED",
@@ -71,7 +70,7 @@
       "cursorY": 3,
       "params": [],
       "altScreen": false,
-      "at": 1790222277405
+      "at": 1790226481545
     },
     {
       "name": "CUP",
@@ -84,7 +83,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790222277436
+      "at": 1790226481577
     },
     {
       "name": "EL",
@@ -96,7 +95,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790222277436
+      "at": 1790226481577
     },
     {
       "name": "LINEFEED",
@@ -106,7 +105,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790222277483
+      "at": 1790226481624
     },
     {
       "name": "CUP",
@@ -119,7 +118,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790222277513
+      "at": 1790226481656
     },
     {
       "name": "EL",
@@ -131,7 +130,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790222277513
+      "at": 1790226481656
     },
     {
       "name": "LINEFEED",
@@ -141,7 +140,7 @@
       "cursorY": 5,
       "params": [],
       "altScreen": false,
-      "at": 1790222277560
+      "at": 1790226481703
     },
     {
       "name": "CUP",
@@ -154,7 +153,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790222277591
+      "at": 1790226481734
     },
     {
       "name": "EL",
@@ -166,7 +165,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790222277591
+      "at": 1790226481734
     },
     {
       "name": "LINEFEED",
@@ -176,7 +175,7 @@
       "cursorY": 6,
       "params": [],
       "altScreen": false,
-      "at": 1790222277637
+      "at": 1790226481781
     },
     {
       "name": "CUP",
@@ -189,7 +188,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790222277668
+      "at": 1790226481812
     },
     {
       "name": "EL",
@@ -201,7 +200,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790222277668
+      "at": 1790226481812
     },
     {
       "name": "LINEFEED",
@@ -211,7 +210,7 @@
       "cursorY": 7,
       "params": [],
       "altScreen": false,
-      "at": 1790222277717
+      "at": 1790226481859
     },
     {
       "name": "CUP",
@@ -224,7 +223,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790222277747
+      "at": 1790226481890
     },
     {
       "name": "EL",
@@ -236,7 +235,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790222277747
+      "at": 1790226481890
     }
   ],
   "frames": [
@@ -273,127 +272,127 @@
   "arrivals": [
     {
       "offset": 0,
-      "at": 1790222277110
+      "at": 1790226481252
     },
     {
       "offset": 14,
-      "at": 1790222277110
+      "at": 1790226481252
     },
     {
       "offset": 36,
-      "at": 1790222277125
+      "at": 1790226481265
     },
     {
       "offset": 39,
-      "at": 1790222277125
+      "at": 1790226481265
     },
     {
       "offset": 49,
-      "at": 1790222277125
+      "at": 1790226481265
     },
     {
       "offset": 69,
-      "at": 1790222277125
+      "at": 1790226481265
     },
     {
       "offset": 72,
-      "at": 1790222277140
+      "at": 1790226481281
     },
     {
       "offset": 94,
-      "at": 1790222277156
+      "at": 1790226481297
     },
     {
       "offset": 97,
-      "at": 1790222277156
+      "at": 1790226481297
     },
     {
       "offset": 107,
-      "at": 1790222277156
+      "at": 1790226481297
     },
     {
       "offset": 127,
-      "at": 1790222277156
+      "at": 1790226481297
     },
     {
       "offset": 130,
-      "at": 1790222277172
+      "at": 1790226481312
     },
     {
       "offset": 152,
-      "at": 1790222277187
+      "at": 1790226481327
     },
     {
       "offset": 155,
-      "at": 1790222277187
+      "at": 1790226481327
     },
     {
       "offset": 165,
-      "at": 1790222277187
+      "at": 1790226481327
     },
     {
       "offset": 185,
-      "at": 1790222277187
+      "at": 1790226481327
     },
     {
       "offset": 188,
-      "at": 1790222277202
+      "at": 1790226481342
     },
     {
       "offset": 210,
-      "at": 1790222277218
+      "at": 1790226481358
     },
     {
       "offset": 213,
-      "at": 1790222277218
+      "at": 1790226481358
     },
     {
       "offset": 223,
-      "at": 1790222277218
+      "at": 1790226481358
     },
     {
       "offset": 243,
-      "at": 1790222277218
+      "at": 1790226481358
     },
     {
       "offset": 246,
-      "at": 1790222277233
+      "at": 1790226481374
     },
     {
       "offset": 268,
-      "at": 1790222277248
+      "at": 1790226481390
     },
     {
       "offset": 271,
-      "at": 1790222277248
+      "at": 1790226481390
     },
     {
       "offset": 281,
-      "at": 1790222277249
+      "at": 1790226481390
     },
     {
       "offset": 301,
-      "at": 1790222277249
+      "at": 1790226481390
     },
     {
       "offset": 304,
-      "at": 1790222277264
+      "at": 1790226481405
     },
     {
       "offset": 326,
-      "at": 1790222277280
+      "at": 1790226481421
     },
     {
       "offset": 329,
-      "at": 1790222277280
+      "at": 1790226481421
     },
     {
       "offset": 339,
-      "at": 1790222277280
+      "at": 1790226481421
     },
     {
       "offset": 360,
-      "at": 1790222277280
+      "at": 1790226481421
     }
   ],
   "bytes": 363,
