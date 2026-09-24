@@ -64,13 +64,20 @@ The agent does not run heuristics, inspect escape sequences, or guess which mode
 in. **Misclassification is a bug in the server, not a puzzle for the agent.**
 
 A change may be **both** — a program can emit a line of text and repaint a status bar in the
-same update. The model admits mixtures rather than forcing a binary choice. Where the
-classification is genuinely ambiguous, the server says so rather than choosing silently.
+same update. The model admits mixtures rather than forcing a binary choice.
 
-The unit of classification is the **segment** — a run of activity bounded by the program's own
-control operations — not the update and not a region of the screen. An update carries one or
-more ordered segments, each `writing` or `drawing`; "mixed" is the structural fact that an update
-contains both. See `CLASSIFIER.md`.
+The unit of classification is the **delivery** — one job of the program's output, one segment. A
+segment cannot claim a finer range than the thing it was measured over, and the measurement is a
+frame diff across the whole delivery. "Mixed" is therefore a fact about a *sequence* of
+deliveries, not something one delivery contains. See `CLASSIFIER.md` §2.
+
+The verdict is read off the **screen** and nowhere else. Not off the escape sequences, and not
+off what the program appears to have intended: a human at the terminal sees a screen, and the
+agent is meant to see the same thing. There is consequently no abstention and no confidence
+value — the observations that drive the verdict are a closed set, so every change lands in one
+of them. What replaces doubt is volume: every delivery reports how many raw deliveries it stands
+for, so many deliveries behind little visible change is legible to the agent as exactly that,
+and the intermediates remain readable. See `CLASSIFIER.md` §3.5.
 
 Two corollaries, both load-bearing for the layers above:
 
@@ -290,8 +297,10 @@ All remaining open questions are L3 — implementation choices that cannot const
    signalled (L3.3).
 4. ~~**Ambiguity handling** — whether to send both representations, flag uncertainty, or ask,
    when classification is genuinely uncertain.~~ **Answered in `CLASSIFIER.md` §3.5**: never ask,
-   never guess — emit `confidence: "low"` with evidence and send both representations. The
-   contract that the server must not silently guess is unchanged.
+   never guess — and never report doubt either. The verdict is read off the screen, which is a
+   closed set of observations, so nothing abstains; a suspicious delivery is instead reported as
+   collapsing many raw deliveries behind little visible change, and the intermediates stay
+   readable. The contract that the server must not silently guess is unchanged.
 5. **Safety floor** — what ships by default (L3.5).
 6. **Optional representations** — whether PNG/HTML ship at all, given the native-dependency
    cost (L2, L3.1).

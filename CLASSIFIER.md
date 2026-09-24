@@ -65,48 +65,54 @@ op stream was being asked.
 
 ## 3. The mechanism
 
-### 3.1 Two taps on the same emulator
+### 3.1 One tap: the emulator's screen
 
-| Tap | API | Supplies |
-|---|---|---|
-| **Edit record** (op stream) | `parser.registerCsiHandler` / `registerEscHandler` | *where the boundaries are* |
-| **Screen model** | `buffer.active`, `getLine`, `translateToString`, `getCell`, `onLineFeed`, `onScroll`, `onBufferChange` | *what each segment did* |
+The verdict is read from **one** place: the emulator's screen, captured before and after a
+delivery. `frameOf` takes that capture; `screen.ts` owns the cells and is the only reader.
 
-The op stream supplies **segmentation**; the screen model supplies the **verdict** per segment.
-Neither alone is sufficient:
+The op stream is **not** a witness. It is what output is replayed from, what boundaries are
+found from (a resize, an alt-screen switch, a synchronized-output frame), and what a caller
+reads when the screen model is under suspicion (L2). It is not asked what a change *means*,
+because that depends on the program's intent, which is semantics — out of scope per `GOAL.md`.
 
-- Screen diffs alone cannot recover boundaries once a scroll has moved everything (§4).
-- Ops alone tell us a program moved the cursor, not whether it thereby destroyed content.
+That division is what removes the need for judgement. Two witnesses that can disagree need a
+rule to settle them, and every such rule is a special case: a `CUP` corroborates drawing on its
+own; except the home that follows entering a full-screen program; except when the two disagree,
+in which case confidence drops. §2 records where that road led.
 
-They are two views of one parser, so there is no disagreement to reconcile.
+Captured per delivery, and enough for every test in §3.3:
 
-Verified available and firing in order, with cursor position at the time of the op: `CUP` (`H`),
-`EL` (`K`), `ED` (`J`), `CUU` (`A`), `DCH` (`P`), `IL` (`L`), `DL` (`M`), `DECSC` (`ESC 7`).
-Plain printable text does **not** pass through these handlers — so the op stream is naturally
-segmented at control-op boundaries, with runs of text between them.
-
-Each boundary is stamped with the byte offset / sequence number at which it occurred.
+| From the screen | Supplies |
+|---|---|
+| `lines` (right-trimmed) | what each row holds, before and after |
+| `cursorY` | where an append would land |
+| `viewportY` | how far content moved |
+| `buffer` | which surface is in front |
 
 ### 3.2 Pipeline
 
 ```
 pty bytes
   │
-  ├─► emulator.write()                     (async — see §7)
-  │     ├─► op stream (control ops, ordered, with byte offsets)
+  ├─► job detector (src/jobs.ts)      close on a quiet period, a cap, or a
+  │                                   forced flush at a resize / exit / dispose
+  ▼
+delivery            one job of raw bytes
+  ├─► emulator.write()                (async — see §7)
+  │     ├─► op stream                 replay, boundaries, and the raw escape hatch
   │     └─► screen model
-  │
   ▼
-segmentation        split the window at op boundaries
+frames              before / after (§3.1)
   ▼
-per-segment judge   structural tests on the screen (§3.3)
+judge               structural tests on the screen (§3.3), one walk
   ▼
-verdict             writing | drawing, + confidence + evidence
+verdict             writing | drawing, + evidence
   ▼
-delivery            collapse per kind (§6)
+delivery            text delta and screen, each collapsed its own way (§6)
+                    + how many raw deliveries this one stands for (§3.5)
 ```
 
-### 3.3 Per-segment tests
+### 3.3 The tests, per delivery
 
 Deliberately **threshold-free**. Every test is a structural question, not a count:
 
@@ -153,8 +159,9 @@ It carries two other things, both real:
    while it is live. **Entering the alt screen makes capture mandatory, not optional.** This is a
    testable regression, not a policy preference.
 2. **A prior.** Programs choose the alt screen *because* they intend to repaint, so it correlates
-   with drawing. It is a tiebreaker applied only where the structural tests abstain, and it can
-   always be overridden by positive evidence in the same segment.
+   with drawing. It raises capture urgency; it does not raise a verdict. Entering the alt screen
+   is reported as `writing`, because on the screen a different surface came in front — nothing
+   was erased, overwritten, or reached back into.
 
 Alt-screen enter/exit are additionally **segment boundaries** and **timeline events**. This is
 what makes success criterion 3 (shell → TUI → shell, reconstructable in order) fall out
@@ -288,64 +295,88 @@ Verified, and each one breaks the design silently if ignored:
 Update {
   seq, at
   io: { bytesRead, bytesPending | null, ... }   // L1.3 — null, never 0
+  text: TextLine[]                              // completed lines this delivery produced
+  screen: ScreenSnapshot                        // what the screen is now
+  grid: GridDelta | null                        // how it differs from the previous one
+  collapsed: { chunks, intermediates, ops, bytes, reason, spanMs } | null
   segments: [{
     kind: 'writing' | 'drawing'
-    confidence: 'high' | 'low'                  // low ⇒ evidence attached, both sent
-    evidence: { ops: [...], erased, overwrote, reachedBack, scrolledBy, altScreen }
+    fromByte, toByte
+    evidence: { erased, overwrote, reachedBack, scrolledBy, altScreen }
   }]
 }
 ```
 
 `altScreen` is per-segment context, not a classifier.
 
+There is no `confidence`. §3.5 says why: suspicion is reported as volume — `collapsed.chunks`
+against how much of the screen actually changed — and the intermediates stay readable.
+
+`segments` has one entry per delivery. "Both kinds" is a fact about a sequence of updates (§2),
+not about one of them.
+
 ---
 
 ## 9. Open items
 
-1. **Portability of the op stream.** `registerCsiHandler` is xterm-specific;
-   `charmbracelet/x/vt` (the Go alternative in `PRIOR-ART.md`) may not expose an equivalent.
-   Proposal: **L0 owns the contract** (segments + verdicts); **L3.1 owns how the edit record is
-   produced**, with screen-diff-only as a degraded-but-functional fallback — losing the ability to
-   segment a scrolled update, but not the ability to classify. The design is therefore not
-   fully stack-neutral; declaring that is better than pretending.
+1. **Portability of the op stream.** — **closed, by removing the dependency.**
+   `registerCsiHandler` is xterm-specific, and `charmbracelet/x/vt` (the Go
+   alternative in `PRIOR-ART.md`) may not expose an equivalent. That used to
+   matter because the op stream was a witness, and losing it would have meant a
+   degraded screen-diff-only fallback. It is not a witness any more (§3.1): the
+   verdict is screen-only, so a stack that cannot produce an op stream loses
+   replay-with-ops and the raw escape hatch, and loses no classification. The
+   design is stack-neutral where it counts.
 2. **Redraw without control ops.** carriage-return overwrite, and erase variants outside
    the hooked set — **closed**. Caught by the screen model (`overwrote`: text
    landing on cells that were already non-blank). Exercised by
    `basic.cr-overwrite` and `basic.spinner`.
 3. **Delivery granularity is a first-class constraint.** *Found by measurement,
    and it remains the biggest open item.* A classifier call sees a *before* and
-   an *after*, so what it can detect depends on where deliveries begin. Same
-   corpus, same classifier:
+   an *after*, so what it can detect depends on where deliveries begin.
+
+   **Partly closed.** Deliveries now begin where the programme drew them:
+   `src/jobs.ts` groups output by the gaps between arrivals, and the corpus
+   records those arrival times so the grouping can be replayed. That removed the
+   arbitrary boundary — a pty buffer filling — from the picture.
 
    | Replay | Score |
    |---|---|
-   | one delivery per drawing op | **21/23** |
-   | 64-byte chunks | **15/23** |
-   | 256-byte chunks | 7/23 |
+   | one job, from arrival gaps | **21/23** |
+   | one delivery per drawing op (synthetic) | 20/23 |
+   | 64-byte chunks (synthetic) | 17/23 |
+   | 256-byte chunks (synthetic) | 7/23 |
    | the whole trace as one delivery | 7/23 |
 
-   `npm run corpus` prints these; the pins live in `test/corpus.test.ts`.
+   `npm run corpus` prints these; the pins live in `test/corpus.test.ts`, where
+   they are labelled measurements rather than a specification (§11).
 
-   Three consequences the design has to own:
+   What remains open:
 
-   - **An op's byte offset is only as precise as the delivery carrying it.** The
-     byte counter advances per feed, so ops in one delivery share an offset and
-     cannot be ordered against each other. The classifier emits one segment per
-     op spanning the delivery rather than fabricating precision — §3.1's offsets
-     are an upper bound on resolution, not a guarantee.
    - **Coalescing is a classification input, not merely a delivery policy.**
      Where a window opens decides whether an overwrite is visible at all. This
-     is L1.1's territory, but L0 cannot pretend to be neutral about it.
+     is L1.1's territory, but L0 cannot pretend to be neutral about it — which
+     is why `jobs.ts` lives in `src/` and not above it.
    - **History inherits the same resolution.** A timeline entry is a delivery, so
      a seek resolves to the entry at or before the point asked for and does not
      invent precision between entries (`src/history.ts`). See `HISTORY.md`.
+   - **The gap threshold is a policy with a principled range, not a tuned
+     number.** Anywhere from 20ms to 70ms separates the corpus's two pauses
+     (6ms within an act, 80–120ms between acts) and the measured score is
+     identical across that range. What sets the range is human legibility:
+     faster than that and no one could read the intermediate state anyway.
 
-   Unresolved: whether a session should feed per-op, per-chunk, or adaptively.
-4. **Coalescing window ownership.** Per-`onWriteParsed` classification is exact
-   but expensive; per-tick is cheap and, because boundaries are stamped with byte
-   offsets, still exact — *qualified by item 3*: offsets are delivery-coarse, so
-   "exact" holds only at the delivery's resolution. Timing policy is L3 and must
-   not leak into L0.
+   Unresolved: whether a session should feed per-op, per-chunk, or adaptively —
+   though "adaptively" now has a concrete form, which is what `jobs.ts` does.
+4. **Coalescing window ownership.** — **built, with the ownership split.**
+   `src/jobs.ts` closes a job on a quiet period, on a cap, or on a forced flush
+   at a resize, an exit or a dispose. L0 owns *that boundaries exist*, because
+   where one falls decides what the classifier can see (item 3); L1/L3 owns the
+   numbers, which arrive as a `JobPolicy` and are never baked in. The quiet
+   period is measured from the last byte, not from when the job opened, so a
+   slow but continuous program is not chopped at arbitrary intervals.
+   Timing policy does not leak into L0: `jobs.ts` takes a clock and a scheduler
+   by injection, and its tests advance time rather than sleeping.
 5. **Whether the text log is L0 or L1.** — **closed: L0.** It is built
    (`src/text-log.ts`), and the argument above is the reason: the screen grid
    holds the viewport, so a line that scrolls out is in no snapshot at all, and
@@ -380,6 +411,11 @@ those programs':
 
 The scores and the replay granularities they are measured at are pinned in `test/corpus.test.ts`
 and printed by `scripts/corpus-score.ts`; the timeline's own verification is `HISTORY.md` §6.
+
+Read §11 before treating any of those scores as a target. They are measurements of a label set
+that was written by hand alongside the code, and two expectations have already been deleted for
+asserting something about the program that the screen does not show. The programme's `why` is the
+part worth defending; the verdict beside it is a claim a reader is free to dispute.
 
 ---
 

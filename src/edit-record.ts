@@ -19,9 +19,11 @@
  *    response: a linefeed, a scroll, a resize, a buffer switch, a title
  *    change. No program wrote them; they are inferred from the state change.
  *
- * The classifier treats events as evidence rather than segments. The corpus
- * asserts on them, because a trace that claims "20 lines were appended" has
- * to be able to count them.
+ * The classifier does not read this file. The verdict comes from the screen
+ * (CLASSIFIER.md 3.1); the op stream is what output is replayed from, what
+ * boundaries are found from, and what a caller reads when the screen model is
+ * under suspicion. The corpus asserts on these ops, because a trace that
+ * claims "20 lines were appended" has to be able to count them.
  */
 import type { XtermTerminal } from './xterm.js';
 
@@ -110,8 +112,6 @@ const EVENT_OPS: ReadonlySet<OpName> = new Set<OpName>([
  * classifier, so the corpus can ask the same questions the classifier does.
  */
 export const OP = {
-  /** An op that means "the program is redrawing". */
-  isDrawing: (n: OpName): boolean => DRAWING_OPS.has(n),
   /** A DEC private mode change: shape or behaviour, not content. */
   isModeChange: (n: OpName): boolean => n === 'DECSET' || n === 'DECRST' || n === 'RIS',
   /** A structural event, fired by the emulator rather than written. */
@@ -126,23 +126,6 @@ export const OP = {
   isAltScreenSwitch: (op: Op): boolean =>
     (op.name === 'DECSET' || op.name === 'DECRST') && op.params.some((p) => ALT_SCREEN_MODES.has(p)),
 };
-
-/** Ops that mean "the program is redrawing", i.e. that end a writing run. */
-const DRAWING_OPS: ReadonlySet<OpName> = new Set<OpName>([
-  'CUP',
-  'CUU',
-  'CUD',
-  'CUF',
-  'CUB',
-  'EL',
-  'ED',
-  'IL',
-  'DL',
-  'DCH',
-  'ICH',
-  'DECSC',
-  'DECRC',
-]);
 
 /**
  * Records the op stream for one terminal.

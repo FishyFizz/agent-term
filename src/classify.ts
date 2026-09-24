@@ -1,5 +1,5 @@
 /**
- * Classification: what the screen did, per segment.
+ * Classification: what the screen did, one verdict per delivery.
  *
  * The verdict is read off the screen and nowhere else. Not off the escape
  * sequences, not off what the program appears to have intended: a human at
@@ -88,10 +88,13 @@ export function classify(params: {
 /**
  * Merge consecutive segments of the same kind.
  *
- * A repaint is rarely one op: shells and TUIs emit `CUP` per line they draw,
- * so a single screen update arrives as a run of same-kind ops. Reporting one
- * segment per op is noise for the agent; the meaningful unit is the run.
- * Different kinds are never merged -- that boundary is the whole point.
+ * `classify` produces one segment per delivery, so this is what turns a run of
+ * deliveries that did the same kind of thing into one span -- which is what a
+ * caller scoring a trace, or paging history, wants to read.
+ *
+ * Different kinds are never merged -- that boundary is the whole point. A
+ * sequence of deliveries that alternates stays a sequence, because "this
+ * happened, then that" is the comprehensible answer (CLASSIFIER.md §2).
  *
  * Exported because replaying a corpus trace has the same need: a trace is
  * delivered in chunks, so classifying produces one batch per chunk and the

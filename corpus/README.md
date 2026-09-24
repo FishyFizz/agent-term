@@ -40,6 +40,11 @@ A trace is the emulator's own record: the control-op stream (each op stamped wit
 a byte offset and the buffer that was active), screen frames, and the text log —
 plus `expectations`, the byte ranges and the verdict each should receive.
 
+Read `CLASSIFIER.md` §11 before treating those verdicts as a specification. They
+are hand-written claims about the screen, and two have already been deleted for
+asserting something about the *program* that the screen does not show. The
+`why` beside each one is the part worth defending.
+
 Two rules from `CLASSIFIER.md` govern it:
 
 - **One parser, one truth.** Everything recorded comes out of the emulator. No
