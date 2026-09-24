@@ -36,8 +36,9 @@ Output is grouped into **jobs** before it is classified (`jobs.ts`): a job close
 quiet period, on a cap, or on a forced flush at a resize, an exit or a dispose. Where a
 delivery begins decides what the classifier can see, so the boundary is the program's
 rather than the pty buffer's. Each delivery reports how many raw deliveries it stands
-for, so a burst that collapsed to little visible change says so and the intermediates
-stay readable.
+for, so a burst that collapsed to little visible change says so — and the
+intermediates are not just counted but kept: `session.intermediates(rawFrom, rawTo)`
+plays back the states a job swallowed, in order.
 
 The verdict is read off **the screen and nothing else** — not off the escape sequences,
 and not off what the program appears to have intended. There is no abstention and no

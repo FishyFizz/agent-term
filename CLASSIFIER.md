@@ -176,7 +176,9 @@ The case that used to be abstention — "the program appears to have done someth
 will not confirm" — is not reported as uncertainty. It is reported as **volume**: an update
 carries how many raw deliveries it collapsed (`collapsed`, `GOAL.md` L1.1), so *many deliveries
 behind little visible change* is visible to the agent as exactly that, and the intermediates
-remain readable. That is a better signal than a confidence flag: it is a fact rather than a
+remain readable — not merely counted but kept, and playable back with
+`session.intermediates(rawFrom, rawTo)`. A job is fed one raw delivery at a time for precisely
+this reason: merged bytes cannot be un-merged afterwards. That is a better signal than a confidence flag: it is a fact rather than a
 judgement, it does not require the classifier to know what it does not know, and it points at
 the remedy — go and read the intermediates — instead of merely warning.
 

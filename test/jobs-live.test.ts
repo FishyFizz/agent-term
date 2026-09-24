@@ -127,6 +127,35 @@ test('merged updates report intermediates the consumer did not see', async (t) =
   }
 });
 
+test('a merged job can be played back: the states it swallowed are readable', async (t) => {
+  // The whole reason `collapsed` exists. A job is classified over its span,
+  // which is what makes a repaint legible, and what it nets to may be nothing
+  // at all -- a highlight that moved out and back leaves no trace. The count
+  // says something happened; this is the thing that shows what.
+  const { session, updates } = open({ jobPolicy: { gapMs: GAP_MS } });
+  t.after(() => session.dispose());
+
+  await waitFor(() => updates.some((u) => u.collapsed && u.collapsed.chunks > 1));
+  const job = updates.find((u) => u.collapsed && u.collapsed.chunks > 1)!;
+  const { rawFrom, rawTo, chunks } = job.collapsed!;
+
+  const playback = session.intermediates(rawFrom, rawTo);
+  assert.equal(playback.length, chunks, 'one record per raw delivery the job swallowed');
+  assert.ok(playback.length > 1, 'the job really did merge');
+
+  const seqs = playback.map((r) => r.rawSeq);
+  assert.deepEqual(seqs, [...seqs].sort((a, b) => a - b), 'in the order they arrived');
+  for (const r of playback) {
+    assert.equal(r.job, job.seq, 'tied to the job it was grouped into');
+    assert.ok(r.screen.lines.length > 0, 'each carries the screen as it was');
+  }
+  assert.notDeepEqual(
+    playback[0]!.screen.lines,
+    job.screen.lines,
+    'the first intermediate state is not the net effect the job reported',
+  );
+});
+
 test('with grouping opted out, the session reports no merging rather than inventing one', async (t) => {
   const { session, updates } = open({ jobPolicy: false });
   t.after(() => session.dispose());

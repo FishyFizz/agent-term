@@ -78,6 +78,9 @@ export interface SessionUpdate {
  * how much raw output it stands for, so a consumer can decide to go back and
  * read the intermediates rather than being told about them.
  */
+/** How many raw deliveries a session keeps for playback. See `TerminalSession`. */
+const RAW_HISTORY = 1024;
+
 export interface CollapsedInfo {
   /** Raw pty deliveries merged into this update. */
   chunks: number;
@@ -98,6 +101,32 @@ export interface CollapsedInfo {
   reason: JobCloseReason;
   /** Milliseconds between the first and last delivery in the job. */
   spanMs: number;
+  /**
+   * The raw deliveries this job stands for, as a half-open range of
+   * `rawSeq`. Pass to `TerminalSession.intermediates` to read them.
+   *
+   * `0..0` when grouping is off: nothing was swallowed, so there is nothing
+   * to play back and the honest answer is an empty range rather than `1..1`.
+   */
+  rawFrom: number;
+  rawTo: number;
+}
+
+/**
+ * One raw delivery inside a job — a state the job's net effect swallowed.
+ *
+ * Kept so `collapsed.intermediates` is a promise that can be kept. A burst
+ * that moved a highlight out and back nets to no visible change at all, and
+ * the count alone cannot show what happened; these can.
+ */
+export interface Intermediate extends Pick<
+  SessionUpdate,
+  'at' | 'fromByte' | 'toByte' | 'segments' | 'text' | 'grid' | 'screen'
+> {
+  /** Monotonic per session, independent of the job sequence. */
+  rawSeq: number;
+  /** The job this delivery was grouped into. */
+  job: number;
 }
 
 /**
@@ -151,6 +180,16 @@ export class TerminalSession {
   /** Present unless the session was opened with `jobPolicy: false`. */
   private readonly jobs?: JobDetector;
   private _seq = 0;
+  private _rawSeq = 0;
+  /**
+   * The raw deliveries behind recent jobs, newest last.
+   *
+   * Bounded, because retention is not built (L3.4) and an unbounded list is
+   * the one thing this must not be: a firehose would grow it forever. Old
+   * entries drop off, so `intermediates` answers honestly about what is still
+   * held rather than pretending to remember everything.
+   */
+  private raw: Intermediate[] = [];
   private queue: Promise<void> = Promise.resolve();
   private pendings = 0;
 
@@ -223,6 +262,26 @@ export class TerminalSession {
     for (const listener of this.listeners) listener(update);
   };
 
+  /** Remember one raw delivery so its job can be played back. */
+  private readonly recordRaw = (record: Intermediate): void => {
+    this.raw.push(record);
+    if (this.raw.length > RAW_HISTORY) this.raw.splice(0, this.raw.length - RAW_HISTORY);
+  };
+
+  /**
+   * The raw deliveries a job swallowed, in order.
+   *
+   * This is what makes `collapsed.intermediates` worth reporting: a caller
+   * that saw a net effect with a suspiciously high collapsed count can read
+   * the states behind it instead of guessing. Returns fewer than asked for
+   * when retention has already dropped the older ones — it does not invent
+   * them.
+   */
+  intermediates(from: number, to: number): Intermediate[] {
+    if (to <= 0) return [];
+    return this.raw.filter((r) => r.rawSeq >= from && r.rawSeq <= to);
+  }
+
   /**
    * Run `task` after everything already queued.
    *
@@ -252,30 +311,71 @@ export class TerminalSession {
     this.pendings++;
     const run = this.queue.then(async () => {
       const fromByte = this.screen.ops.bytesFed;
-      // Snapshotted once and used for both the classifier's frame and the grid
-      // delta: the frame trims the padded rows the delta needs, so taking two
-      // snapshots would do the same work twice to get the same grid.
-      const beforeSnap = this.screen.snapshot();
-      const before = frameOf(this.screen, beforeSnap);
-      await this.screen.feed(chunk);
-      const afterSnap = this.screen.snapshot();
-      const after = frameOf(this.screen, afterSnap);
-      const ops = this.screen.ops.recorded.filter((o) => o.byteOffset >= fromByte);
-      this.screen.ops.clear();
-      // Drained in the same window as the ops, so each line belongs to exactly
-      // one update and none is counted twice.
-      const text = this.screen.text.drain();
+      // A job is classified over its whole span -- that is what makes a
+      // repaint legible -- but it is *fed* one raw delivery at a time, because
+      // the intermediate frames are the only place the swallowed states exist
+      // and they cannot be recovered from merged bytes afterwards.
+      const parts = job ? job.parts : [chunk];
+      const jobStartSnap = this.screen.snapshot();
+      const jobStart = frameOf(this.screen, jobStartSnap);
+
+      let rawFrom = 0;
+      let rawTo = 0;
+      let scrolled = 0;
+      let ops = 0;
+      const text: TextLine[] = [];
+      let afterSnap = jobStartSnap;
+      let after = jobStart;
+
+      for (const part of parts) {
+        const beforeSnap = this.screen.snapshot();
+        const before = frameOf(this.screen, beforeSnap);
+        await this.screen.feed(part);
+        afterSnap = this.screen.snapshot();
+        after = frameOf(this.screen, afterSnap);
+        const recorded = this.screen.ops.recorded.filter((o) => o.byteOffset >= fromByte);
+        ops += recorded.length;
+        this.screen.ops.clear();
+        // Read after each feed and reset on read, so this is the scroll this
+        // delivery caused. Summed for the job's verdict.
+        const scroll = this.screen.takeScrolledRows();
+        scrolled += scroll;
+        // Drained in the same window as the ops, so each line belongs to
+        // exactly one update and none is counted twice.
+        const partText = this.screen.text.drain();
+        text.push(...partText);
+
+        if (job) {
+          const seq = ++this._rawSeq;
+          if (rawFrom === 0) rawFrom = seq;
+          rawTo = seq;
+          this.recordRaw({
+            rawSeq: seq,
+            job: this._seq + 1,
+            at: Date.now(),
+            fromByte: this.screen.ops.bytesFed - part.length,
+            toByte: this.screen.ops.bytesFed,
+            segments: classify({
+              before,
+              after,
+              fromByte: this.screen.ops.bytesFed - part.length,
+              toByte: this.screen.ops.bytesFed,
+              scrolledBy: scroll,
+            }).segments,
+            text: partText,
+            grid: gridDelta(beforeSnap, afterSnap, after.viewportY - before.viewportY),
+            screen: afterSnap,
+          });
+        }
+      }
 
       this._seq++;
-      // Read after the feed and reset on read, so this is the scroll this
-      // delivery caused rather than a running total.
-      const scrolledBy = this.screen.takeScrolledRows();
       const classified = classify({
-        before,
+        before: jobStart,
         after,
         fromByte,
         toByte: this.screen.ops.bytesFed,
-        scrolledBy,
+        scrolledBy: scrolled,
       });
 
       return {
@@ -289,7 +389,7 @@ export class TerminalSession {
         // The viewport delta is exactly the scroll until the scrollback ring
         // saturates; past that it is useless, and the encoder falls back to
         // searching for a shift it can verify (see `delta.ts`).
-        grid: gridDelta(beforeSnap, afterSnap, after.viewportY - before.viewportY),
+        grid: gridDelta(jobStartSnap, afterSnap, after.viewportY - jobStart.viewportY),
         // Zero is a real zero here: this call has drained what it was given.
         // It is per-update, so it says *this* update is parsed, not that the
         // pty is quiet -- `bytesRead` is the watermark that answers that.
@@ -299,10 +399,12 @@ export class TerminalSession {
           ? {
               chunks: job.chunks,
               intermediates: job.chunks > 1,
-              ops: ops.length,
+              ops,
               bytes: classified.toByte - fromByte,
               reason: job.reason,
               spanMs: job.closedAt - job.startedAt,
+              rawFrom,
+              rawTo,
             }
           : null,
       } satisfies SessionUpdate;

@@ -68,6 +68,15 @@ export interface Arrival {
 export interface Job {
   /** The merged bytes, in arrival order. */
   bytes: Buffer;
+  /**
+   * The raw deliveries themselves, in arrival order.
+   *
+   * Kept because the merged bytes cannot be un-merged. A job is classified
+   * over its whole span, which is what makes a repaint legible; the parts are
+   * what let a caller who saw only the net effect go back and read the
+   * intermediate states it swallowed.
+   */
+  parts: Buffer[];
   /** How many raw deliveries were merged. 1 means nothing was coalesced. */
   chunks: number;
   /** When the first delivery arrived. */
@@ -99,7 +108,7 @@ export function groupByGap(arrivals: readonly Arrival[], policy: JobPolicy): Job
 
   const close = (at: number, reason: JobCloseReason): void => {
     if (chunks === 0) return;
-    jobs.push({ bytes: Buffer.concat(parts), chunks, startedAt, closedAt: at, reason });
+    jobs.push({ bytes: Buffer.concat(parts), parts, chunks, startedAt, closedAt: at, reason });
     parts = [];
     chunks = 0;
     bytes = 0;
@@ -283,6 +292,7 @@ export class JobDetector {
     if (this.chunks === 0) return;
     const job: Job = {
       bytes: Buffer.concat(this.parts),
+      parts: this.parts,
       chunks: this.chunks,
       startedAt: this.startedAt,
       closedAt: this.lastAt,
