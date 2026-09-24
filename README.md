@@ -38,7 +38,8 @@ delivery begins decides what the classifier can see, so the boundary is the prog
 rather than the pty buffer's. Each delivery reports how many raw deliveries it stands
 for, so a burst that collapsed to little visible change says so — and the
 intermediates are not just counted but kept: `session.intermediates(rawFrom, rawTo)`
-plays back the states a job swallowed, in order.
+plays back the states a job swallowed, in order. They are stored as a checkpoint plus
+deltas, not a grid each — measured on a scrolling log, 2% of the size at 120x40.
 
 The verdict is read off **the screen and nothing else** — not off the escape sequences,
 and not off what the program appears to have intended. There is no abstention and no

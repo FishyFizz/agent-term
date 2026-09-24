@@ -17,8 +17,9 @@ import { PtySession, type PtyExitInfo } from './pty.js';
 import { ScreenModel } from './screen.js';
 import { classify, frameOf } from './classify.js';
 import type { Segment } from './classify.js';
-import { gridDelta, type GridDelta } from './delta.js';
+import { applyDelta, gridDelta, type GridDelta } from './delta.js';
 import type { TextLine } from './text-log.js';
+import type { ScreenSnapshot } from './screen.js';
 import type { SessionOptions } from './types.js';
 import { assertGridSize } from './types.js';
 import { JobDetector, DEFAULT_JOB_POLICY, type JobCloseReason, type Job } from './jobs.js';
@@ -121,12 +122,31 @@ export interface CollapsedInfo {
  */
 export interface Intermediate extends Pick<
   SessionUpdate,
-  'at' | 'fromByte' | 'toByte' | 'segments' | 'text' | 'grid' | 'screen'
+  'at' | 'fromByte' | 'toByte' | 'segments' | 'text' | 'grid'
 > {
   /** Monotonic per session, independent of the job sequence. */
   rawSeq: number;
   /** The job this delivery was grouped into. */
   job: number;
+  /**
+   * The screen as it was — or `null`, when this record is carried as a delta
+   * instead and has to be reconstructed from the nearest checkpoint before it.
+   *
+   * A screen is kept where a delta would not be smaller, and wherever a delta
+   * could not be applied: the first delivery of a job, and any delivery whose
+   * grid size or active buffer changed. `delta.ts` decides the first case by
+   * returning `null`; the other two are here because a delta computed across
+   * a resize or a buffer switch describes a screen that never existed.
+   */
+  screen: ScreenSnapshot | null;
+  /**
+   * Cursor position, stored because a delta does not carry it.
+   *
+   * `applyDelta` reproduces glyphs, appearance and wide-glyph columns exactly
+   * — verified at every record of every trace — but not where the cursor got
+   * to. `history.ts` has the same split, for the same reason.
+   */
+  cursor: { x: number; y: number };
 }
 
 /**
@@ -278,8 +298,32 @@ export class TerminalSession {
    * them.
    */
   intermediates(from: number, to: number): Intermediate[] {
-    if (to <= 0) return [];
-    return this.raw.filter((r) => r.rawSeq >= from && r.rawSeq <= to);
+    const asked = this.raw.filter((r) => r.rawSeq >= from && r.rawSeq <= to);
+    if (asked.length === 0) return [];
+
+    // The newest checkpoint at or before the first one asked for. Deltas only
+    // run forwards, so reconstruction has to start from a real screen.
+    let anchor: ScreenSnapshot | null = null;
+    for (const r of this.raw) {
+      if (r.rawSeq > asked[0]!.rawSeq) break;
+      if (r.screen) anchor = r.screen;
+    }
+
+    const out: Intermediate[] = [];
+    let screen = anchor;
+    for (const r of asked) {
+      if (r.screen) {
+        screen = r.screen;
+        out.push(r);
+        continue;
+      }
+      // Nothing to apply onto: retention dropped the checkpoint this range
+      // reconstructed from. Skipped rather than guessed at.
+      if (!screen || !r.grid) continue;
+      screen = applyDelta(screen, r.grid);
+      out.push({ ...r, screen });
+    }
+    return out;
   }
 
   /**
@@ -326,6 +370,7 @@ export class TerminalSession {
       const text: TextLine[] = [];
       let afterSnap = jobStartSnap;
       let after = jobStart;
+      let first = true;
 
       for (const part of parts) {
         const beforeSnap = this.screen.snapshot();
@@ -349,6 +394,16 @@ export class TerminalSession {
           const seq = ++this._rawSeq;
           if (rawFrom === 0) rawFrom = seq;
           rawTo = seq;
+          const grid = gridDelta(beforeSnap, afterSnap, after.viewportY - before.viewportY);
+          // A checkpoint wherever a delta would not be smaller, or could not
+          // be applied at all. Everything else is carried as a delta, which is
+          // what keeps this from being a grid per delivery.
+          const checkpoint =
+            first ||
+            grid === null ||
+            beforeSnap.cols !== afterSnap.cols ||
+            beforeSnap.rows !== afterSnap.rows ||
+            beforeSnap.buffer !== afterSnap.buffer;
           this.recordRaw({
             rawSeq: seq,
             job: this._seq + 1,
@@ -363,9 +418,11 @@ export class TerminalSession {
               scrolledBy: scroll,
             }).segments,
             text: partText,
-            grid: gridDelta(beforeSnap, afterSnap, after.viewportY - before.viewportY),
-            screen: afterSnap,
+            grid,
+            screen: checkpoint ? afterSnap : null,
+            cursor: { x: afterSnap.cursorX, y: afterSnap.cursorY },
           });
+          first = false;
         }
       }
 

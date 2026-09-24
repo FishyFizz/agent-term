@@ -147,12 +147,20 @@ test('a merged job can be played back: the states it swallowed are readable', as
   assert.deepEqual(seqs, [...seqs].sort((a, b) => a - b), 'in the order they arrived');
   for (const r of playback) {
     assert.equal(r.job, job.seq, 'tied to the job it was grouped into');
-    assert.ok(r.screen.lines.length > 0, 'each carries the screen as it was');
+    assert.ok(r.screen, 'each one reconstructs to a screen');
   }
   assert.notDeepEqual(
-    playback[0]!.screen.lines,
+    playback[0]!.screen!.lines,
     job.screen.lines,
     'the first intermediate state is not the net effect the job reported',
+  );
+  // The strongest check available: replay the whole job and the last
+  // intermediate must land on the screen the job itself reported. If a single
+  // delta in the chain were lossy, this would not match.
+  assert.deepEqual(
+    playback.at(-1)!.screen!.lines,
+    job.screen.lines,
+    'replaying every intermediate lands on the screen the job reported',
   );
 });
 
