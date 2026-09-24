@@ -46,6 +46,13 @@ buffer's. But a job is a **projection** over the stream, computed on read
 (`history.jobs()`) — never stored — so it cannot disagree with the deliveries it came
 from, and it can be recomputed at a different granularity later.
 
+Waiting is not guessing whether output has finished (`session.ts`). `waitForIdle` resolves on
+observation — a byte arriving, a feed finishing, an exit — never on a step the caller
+invented, and it reports which of `idle`, `exited` or `timeout` ended it. Idle is measured
+from the last *byte*, not the last delivery: a program that never pauses never opens a gap,
+so no delivery completes for seconds at a time, and idle measured from a delivery would call
+a firehose idle while it floods output. There is no *settled* — see `GOAL.md` L1.2.
+
 The verdict is read off **the screen and nothing else** — not off the escape sequences,
 and not off what the program appears to have intended. There is no abstention and no
 confidence value: the observations are a closed set. See `CLASSIFIER.md` §1 and §3.5.
@@ -68,23 +75,27 @@ recorded, and every one reconstructs exactly through the timeline, keyframe plus
 Those run on the pty half too, which is the feed where things actually go wrong.
 
 A **first MCP surface** exists (`src/mcp.ts`, `npm run mcp:http`): open a session, send
-input, read the screen, close it. It is a spike — history paging, intermediate playback,
-settle detection and interaction beyond plain text are not on it yet. The most obvious
-gap is that nothing can *wait*: a read taken straight after a send returns the previous
-state.
+input, wait for it to stop changing, read the screen, close it. It is a spike — history
+paging, intermediate playback and interaction beyond plain text are not on it yet.
 
-Not built: delivery and boundedness (L1.1), settle detection (L1.2), interaction (L1.4)
-and honest errors beyond the four coded ones (L1.5), and retention and durability (L3.4).
-L1.3 is half-there — the byte watermarks exist on the session and on the pty, and nothing
-consumes them yet. Grouping is on by default (`DEFAULT_JOB_POLICY`);
-`SessionOptions.jobPolicy: false` opts out and gives one update per raw pty read.
+It can **wait** (`wait_for_idle`), which is what makes a read taken after a send mean
+anything. The wait is bounded and reports which of `idle`, `exited` or `timeout` ended it.
+It does not report *settled*: whether a live program will produce more output is not provable
+at a byte interface, and a value claiming otherwise would be a judgement dressed as an
+observation. What a read carries instead is `state` — running, how long it has been idle,
+and whether what it produced has been read through (`GOAL.md` L1.2).
+
+Not built: delivery and boundedness (L1.1), interaction (L1.4) and honest errors beyond the
+four coded ones (L1.5), and retention and durability (L3.4). Grouping is on by default
+(`DEFAULT_JOB_POLICY`); `SessionOptions.jobPolicy: false` opts out, and gives one update
+per raw pty read.
 
 ## Development
 
 ```bash
 npm install
 npm run typecheck     # src, test, scripts and corpus — one project
-npm run test          # 158 tests
+npm run test          # 170 tests
 npm run smoke         # end-to-end against a real shell
 npm run corpus        # score the classifier across replay granularities
 ```

@@ -203,7 +203,50 @@ resolution limit (`CLASSIFIER.md` §9.3) and nothing here invents precision beyo
 - **After the process exits** (`test/session.test.ts`): closing a session through `SessionHost`
   leaves its text queryable, which is the whole of L0.3's "survives the process exiting".
 
-## 7. Out of scope here
+## 7. Waiting is a measurement, not a verdict
+
+L1.2 was written as *settle detection*, at a point where nothing else in the design owned
+silence. Job detection then grew out of the classifier's need for boundaries and took
+silence as its own signal, so the goal had to be justified again rather than inherited.
+What survived is narrower than the section used to claim.
+
+**There is no settled.** Whether a live program will produce more output is not provable at a
+byte interface: it may emit at any future moment for reasons entirely internal to it — a
+timer, a network reply, a background job — and the only event that closes the set is
+termination. Silence is evidence about the future and never proof of it. A state claiming
+otherwise would be a judgement dressed as an observation, so what is reported is the
+measurement — *running, idle for N ms* — and deciding what it means is left to the caller,
+who is the one that knows what it is driving.
+
+**Idle is measured from the byte, not from the delivery.** The obvious place to stamp it is
+the last completed delivery, which would make drained fall out of idle for free. A firehose
+says otherwise: a program that never pauses never opens a gap, so a job stays open until a
+cap closes it and no delivery completes for seconds at a time. Measured from a delivery that
+reads "idle for 2560ms" about a program flooding output.
+
+**Exit and drained are separate, and the window between them is the dangerous one.** After
+the process is gone, the last of its output can still be in the pipeline. A read taken there
+is missing its tail with nothing left to correct it — which is not like idle being wrong,
+where the program simply produces more and the caller reads again.
+
+**`exit` is the pty's own fact, not the queued notification.** `TerminalSession`
+deliberately queues its exit notification behind the feed, so a caller is never told "it
+exited" while an update is still in flight. A state built on that notification could never
+report *exit, more to read* — the state would be unreachable, and the window it exists to
+describe would be invisible.
+
+**`bytesPending` had to become a real number first.** It was a hardcoded `0`, which made
+"nothing is pending" unfalsifiable and the null-vs-0 discipline untestable. It is now
+`bytesRead` minus what the parser has finished with — and not `screen.ops.bytesFed`, which
+is counted *before* the write because op handlers run during it and their offsets must
+already include the bytes that produced them. That makes it a count of bytes handed over
+rather than bytes through; a chunk mid-parse would read as done.
+
+The wait resolves on observation: a byte arriving, a feed finishing, an exit. Not drained,
+there is no moment to compute — only the pipeline knows when it will finish — so it waits on
+the change rather than on a clock.
+
+## 8. Out of scope here
 
 - **Retention and pruning** — `L3.4`. The seam is in place: deltas make pruning snapshots inside
   writing runs safe, and the keyframe cadence is the knob.

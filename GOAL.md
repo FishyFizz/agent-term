@@ -43,7 +43,7 @@ to an outer layer would force an inner layer to change, the boundary is drawn wr
 | Layer | Name | Contains | Stability |
 |---|---|---|---|
 | **L0** | Core model | Writing vs. drawing, classification contract, history timeline, session identity | Frozen early; everything else is built on it |
-| **L1** | Important capabilities | Interaction, settle detection, bounded delivery, correct observation | Shape locked once L0 is validated |
+| **L1** | Important capabilities | Interaction, bounded waiting, bounded delivery, correct observation | Shape locked once L0 is validated |
 | **L2** | Nice-to-have | Precision reads, mouse, escape hatches, optional representations | Additive; can ship late or never |
 | **L3** | Outer implementation | Stack, transport, viewer, retention policy, safety, packaging | Freely swappable |
 
@@ -142,11 +142,34 @@ losing the ability to reconstruct what happened.
 Retrieval is bounded too, not just the feed: reading history takes a window and returns that
 window, with truncation reported explicitly rather than silently.
 
-### L1.2 — Settle detection
+### L1.2 — Waiting, without claiming to know that output has finished
 
-The agent can wait for the terminal to stop changing. Critically: *quiet for N milliseconds*
-is not the same as *fully drained*. Settled requires a drained observation. Without this the
-agent guesses how long to wait, and guessing is how a driver silently succeeds at nothing.
+The agent can wait for the terminal to stop changing, and the wait is bounded: it ends on
+`idle`, `exited` or `timeout`, and reports which. Without this the agent guesses how long to
+sleep, and guessing is how a driver silently succeeds at nothing.
+
+What it is given is facts and no verdict. Three readings, and they are the surface:
+
+- **running, idle for N ms** — measured from the last *byte*, never from the last delivery.
+  A program that never pauses never opens a gap, so no delivery completes for seconds at a
+  time; idle measured from a delivery would call a firehose idle while it floods output.
+- **exit, more to read** — the window where the last of the output is still in the pipeline.
+- **exit, drained** — everything it produced has been read through.
+
+There is deliberately no *settled*. Whether a live program will produce more output is not
+provable at a byte interface: it may emit at any future moment for reasons entirely internal
+to it — a timer, a network reply, a background job — and the only event that closes the set
+is termination. A state claiming otherwise would be a judgement dressed as an observation.
+The measurement is reported; what it means is the caller's call, and the caller is the one
+that knows what it is driving.
+
+`exit` is the pty's own fact, not a notification queued behind the feed. The queued one fires
+only once the feed has drained, so a state built on it could never report "exit, more to
+read" — the state would be unreachable, and the window it exists to describe invisible.
+
+Built: `SessionState` and `TerminalSession.waitForIdle`. A program blocked on a prompt is
+*idle* and is at the same time waiting for the agent; telling those apart is L1.4's pending
+prompt, not this.
 
 ### L1.3 — Quiet vs. never-read
 
@@ -154,6 +177,9 @@ Every observation carries enough state for the agent to distinguish "output has 
 "the server has not read yet": byte watermarks, pending facts. **Unknown values are `null`,
 never `0`.** Conflating the two is the root cause of a whole class of interaction bugs — a
 keystroke sent before the program processed the previous one, with no diagnosis afterwards.
+
+Built: `SessionIo.bytesPending` is a real count, and `SessionState` reports it. It was a
+hardcoded `0` for a while, which made "nothing is pending" unfalsifiable.
 
 ### L1.4 — Interact like a human
 

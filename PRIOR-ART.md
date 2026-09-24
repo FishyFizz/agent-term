@@ -199,8 +199,9 @@ backwards compatibility."* Less emulator maturity than xterm.js, no browser view
 
 - Node/TypeScript; `node-pty` + `@xterm/headless`; MCP SDK pinned to v1.x.
 - Text-grid is the primary screen representation; PNG is an L2 opt-in for graphics protocols.
-- Adopt settle detection, the `io`-block discipline, snapshot tokens, bounded retrieval,
-  `read_region` + `cursor`, mouse input, and the raw-stream escape hatch.
+- Adopt the `io`-block discipline, snapshot tokens, bounded retrieval, `read_region` +
+  `cursor`, mouse input, and the raw-stream escape hatch. Settle detection was adopted as
+  *bounded waiting without a verdict* — see `GOAL.md` L1.2 for what survived of it.
 - Adopt SmartCLI's conformance methodology (differential diff vs. real tmux, three-way
   agreement, VT fuzzing) as the way we make "faithful capture" a testable claim.
 - Reject the `drive()` recipe engine — that's agent-framework work. Keep archetype
