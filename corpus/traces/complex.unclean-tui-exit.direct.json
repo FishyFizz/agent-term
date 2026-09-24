@@ -7,7 +7,7 @@
   "cols": 50,
   "rows": 6,
   "platform": "win32",
-  "recordedAt": "2026-09-24T05:08:05.497Z",
+  "recordedAt": "2026-09-24T06:25:18.192Z",
   "expectations": [
     {
       "from": 0,
@@ -27,7 +27,7 @@
         1049
       ],
       "altScreen": false,
-      "at": 1790226485434
+      "at": 1790231118128
     },
     {
       "name": "SCROLL",
@@ -39,7 +39,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790226485434
+      "at": 1790231118128
     },
     {
       "name": "BUFFERCHANGE",
@@ -49,7 +49,7 @@
       "cursorY": 0,
       "params": [],
       "altScreen": true,
-      "at": 1790226485434
+      "at": 1790231118128
     },
     {
       "name": "CUP",
@@ -61,7 +61,7 @@
         0
       ],
       "altScreen": true,
-      "at": 1790226485434
+      "at": 1790231118128
     },
     {
       "name": "LINEFEED",
@@ -71,7 +71,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": true,
-      "at": 1790226485450
+      "at": 1790231118145
     },
     {
       "name": "LINEFEED",
@@ -81,7 +81,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": true,
-      "at": 1790226485466
+      "at": 1790231118161
     },
     {
       "name": "LINEFEED",
@@ -91,7 +91,7 @@
       "cursorY": 3,
       "params": [],
       "altScreen": true,
-      "at": 1790226485481
+      "at": 1790231118176
     },
     {
       "name": "LINEFEED",
@@ -101,7 +101,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": true,
-      "at": 1790226485497
+      "at": 1790231118192
     }
   ],
   "frames": [
@@ -133,23 +133,23 @@
   "arrivals": [
     {
       "offset": 0,
-      "at": 1790226485391
+      "at": 1790231118084
     },
     {
       "offset": 11,
-      "at": 1790226485391
+      "at": 1790231118084
     },
     {
       "offset": 22,
-      "at": 1790226485391
+      "at": 1790231118084
     },
     {
       "offset": 33,
-      "at": 1790226485391
+      "at": 1790231118084
     },
     {
       "offset": 44,
-      "at": 1790226485391
+      "at": 1790231118084
     }
   ],
   "bytes": 55,

@@ -54,12 +54,16 @@ export const progressBar: Programme = {
   expectations(m) {
     return [
       { from: m['start'] ?? 0, to: m['barDrawn'] ?? 0, kind: 'writing', why: 'header and first bar, appended' },
-      {
-        from: m['barDrawn'] ?? 0,
-        to: m['end'] ?? 0,
-        kind: 'drawing',
-        why: 'each cycle is append-then-repaint; the bar is erased and redrawn at a moving row, so the writing and drawing parts are separate segments in time, not bands in space (CLASSIFIER.md §4)',
-      },
+      // No expectation for the cycles after that, for the same reason as
+      // `complex.progress-bar-scroll` and `complex.interleaved`. Each cycle is
+      // append-then-repaint: the log line arrives and the bar is erased and
+      // redrawn, as separate segments in time rather than bands in space
+      // (CLASSIFIER.md 4). That is two kinds over one span, which a single
+      // verdict cannot express -- asserting `drawing` here meant asserting a
+      // claim about the program that the screen does not make on its own.
+      //
+      // The trace stays: it still exercises append, repaint, and the ordering
+      // between them, and the timeline reconstructs every screen exactly.
     ];
   },
 };

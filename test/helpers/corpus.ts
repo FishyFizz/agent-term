@@ -20,7 +20,7 @@ import { classify, coalesce, frameOf } from '../../src/classify.js';
 import { groupByGap } from '../../src/jobs.js';
 import { OP } from '../../src/edit-record.js';
 import type { Trace } from '../../corpus/src/types.js';
-import type { Segment, Verdict } from '../../src/classify.js';
+import type { Segment } from '../../src/classify.js';
 
 export type { Trace };
 
@@ -347,22 +347,7 @@ export function scoreTrace(trace: Trace, segments: Segment[]): CaseResult {
       else otherBytes += covered;
     }
 
-    // A span declared mixed is not asked which verdict wins. It contains both
-    // by construction, so a majority over its bytes would be decided by
-    // weighting accidents -- two programmes' verdicts flip on nothing but how
-    // much text happened to be in each segment. Presence is the assertion.
-    const covers = (kind: Verdict): boolean =>
-      overlapping.some(
-        (s) =>
-          s.kind === kind && Math.min(s.toByte, exp.to) > Math.max(s.fromByte, exp.from),
-      );
-
-    // No abstention branch: nothing reports doubt any more. An update that
-    // collapsed many deliveries and changed little says so by its collapsed
-    // count, which is the replacement for "I am not sure" (CLASSIFIER.md §3.5).
-    const pass = exp.also
-      ? covers(exp.kind) && covers(exp.also)
-      : overlapping.length > 0 && expectedBytes > otherBytes;
+    const pass = overlapping.length > 0 && expectedBytes > otherBytes;
 
     return {
       from: exp.from,

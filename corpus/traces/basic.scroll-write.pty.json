@@ -7,7 +7,7 @@
   "cols": 80,
   "rows": 5,
   "platform": "win32",
-  "recordedAt": "2026-09-24T05:08:07.513Z",
+  "recordedAt": "2026-09-24T06:25:20.159Z",
   "expectations": [
     {
       "from": 0,
@@ -27,7 +27,7 @@
         9001
       ],
       "altScreen": false,
-      "at": 1790226486731
+      "at": 1790231119379
     },
     {
       "name": "DECSET",
@@ -39,7 +39,7 @@
         1004
       ],
       "altScreen": false,
-      "at": 1790226486732
+      "at": 1790231119379
     },
     {
       "name": "DECRST",
@@ -51,7 +51,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790226486808
+      "at": 1790231119457
     },
     {
       "name": "ED",
@@ -63,7 +63,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790226486808
+      "at": 1790231119457
     },
     {
       "name": "SGR",
@@ -75,7 +75,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790226486808
+      "at": 1790231119457
     },
     {
       "name": "CUP",
@@ -87,7 +87,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790226486808
+      "at": 1790231119457
     },
     {
       "name": "LINEFEED",
@@ -97,7 +97,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790226486808
+      "at": 1790231119457
     },
     {
       "name": "TITLECHANGE",
@@ -107,7 +107,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790226486808
+      "at": 1790231119457
     },
     {
       "name": "DECSET",
@@ -119,7 +119,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790226486808
+      "at": 1790231119457
     },
     {
       "name": "LINEFEED",
@@ -129,17 +129,17 @@
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790226486824
+      "at": 1790231119489
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 189,
+      "byteOffset": 227,
       "cursorX": 0,
       "cursorY": 3,
       "params": [],
       "altScreen": false,
-      "at": 1790226486840
+      "at": 1790231119505
     },
     {
       "name": "LINEFEED",
@@ -149,7 +149,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790226486857
+      "at": 1790231119505
     },
     {
       "name": "SCROLL",
@@ -161,7 +161,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790226486872
+      "at": 1790231119521
     },
     {
       "name": "LINEFEED",
@@ -171,7 +171,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790226486872
+      "at": 1790231119521
     },
     {
       "name": "SCROLL",
@@ -183,7 +183,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790226486888
+      "at": 1790231119552
     },
     {
       "name": "LINEFEED",
@@ -193,7 +193,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790226486888
+      "at": 1790231119552
     },
     {
       "name": "SCROLL",
@@ -205,7 +205,7 @@
         3
       ],
       "altScreen": false,
-      "at": 1790226486919
+      "at": 1790231119567
     },
     {
       "name": "LINEFEED",
@@ -215,7 +215,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790226486919
+      "at": 1790231119567
     },
     {
       "name": "SCROLL",
@@ -227,7 +227,7 @@
         4
       ],
       "altScreen": false,
-      "at": 1790226486934
+      "at": 1790231119582
     },
     {
       "name": "LINEFEED",
@@ -237,7 +237,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790226486934
+      "at": 1790231119582
     },
     {
       "name": "SCROLL",
@@ -249,7 +249,7 @@
         5
       ],
       "altScreen": false,
-      "at": 1790226486950
+      "at": 1790231119598
     },
     {
       "name": "LINEFEED",
@@ -259,227 +259,227 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790226486950
+      "at": 1790231119598
     },
     {
       "name": "SCROLL",
       "source": "event",
-      "byteOffset": 496,
+      "byteOffset": 497,
       "cursorX": 0,
       "cursorY": 4,
       "params": [
         6
       ],
       "altScreen": false,
-      "at": 1790226486965
+      "at": 1790231119614
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 496,
+      "byteOffset": 497,
       "cursorX": 0,
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790226486965
+      "at": 1790231119614
     },
     {
       "name": "SCROLL",
       "source": "event",
-      "byteOffset": 536,
+      "byteOffset": 497,
       "cursorX": 0,
       "cursorY": 4,
       "params": [
         7
       ],
       "altScreen": false,
-      "at": 1790226486981
+      "at": 1790231119614
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 536,
+      "byteOffset": 497,
       "cursorX": 0,
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790226486981
+      "at": 1790231119614
     },
     {
       "name": "SCROLL",
       "source": "event",
-      "byteOffset": 576,
+      "byteOffset": 537,
       "cursorX": 0,
       "cursorY": 4,
       "params": [
         8
       ],
       "altScreen": false,
-      "at": 1790226486996
+      "at": 1790231119629
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 576,
+      "byteOffset": 537,
       "cursorX": 0,
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790226486996
+      "at": 1790231119629
     },
     {
       "name": "SCROLL",
       "source": "event",
-      "byteOffset": 616,
+      "byteOffset": 577,
       "cursorX": 0,
       "cursorY": 4,
       "params": [
         9
       ],
       "altScreen": false,
-      "at": 1790226487011
+      "at": 1790231119644
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 616,
+      "byteOffset": 577,
       "cursorX": 0,
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790226487011
+      "at": 1790231119644
     },
     {
       "name": "SCROLL",
       "source": "event",
-      "byteOffset": 656,
+      "byteOffset": 617,
       "cursorX": 0,
       "cursorY": 4,
       "params": [
         10
       ],
       "altScreen": false,
-      "at": 1790226487027
+      "at": 1790231119660
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 656,
+      "byteOffset": 617,
       "cursorX": 0,
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790226487027
+      "at": 1790231119660
     },
     {
       "name": "SCROLL",
       "source": "event",
-      "byteOffset": 696,
+      "byteOffset": 657,
       "cursorX": 0,
       "cursorY": 4,
       "params": [
         11
       ],
       "altScreen": false,
-      "at": 1790226487043
+      "at": 1790231119676
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 696,
+      "byteOffset": 657,
       "cursorX": 0,
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790226487043
+      "at": 1790231119676
     },
     {
       "name": "SCROLL",
       "source": "event",
-      "byteOffset": 737,
+      "byteOffset": 736,
       "cursorX": 0,
       "cursorY": 4,
       "params": [
         12
       ],
       "altScreen": false,
-      "at": 1790226487059
+      "at": 1790231119706
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 737,
+      "byteOffset": 736,
       "cursorX": 0,
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790226487059
+      "at": 1790231119706
     },
     {
       "name": "SCROLL",
       "source": "event",
-      "byteOffset": 737,
+      "byteOffset": 776,
       "cursorX": 0,
       "cursorY": 4,
       "params": [
         13
       ],
       "altScreen": false,
-      "at": 1790226487059
+      "at": 1790231119721
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 737,
+      "byteOffset": 776,
       "cursorX": 0,
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790226487059
+      "at": 1790231119721
     },
     {
       "name": "SCROLL",
       "source": "event",
-      "byteOffset": 777,
+      "byteOffset": 816,
       "cursorX": 0,
       "cursorY": 4,
       "params": [
         14
       ],
       "altScreen": false,
-      "at": 1790226487074
+      "at": 1790231119736
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 777,
+      "byteOffset": 816,
       "cursorX": 0,
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790226487074
+      "at": 1790231119736
     },
     {
       "name": "SCROLL",
       "source": "event",
-      "byteOffset": 817,
+      "byteOffset": 856,
       "cursorX": 0,
       "cursorY": 4,
       "params": [
         15
       ],
       "altScreen": false,
-      "at": 1790226487090
+      "at": 1790231119752
     },
     {
       "name": "LINEFEED",
       "source": "event",
-      "byteOffset": 817,
+      "byteOffset": 856,
       "cursorX": 0,
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790226487090
+      "at": 1790231119752
     },
     {
       "name": "SCROLL",
@@ -491,7 +491,7 @@
         16
       ],
       "altScreen": false,
-      "at": 1790226487122
+      "at": 1790231119768
     },
     {
       "name": "LINEFEED",
@@ -501,7 +501,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790226487122
+      "at": 1790231119768
     }
   ],
   "frames": [
@@ -548,131 +548,123 @@
   "arrivals": [
     {
       "offset": 0,
-      "at": 1790226486730
+      "at": 1790231119369
     },
     {
       "offset": 16,
-      "at": 1790226486796
+      "at": 1790231119452
     },
     {
       "offset": 113,
-      "at": 1790226486808
+      "at": 1790231119473
     },
     {
       "offset": 151,
-      "at": 1790226486824
-    },
-    {
-      "offset": 189,
-      "at": 1790226486841
+      "at": 1790231119489
     },
     {
       "offset": 227,
-      "at": 1790226486857
-    },
-    {
-      "offset": 264,
-      "at": 1790226486857
+      "at": 1790231119505
     },
     {
       "offset": 265,
-      "at": 1790226486872
+      "at": 1790231119521
     },
     {
       "offset": 302,
-      "at": 1790226486888
+      "at": 1790231119536
     },
     {
       "offset": 303,
-      "at": 1790226486888
+      "at": 1790231119536
     },
     {
       "offset": 340,
-      "at": 1790226486903
+      "at": 1790231119552
     },
     {
       "offset": 341,
-      "at": 1790226486903
+      "at": 1790231119552
     },
     {
       "offset": 378,
-      "at": 1790226486919
-    },
-    {
-      "offset": 379,
-      "at": 1790226486919
+      "at": 1790231119567
     },
     {
       "offset": 416,
-      "at": 1790226486934
+      "at": 1790231119582
     },
     {
       "offset": 417,
-      "at": 1790226486934
+      "at": 1790231119582
     },
     {
       "offset": 456,
-      "at": 1790226486950
+      "at": 1790231119598
     },
     {
-      "offset": 457,
-      "at": 1790226486950
-    },
-    {
-      "offset": 496,
-      "at": 1790226486965
+      "offset": 497,
+      "at": 1790231119614
     },
     {
       "offset": 536,
-      "at": 1790226486981
+      "at": 1790231119614
     },
     {
       "offset": 537,
-      "at": 1790226486981
-    },
-    {
-      "offset": 576,
-      "at": 1790226486996
+      "at": 1790231119629
     },
     {
       "offset": 577,
-      "at": 1790226486996
+      "at": 1790231119645
     },
     {
       "offset": 616,
-      "at": 1790226487012
+      "at": 1790231119645
     },
     {
       "offset": 617,
-      "at": 1790226487012
+      "at": 1790231119660
     },
     {
       "offset": 656,
-      "at": 1790226487027
+      "at": 1790231119676
     },
     {
       "offset": 657,
-      "at": 1790226487027
+      "at": 1790231119676
     },
     {
       "offset": 696,
-      "at": 1790226487043
+      "at": 1790231119691
     },
     {
-      "offset": 737,
-      "at": 1790226487059
+      "offset": 697,
+      "at": 1790231119691
+    },
+    {
+      "offset": 736,
+      "at": 1790231119706
+    },
+    {
+      "offset": 776,
+      "at": 1790231119721
     },
     {
       "offset": 777,
-      "at": 1790226487074
+      "at": 1790231119721
+    },
+    {
+      "offset": 816,
+      "at": 1790231119736
     },
     {
       "offset": 817,
-      "at": 1790226487090
+      "at": 1790231119736
     },
     {
       "offset": 856,
-      "at": 1790226487106
+      "at": 1790231119753
     }
   ],
   "bytes": 857,

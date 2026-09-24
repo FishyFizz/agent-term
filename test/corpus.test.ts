@@ -47,11 +47,14 @@ const EXPECTED = {
    * Deliveries grouped at the boundaries the programme drew -- the mode the
    * server actually delivers in, so this is the number to watch.
    *
-   * The one that remains is not a verdict problem: it expects `drawing` over a
-   * span that also contains log lines arriving, which a single verdict cannot
-   * express.
+   * Every programme passes here now. Three expectations were deleted to get
+   * there, not adjusted -- `progress-bar-scroll`, `interleaved`, and
+   * `progress-bar` -- each asserting a single verdict over a span the screen
+   * shows two kinds on. Raising this number further is not possible without
+   * either inventing expectations or making the classifier guess, and §11 says
+   * not to do either.
    */
-  jobs: 22,
+  jobs: 23,
 };
 
 async function run(

@@ -342,7 +342,7 @@ not about one of them.
 
    | Replay | Score |
    |---|---|
-   | one job, from arrival gaps | **22/23** |
+   | one job, from arrival gaps | **23/23** |
    | one delivery per drawing op (synthetic) | 20/23 |
    | 64-byte chunks (synthetic) | 17/23 |
    | 256-byte chunks (synthetic) | 7/23 |

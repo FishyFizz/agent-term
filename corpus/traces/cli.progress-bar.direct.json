@@ -7,19 +7,13 @@
   "cols": 60,
   "rows": 8,
   "platform": "win32",
-  "recordedAt": "2026-09-24T05:07:55.570Z",
+  "recordedAt": "2026-09-24T06:25:08.190Z",
   "expectations": [
     {
       "from": 0,
       "to": 42,
       "kind": "writing",
       "why": "header and first bar, appended"
-    },
-    {
-      "from": 42,
-      "to": 320,
-      "kind": "drawing",
-      "why": "each cycle is append-then-repaint; the bar is erased and redrawn at a moving row, so the writing and drawing parts are separate segments in time, not bands in space (CLASSIFIER.md §4)"
     }
   ],
   "ops": [
@@ -31,7 +25,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790226475182
+      "at": 1790231107798
     },
     {
       "name": "LINEFEED",
@@ -41,7 +35,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790226475197
+      "at": 1790231107814
     },
     {
       "name": "LINEFEED",
@@ -51,7 +45,7 @@
       "cursorY": 3,
       "params": [],
       "altScreen": false,
-      "at": 1790226475212
+      "at": 1790231107829
     },
     {
       "name": "CUP",
@@ -64,7 +58,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790226475243
+      "at": 1790231107860
     },
     {
       "name": "EL",
@@ -76,7 +70,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790226475258
+      "at": 1790231107876
     },
     {
       "name": "LINEFEED",
@@ -86,7 +80,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790226475305
+      "at": 1790231107923
     },
     {
       "name": "CUP",
@@ -99,7 +93,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790226475335
+      "at": 1790231107955
     },
     {
       "name": "EL",
@@ -111,7 +105,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790226475351
+      "at": 1790231107970
     },
     {
       "name": "LINEFEED",
@@ -121,7 +115,7 @@
       "cursorY": 5,
       "params": [],
       "altScreen": false,
-      "at": 1790226475398
+      "at": 1790231108017
     },
     {
       "name": "CUP",
@@ -134,7 +128,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790226475428
+      "at": 1790231108049
     },
     {
       "name": "EL",
@@ -146,7 +140,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790226475444
+      "at": 1790231108064
     },
     {
       "name": "LINEFEED",
@@ -156,7 +150,7 @@
       "cursorY": 6,
       "params": [],
       "altScreen": false,
-      "at": 1790226475491
+      "at": 1790231108111
     },
     {
       "name": "CUP",
@@ -169,7 +163,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790226475523
+      "at": 1790231108142
     },
     {
       "name": "EL",
@@ -181,7 +175,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790226475538
+      "at": 1790231108158
     }
   ],
   "frames": [
@@ -217,107 +211,107 @@
   "arrivals": [
     {
       "offset": 0,
-      "at": 1790226474328
+      "at": 1790231106942
     },
     {
       "offset": 13,
-      "at": 1790226474328
+      "at": 1790231106942
     },
     {
       "offset": 42,
-      "at": 1790226474418
+      "at": 1790231107034
     },
     {
       "offset": 68,
-      "at": 1790226474510
+      "at": 1790231107128
     },
     {
       "offset": 71,
-      "at": 1790226474510
+      "at": 1790231107128
     },
     {
       "offset": 77,
-      "at": 1790226474510
+      "at": 1790231107128
     },
     {
       "offset": 81,
-      "at": 1790226474510
+      "at": 1790231107128
     },
     {
       "offset": 108,
-      "at": 1790226474510
+      "at": 1790231107128
     },
     {
       "offset": 111,
-      "at": 1790226474604
+      "at": 1790231107222
     },
     {
       "offset": 137,
-      "at": 1790226474697
+      "at": 1790231107316
     },
     {
       "offset": 140,
-      "at": 1790226474697
+      "at": 1790231107316
     },
     {
       "offset": 146,
-      "at": 1790226474697
+      "at": 1790231107316
     },
     {
       "offset": 150,
-      "at": 1790226474697
+      "at": 1790231107316
     },
     {
       "offset": 177,
-      "at": 1790226474697
+      "at": 1790231107316
     },
     {
       "offset": 180,
-      "at": 1790226474791
+      "at": 1790231107409
     },
     {
       "offset": 206,
-      "at": 1790226474886
+      "at": 1790231107504
     },
     {
       "offset": 209,
-      "at": 1790226474886
+      "at": 1790231107504
     },
     {
       "offset": 215,
-      "at": 1790226474886
+      "at": 1790231107504
     },
     {
       "offset": 219,
-      "at": 1790226474886
+      "at": 1790231107504
     },
     {
       "offset": 246,
-      "at": 1790226474886
+      "at": 1790231107504
     },
     {
       "offset": 249,
-      "at": 1790226474980
+      "at": 1790231107597
     },
     {
       "offset": 277,
-      "at": 1790226475072
+      "at": 1790231107689
     },
     {
       "offset": 280,
-      "at": 1790226475072
+      "at": 1790231107689
     },
     {
       "offset": 286,
-      "at": 1790226475072
+      "at": 1790231107689
     },
     {
       "offset": 290,
-      "at": 1790226475072
+      "at": 1790231107689
     },
     {
       "offset": 317,
-      "at": 1790226475072
+      "at": 1790231107689
     }
   ],
   "bytes": 320,

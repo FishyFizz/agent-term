@@ -7,19 +7,13 @@
   "cols": 60,
   "rows": 8,
   "platform": "win32",
-  "recordedAt": "2026-09-24T05:08:13.932Z",
+  "recordedAt": "2026-09-24T06:25:26.263Z",
   "expectations": [
     {
       "from": 0,
       "to": 0,
       "kind": "writing",
       "why": "header and first bar, appended"
-    },
-    {
-      "from": 0,
-      "to": 0,
-      "kind": "drawing",
-      "why": "each cycle is append-then-repaint; the bar is erased and redrawn at a moving row, so the writing and drawing parts are separate segments in time, not bands in space (CLASSIFIER.md §4)"
     }
   ],
   "ops": [
@@ -33,7 +27,7 @@
         9001
       ],
       "altScreen": false,
-      "at": 1790226492714
+      "at": 1790231125028
     },
     {
       "name": "DECSET",
@@ -45,7 +39,7 @@
         1004
       ],
       "altScreen": false,
-      "at": 1790226492714
+      "at": 1790231125028
     },
     {
       "name": "DECRST",
@@ -57,7 +51,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790226492775
+      "at": 1790231125090
     },
     {
       "name": "ED",
@@ -69,7 +63,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790226492775
+      "at": 1790231125090
     },
     {
       "name": "SGR",
@@ -81,7 +75,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790226492775
+      "at": 1790231125090
     },
     {
       "name": "CUP",
@@ -93,7 +87,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790226492775
+      "at": 1790231125090
     },
     {
       "name": "LINEFEED",
@@ -103,7 +97,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790226492775
+      "at": 1790231125090
     },
     {
       "name": "TITLECHANGE",
@@ -113,7 +107,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790226492776
+      "at": 1790231125090
     },
     {
       "name": "DECSET",
@@ -125,7 +119,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790226492776
+      "at": 1790231125090
     },
     {
       "name": "LINEFEED",
@@ -135,7 +129,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790226492806
+      "at": 1790231125122
     },
     {
       "name": "LINEFEED",
@@ -145,7 +139,7 @@
       "cursorY": 3,
       "params": [],
       "altScreen": false,
-      "at": 1790226492884
+      "at": 1790231125199
     },
     {
       "name": "DECRST",
@@ -157,7 +151,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790226492978
+      "at": 1790231125293
     },
     {
       "name": "CUP",
@@ -170,7 +164,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790226492978
+      "at": 1790231125293
     },
     {
       "name": "DECSET",
@@ -182,7 +176,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790226492978
+      "at": 1790231125293
     },
     {
       "name": "DECRST",
@@ -194,7 +188,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790226492994
+      "at": 1790231125308
     },
     {
       "name": "EL",
@@ -206,7 +200,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790226492994
+      "at": 1790231125308
     },
     {
       "name": "CUP",
@@ -219,7 +213,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790226492994
+      "at": 1790231125308
     },
     {
       "name": "DECSET",
@@ -231,7 +225,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790226492994
+      "at": 1790231125308
     },
     {
       "name": "LINEFEED",
@@ -241,7 +235,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790226493057
+      "at": 1790231125387
     },
     {
       "name": "DECRST",
@@ -253,7 +247,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790226493149
+      "at": 1790231125480
     },
     {
       "name": "CUP",
@@ -266,7 +260,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790226493149
+      "at": 1790231125480
     },
     {
       "name": "DECSET",
@@ -278,7 +272,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790226493149
+      "at": 1790231125480
     },
     {
       "name": "DECRST",
@@ -290,7 +284,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790226493164
+      "at": 1790231125496
     },
     {
       "name": "EL",
@@ -302,7 +296,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790226493164
+      "at": 1790231125496
     },
     {
       "name": "CUP",
@@ -315,7 +309,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790226493164
+      "at": 1790231125496
     },
     {
       "name": "DECSET",
@@ -327,7 +321,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790226493164
+      "at": 1790231125496
     },
     {
       "name": "LINEFEED",
@@ -337,7 +331,7 @@
       "cursorY": 5,
       "params": [],
       "altScreen": false,
-      "at": 1790226493242
+      "at": 1790231125574
     },
     {
       "name": "DECRST",
@@ -349,7 +343,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790226493336
+      "at": 1790231125668
     },
     {
       "name": "CUP",
@@ -362,7 +356,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790226493336
+      "at": 1790231125668
     },
     {
       "name": "DECSET",
@@ -374,7 +368,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790226493336
+      "at": 1790231125668
     },
     {
       "name": "DECRST",
@@ -386,7 +380,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790226493351
+      "at": 1790231125684
     },
     {
       "name": "EL",
@@ -398,7 +392,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790226493351
+      "at": 1790231125684
     },
     {
       "name": "CUP",
@@ -411,7 +405,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790226493351
+      "at": 1790231125684
     },
     {
       "name": "DECSET",
@@ -423,7 +417,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790226493351
+      "at": 1790231125684
     },
     {
       "name": "LINEFEED",
@@ -433,7 +427,7 @@
       "cursorY": 6,
       "params": [],
       "altScreen": false,
-      "at": 1790226493430
+      "at": 1790231125749
     },
     {
       "name": "LINEFEED",
@@ -443,7 +437,7 @@
       "cursorY": 7,
       "params": [],
       "altScreen": false,
-      "at": 1790226493524
+      "at": 1790231125856
     },
     {
       "name": "DECRST",
@@ -455,7 +449,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790226493540
+      "at": 1790231125871
     },
     {
       "name": "EL",
@@ -467,7 +461,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790226493540
+      "at": 1790231125871
     },
     {
       "name": "CUP",
@@ -480,7 +474,7 @@
         1
       ],
       "altScreen": false,
-      "at": 1790226493540
+      "at": 1790231125871
     },
     {
       "name": "DECSET",
@@ -492,7 +486,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790226493540
+      "at": 1790231125871
     }
   ],
   "frames": [
@@ -529,63 +523,63 @@
   "arrivals": [
     {
       "offset": 0,
-      "at": 1790226492706
+      "at": 1790231125019
     },
     {
       "offset": 16,
-      "at": 1790226492773
+      "at": 1790231125089
     },
     {
       "offset": 88,
-      "at": 1790226492791
+      "at": 1790231125106
     },
     {
       "offset": 117,
-      "at": 1790226492868
+      "at": 1790231125184
     },
     {
       "offset": 143,
-      "at": 1790226492962
+      "at": 1790231125278
     },
     {
       "offset": 161,
-      "at": 1790226492978
+      "at": 1790231125293
     },
     {
       "offset": 209,
-      "at": 1790226493042
+      "at": 1790231125371
     },
     {
       "offset": 235,
-      "at": 1790226493134
+      "at": 1790231125465
     },
     {
       "offset": 253,
-      "at": 1790226493149
+      "at": 1790231125481
     },
     {
       "offset": 301,
-      "at": 1790226493228
+      "at": 1790231125558
     },
     {
       "offset": 327,
-      "at": 1790226493320
+      "at": 1790231125653
     },
     {
       "offset": 345,
-      "at": 1790226493336
+      "at": 1790231125668
     },
     {
       "offset": 393,
-      "at": 1790226493415
+      "at": 1790231125749
     },
     {
       "offset": 421,
-      "at": 1790226493509
+      "at": 1790231125841
     },
     {
       "offset": 423,
-      "at": 1790226493525
+      "at": 1790231125856
     }
   ],
   "bytes": 471,

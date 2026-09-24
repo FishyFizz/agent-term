@@ -7,7 +7,7 @@
   "cols": 60,
   "rows": 6,
   "platform": "win32",
-  "recordedAt": "2026-09-24T05:08:19.330Z",
+  "recordedAt": "2026-09-24T06:25:31.348Z",
   "expectations": [
     {
       "from": 0,
@@ -33,7 +33,7 @@
         9001
       ],
       "altScreen": false,
-      "at": 1790226498736
+      "at": 1790231130738
     },
     {
       "name": "DECSET",
@@ -45,7 +45,7 @@
         1004
       ],
       "altScreen": false,
-      "at": 1790226498736
+      "at": 1790231130738
     },
     {
       "name": "DECRST",
@@ -57,7 +57,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790226498801
+      "at": 1790231130809
     },
     {
       "name": "ED",
@@ -69,7 +69,7 @@
         2
       ],
       "altScreen": false,
-      "at": 1790226498801
+      "at": 1790231130809
     },
     {
       "name": "SGR",
@@ -81,7 +81,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790226498801
+      "at": 1790231130809
     },
     {
       "name": "CUP",
@@ -93,7 +93,7 @@
         0
       ],
       "altScreen": false,
-      "at": 1790226498801
+      "at": 1790231130809
     },
     {
       "name": "LINEFEED",
@@ -103,7 +103,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790226498801
+      "at": 1790231130809
     },
     {
       "name": "TITLECHANGE",
@@ -113,7 +113,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790226498801
+      "at": 1790231130809
     },
     {
       "name": "DECSET",
@@ -125,7 +125,7 @@
         25
       ],
       "altScreen": false,
-      "at": 1790226498801
+      "at": 1790231130809
     }
   ],
   "frames": [
@@ -154,15 +154,15 @@
   "arrivals": [
     {
       "offset": 0,
-      "at": 1790226498722
+      "at": 1790231130736
     },
     {
       "offset": 16,
-      "at": 1790226498801
+      "at": 1790231130809
     },
     {
       "offset": 102,
-      "at": 1790226498924
+      "at": 1790231130940
     }
   ],
   "bytes": 118,
