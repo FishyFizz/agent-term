@@ -150,6 +150,20 @@ erase or an overwrite is a repaint and is dropped. Verified:
 | A linefeed is not the only completion signal | Windows ConPTY ended an output line with `\x1b[7;1H` and emitted **0** linefeeds for it; the line reached the screen and not the log until the cursor-left trigger was added |
 | A repaint of rows that already held content is not text | an alt-screen frame rewriting its own rows: **0** lines. The first paint onto blank rows *is* text — it is indistinguishable from appending, and the agent sees the full draw either way |
 | A program that *writes* on the alt screen does | 2 lines captured, and that content is destroyed on exit — so the sink records both buffers and stamps which one. L0.1's corollary is that the alt screen is not a verdict |
+| The log depends on **where the deliveries fell** | the same pty trace replayed at two chunkings differs in **13 of 23** programmes: `cli.pager` records 15 lines one way and 25 the other; `cli.dashboard` 25 against 34 |
+
+That last row is new and it is worth being plain about. Judging a line against the
+feed's diff makes the log sensitive to the feed — whether a row reads as *arrived* or as
+*replaced* depends on where the window opened, which is §9.3's point applied one sink
+over. The old rule — capture at every linefeed, unconditionally — was **insensitive and
+wrong**: it was stable across chunkings and it lost every line ConPTY terminated by
+positioning the cursor. The choice was between a record that is complete for the feed
+that actually ran and one that is consistent across feeds that never did.
+
+A live session is self-consistent: it has one chunking, the job policy's, and its
+history stores what that produced. The sensitivity appears when recorded bytes are
+replayed at a granularity the session never used, which nothing in production does —
+the corpus does, and that is where it was measured.
 
 It is append-only and never de-duplicated: two identical lines are two lines. A build log
 repeating "Compiling foo" is the common case, and a set-like log loses exactly the repetition

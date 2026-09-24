@@ -56,11 +56,16 @@ it was produced at. A job swallowed many deliveries is not a gap: each reports w
 stands for, and `history.deliveries(from, to)` plays the states back in order. `host.ts`
 is the composition root: it starts a session and its recording in one call.
 
-It is measured against `corpus/` — 23 programmes, 46 recorded traces — at 23/23 under
-job-aligned replay, 20/23 op-aligned and 17/23 under 64-byte chunks. Those numbers are
-measurements of a hand-written label set, not a specification: a rise is not
-automatically progress. The corpus's job is exactness — every delivery of every trace
-reconstructs its screen exactly — and the rule is written down in `CLASSIFIER.md` §11.
+It is measured against `corpus/` — 23 programmes, each recorded twice, `direct` and
+through a real ConPTY. The **scored** numbers below use the `direct` traces only, because
+the expectations are byte ranges from the programme's own marks and ConPTY rewrites the
+bytes: 23/23 under job-aligned replay, 20/23 op-aligned, 17/23 under 64-byte chunks. Those
+are measurements of a hand-written label set, not a specification — a rise is not
+automatically progress (`CLASSIFIER.md` §11).
+
+All 46 traces carry the checks that need no labels: every trace replays to the frames it
+recorded, and every one reconstructs exactly through the timeline, keyframe plus deltas.
+Those run on the pty half too, which is the feed where things actually go wrong.
 
 A **first MCP surface** exists (`src/mcp.ts`, `npm run mcp:http`): open a session, send
 input, read the screen, close it. It is a spike — history paging, intermediate playback,

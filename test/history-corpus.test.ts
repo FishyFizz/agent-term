@@ -88,7 +88,10 @@ async function replayIntoHistory(history: SessionHistory, trace: ReturnType<type
 }
 
 test('every corpus trace reconstructs exactly through the timeline', async () => {
-  const traces = loadTraces('direct');
+  // Both feeds. The property being checked -- a stored keyframe plus deltas
+  // reconstructs the screen exactly -- has nothing to do with how the bytes
+  // arrived, and the pty feed is the one that rewrites them (corpus/OPS.md).
+  const traces = loadTraces('both');
   assert.ok(traces.length >= 23, `expected the full corpus, got ${traces.length}`);
 
   let checkedRecords = 0;
@@ -138,7 +141,10 @@ test('every corpus trace reconstructs exactly through the timeline', async () =>
  * programme and no re-recording.
  */
 test('the corpus colours survive the timeline', async () => {
-  const traces = loadTraces('direct');
+  // Both feeds. The property being checked -- a stored keyframe plus deltas
+  // reconstructs the screen exactly -- has nothing to do with how the bytes
+  // arrived, and the pty feed is the one that rewrites them (corpus/OPS.md).
+  const traces = loadTraces('both');
 
   const build = traces.find((t) => t.id === 'cli.build-log');
   assert.ok(build, 'cli.build-log is in the corpus');
@@ -189,7 +195,7 @@ test('the corpus colours survive the timeline', async () => {
 });
 
 test('the corpus resize programme yields three epochs, each at its own size', async () => {
-  const trace = loadTraces('direct').find((t) => t.id === 'complex.resize-epochs');
+  const trace = loadTraces('both').find((t) => t.id === 'complex.resize-epochs' && t.feed === 'direct');
   assert.ok(trace, 'the resize programme is in the corpus');
 
   const history = new SessionHistory(trace.id);
