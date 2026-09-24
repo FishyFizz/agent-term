@@ -88,7 +88,32 @@ export function classify(params: {
   // delivery, so an op that agrees absorbs it rather than replacing it.
   const segments: Segment[] = [inferSegment(before, after, fromByte, toByte)];
 
-  for (const op of ops) {
+  // A `CUP` immediately after a buffer switch is the home a full-screen
+  // program emits before it writes, not a repaint. `buildSegment` lets `CUP`
+  // corroborate drawing on its own -- correctly, for a redraw that restores
+  // the content a row already held and so leaves no screen fact behind -- but
+  // that rule cannot tell a home from a redraw, because both are the same op
+  // and the frames look identical. So every alt-screen programme was carrying
+  // a `drawing` segment for merely opening, competing with the switch's own
+  // `writing` over the same bytes.
+  //
+  // The switch already reports that boundary, so the home after it is not a
+  // second act. Only the immediately following `CUP` is dropped: a later one
+  // in the same delivery is a repaint and must still be reported.
+  const homed = new Set<number>();
+  ops.forEach((op, i) => {
+    if (!OP.isAltScreenSwitch(op)) return;
+    // Structural events -- `SCROLL`, `BUFFERCHANGE` -- fire between the switch
+    // and the home, so the next *drawing* op is the one to look at, not the
+    // next op.
+    for (let j = i + 1; j < ops.length; j++) {
+      if (!OP.isDrawing(ops[j]!.name)) continue;
+      if (ops[j]!.name === 'CUP') homed.add(j);
+      break;
+    }
+  });
+
+  for (const [i, op] of ops.entries()) {
     // Most ops are evidence, not segments: a mode change alters shape or
     // behaviour, and a structural event is the emulator reporting what it did
     // in response. Neither is a segment of its own.
@@ -99,6 +124,7 @@ export function classify(params: {
     // swallowed by the repaint that follows nor lost as mode-change noise.
     // Asking for the switch alone is enough: it is a mode change already.
     if (!OP.isDrawing(op.name) && !OP.isAltScreenSwitch(op)) continue;
+    if (homed.has(i)) continue;
 
     segments.push(
       buildSegment({

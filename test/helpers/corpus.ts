@@ -153,13 +153,11 @@ export function jobChunks(trace: Trace, gapMs: number): string[] {
     while (nextSwitch < switches.length && switches[nextSwitch]! < a.offset) nextSwitch++;
     const crossesResize = nextResize < resizes.length && resizes[nextResize]!.offset < end;
     // `Op.byteOffset` is bytes fed *before* the op, so it names the end of the
-    // delivery that carried it. `<=` would also catch a switch sitting exactly
-    // at `end` -- which is what a repaint merged with the exit that destroys
-    // it looks like. Tried: it recovers `complex.resize-during-tui` and costs
-    // two others, because the switch's own segment then competes with the
-    // `CUP` that follows it and the pair is scored as mixed. Net -1, so not
-    // adopted -- the real fix is the `CUP` finding, not the boundary.
-    const crossesSwitch = nextSwitch < switches.length && switches[nextSwitch]! < end;
+    // delivery that carried it. `<=`, not `<`: a switch sitting exactly at
+    // `end` is in this delivery, and missing it merges a repaint with the exit
+    // that destroys what it painted -- the job's net diff is then "everything
+    // vanished", which describes neither the repaint nor the exit.
+    const crossesSwitch = nextSwitch < switches.length && switches[nextSwitch]! <= end;
 
     if (i > 0 && (a.at - lastAt >= gapMs || crossesResize || crossesSwitch)) {
       out.push(trace.raw.slice(start, a.offset));

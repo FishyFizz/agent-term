@@ -35,16 +35,20 @@ const EXPECTED = {
   /**
    * Deliveries grouped at the boundaries the programme drew.
    *
-   * Below `drawOps`, and only part of the difference is a regression to
-   * chase. Two of the losses are the corpus asking a coalesced burst which
-   * single verdict covers it -- a question with no answer, now answered by
-   * `SegmentExpectation.also` for the genuinely mixed cases. The rest are
-   * real: a `CUP` used to home the cursor before an append reads as drawing
-   * (every alt-screen programme pays for this), a resize reflows content and
-   * the next job's diff inherits it, and one case the screen cannot settle
-   * at any granularity.
+   * Level with `drawOps`, and that took two changes rather than tuning.
+   * A job boundary at every alt-screen switch, so a repaint is not merged
+   * with the exit that destroys it -- worth +2, but only once `classify`
+   * stopped reporting the home-cursor `CUP` that follows entering a
+   * full-screen program as a repaint of its own; before that the switch and
+   * the home disagreed over the same bytes and the boundary cost more than
+   * it recovered.
+   *
+   * The two that remain are not granularity problems: one the screen cannot
+   * settle at any window (a blank row gaining text is an append by every
+   * structural test), and one where a resize reflows existing content and the
+   * next job's diff inherits the change.
    */
-  jobs: 19,
+  jobs: 21,
 };
 
 async function run(
