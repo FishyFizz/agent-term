@@ -13,6 +13,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "smoke": "tsx scripts/smoke.ts",
     "mcp": "tsx scripts/mcp-stdio.ts",
+    "mcp:http": "tsx scripts/mcp-http.ts",
+    "mcp:dev": "tsx watch scripts/mcp-http.ts",
     "test": "tsx --test test/*.test.ts corpus/test/*.test.ts",
     "test:unit": "tsx --test test/classify.test.ts test/screen.test.ts test/edit-record.test.ts test/text-log.test.ts test/delta.test.ts test/history.test.ts test/history-corpus.test.ts test/corpus.test.ts",
     "record": "tsx corpus/scripts/record.ts",
@@ -26,6 +28,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@types/express": "^5.0.6",
     "@types/node": "^26.6.2",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3"

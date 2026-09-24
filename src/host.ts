@@ -14,7 +14,7 @@
  */
 import { SessionRegistry } from './registry.js';
 import { HistoryStore, type SessionHistory } from './history.js';
-import type { TerminalSession } from './session.js';
+import type { SessionUpdate, TerminalSession } from './session.js';
 import type { SessionId, SessionOptions } from './types.js';
 
 /** A session and the timeline recording it. */
@@ -28,6 +28,16 @@ export class SessionHost {
   readonly history = new HistoryStore();
 
   /**
+   * The last classified update each live session produced.
+   *
+   * Owned here rather than by a surface, because it is a fact about the
+   * session and not about whoever is asking. A surface that kept its own copy
+   * would answer `(no output yet)` to the second caller — which a stateless
+   * transport makes every request.
+   */
+  private readonly latestUpdate = new Map<SessionId, SessionUpdate>();
+
+  /**
    * Start a session and begin recording it.
    *
    * One call, because two would be one call too many: a caller that spawned a
@@ -36,11 +46,24 @@ export class SessionHost {
    */
   open(options: SessionOptions = {}): OpenSession {
     const session = this.registry.create(options);
-    return { session, history: this.history.open(session) };
+    const history = this.history.open(session);
+    session.onUpdate((update) => this.latestUpdate.set(session.id, update));
+    return { session, history };
   }
 
   session(id: SessionId): TerminalSession | undefined {
     return this.registry.get(id);
+  }
+
+  /**
+   * The last update a session produced, or `undefined` if none has yet.
+   *
+   * `undefined` is not an empty screen: a session that has produced no output
+   * has no update, and saying so is different from describing a blank one
+   * (GOAL.md L1.3).
+   */
+  lastUpdate(id: SessionId): SessionUpdate | undefined {
+    return this.latestUpdate.get(id);
   }
 
   /** The timeline for a session, live or finished. */

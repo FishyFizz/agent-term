@@ -64,12 +64,6 @@ function present(update: SessionUpdate) {
 export function createServer(host: SessionHost = new SessionHost()): McpServer {
   const server = new McpServer({ name: 'agent-term', version: '0.0.0' });
 
-  // The last update each session produced, kept so a read can report what
-  // *changed* and not only what the screen is. The session itself does not
-  // retain its updates -- that is history's job -- and history is paged
-  // rather than peeked at, so the surface keeps the one it needs.
-  const latest = new Map<string, SessionUpdate>();
-
   const session = (id: string) => host.session(id);
 
   server.registerTool(
@@ -89,7 +83,6 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
     },
     async ({ command, args, cwd, cols, rows }) => {
       const { session: opened } = host.open({ command, args, cwd, cols, rows });
-      opened.onUpdate((update) => latest.set(opened.id, update));
       return {
         content: [{ type: 'text', text: opened.id }],
         structuredContent: { sessionId: opened.id, cols: opened.screen.cols, rows: opened.screen.rows, pid: opened.pty.pid },
@@ -135,7 +128,7 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
     async ({ sessionId }) => {
       const target = session(sessionId);
       if (!target) return fail('no_session', `no session ${sessionId}`);
-      const last = latest.get(sessionId);
+      const last = host.lastUpdate(sessionId);
       if (!last) {
         return {
           content: [{ type: 'text', text: '(no output yet)' }],
@@ -165,7 +158,6 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
     },
     async ({ sessionId }) => {
       if (!session(sessionId)) return fail('no_session', `no session ${sessionId}`);
-      latest.delete(sessionId);
       host.close(sessionId as SessionId);
       return { content: [{ type: 'text', text: 'closed' }], structuredContent: { sessionId, closed: true } };
     },
