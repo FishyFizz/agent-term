@@ -8,7 +8,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { TerminalSession } from '../src/session.js';
+import { TerminalSession, type WaitResult } from '../src/session.js';
 import { FakeClock } from '../src/jobs.js';
 import { applyDelta } from '../src/delta.js';
 import { HistoryStore } from '../src/history.js';
@@ -250,6 +250,81 @@ test('an exit is reported as a fact, and drain follows it rather than being assu
     await waitFor(() => session.state().drained === true, { label: 'the tail to be parsed' }),
   );
   assert.equal(session.state().bytesPending, 0, 'nothing left unparsed');
+});
+
+/**
+ * Drive a wait by advancing the injected clock, giving the real event loop a
+ * turn between advances so the async feed can actually run.
+ *
+ * The wait never sleeps on a fixed step, so nothing here waits on one either --
+ * it pumps until the promise settles or the pump gives up.
+ */
+async function pump<T>(
+  promise: Promise<T>,
+  clock: FakeClock,
+  { steps = 40, stepMs = 100 } = {},
+): Promise<T | undefined> {
+  let settled: T | undefined;
+  let done = false;
+  void promise.then((value) => {
+    settled = value;
+    done = true;
+  });
+  for (let i = 0; i < steps && !done; i++) {
+    clock.advance(stepMs);
+    await delay(10);
+  }
+  return settled;
+}
+
+test('a wait ends when the quiet period is observed, not when a guess runs out', async (t) => {
+  const clock = new FakeClock();
+  const session = new TerminalSession('wait-probe', { command, args, cols: 80, rows: 24, clock });
+  t.after(() => session.dispose());
+
+  session.pty.write('echo wait-probe\r');
+  assert.ok(await waitFor(() => session.pty.bytesRead > 0, { label: 'a byte from the pty' }));
+
+  const result = await pump(session.waitForIdle({ idleMs: 100, timeoutMs: 5000 }), clock);
+  assert.ok(result, 'the wait resolved');
+  assert.equal(result!.reason, 'idle', 'the quiet period was observed');
+  assert.ok(result!.state.idleMs! >= 100, `and it is the one asked for (${result!.state.idleMs})`);
+  assert.equal(result!.state.drained, true, 'and the screen is caught up, not behind');
+  assert.equal(result!.state.exit, null, 'the program is still alive');
+});
+
+test('a wait that cannot be satisfied ends as a timeout, saying what it saw', async (t) => {
+  const clock = new FakeClock();
+  const session = new TerminalSession('wait-timeout', { command, args, cols: 80, rows: 24, clock });
+  t.after(() => session.dispose());
+
+  session.pty.write('echo wait-timeout\r');
+  assert.ok(await waitFor(() => session.pty.bytesRead > 0, { label: 'a byte from the pty' }));
+
+  // An interval the session will never reach, on a clock it does not control.
+  const result = await pump(session.waitForIdle({ idleMs: 100000, timeoutMs: 100 }), clock);
+  assert.ok(result, 'the wait resolved');
+  assert.equal(result!.reason, 'timeout', 'it gave up rather than hanging');
+  assert.equal(result!.waitedMs, 100, 'and reports how long it gave');
+  assert.ok(result!.state.idleMs !== null, 'with what it saw, for the caller to judge');
+});
+
+test('an exit ends a wait early: a quiet period would no longer mean anything', async (t) => {
+  const { session } = harness();
+  t.after(() => session.dispose());
+
+  session.pty.write('exit\r\n');
+
+  // Asked for five seconds of quiet. Once the process is gone and its output
+  // has been parsed, nothing more can arrive, so waiting that out would be
+  // waiting for evidence that cannot change the answer.
+  const result: WaitResult = await session.waitForIdle({ idleMs: 5000, timeoutMs: 10000 });
+  assert.equal(result.reason, 'exited');
+  assert.ok(result.state.exit !== null, 'with the exit facts on it');
+  assert.ok(
+    result.waitedMs < 5000,
+    `it did not sit out the quiet period (waited ${result.waitedMs}ms)`,
+  );
 });
 
 test("every update's delta reproduces that update's screen exactly", async (t) => {

@@ -208,6 +208,48 @@ export interface SessionState {
   exit: PtyExitInfo | null;
 }
 
+/**
+ * Why a wait ended.
+ *
+ * `idle` and `timeout` are the difference the caller is judging: one says the
+ * quiet period was observed, the other says it was not and time ran out.
+ */
+export type WaitReason =
+  /**
+   * Quiet for at least the interval asked for, and caught up.
+   *
+   * It does not mean the program has finished. Nothing observable can say
+   * that, and a caller that reads `idle` as "done" is making a judgement this
+   * value deliberately does not make.
+   */
+  | 'idle'
+  /**
+   * The process is gone and everything it wrote has been parsed.
+   *
+   * Waiting longer cannot change what is observable, so the wait ends early
+   * rather than sitting out a quiet period that no longer means anything.
+   */
+  | 'exited'
+  /** Gave up. `state` says what was seen; the caller decides what to do. */
+  | 'timeout';
+
+/** The result of a bounded wait. */
+export interface WaitResult {
+  reason: WaitReason;
+  /** What was observed when the wait ended. */
+  state: SessionState;
+  /** Milliseconds the wait lasted, on the session's clock. */
+  waitedMs: number;
+}
+
+/** What `waitForIdle` is asked for. Both bounds are required. */
+export interface WaitOptions {
+  /** How long the pty must have been quiet, in milliseconds. */
+  idleMs: number;
+  /** Stop waiting after this long, in milliseconds. */
+  timeoutMs: number;
+}
+
 /** A grid size a session was resized to. */
 export interface SessionSize {
   cols: number;
@@ -249,6 +291,14 @@ export class TerminalSession {
    * difference is the whole point.
    */
   private _lastByteAt: number | null = null;
+  /**
+   * Waiters for the session changing, woken by `wake`.
+   *
+   * A waiter is woken rather than polling: the alternatives are a timer on a
+   * fixed step, which is a sleep by another name, and a caller inventing its
+   * own, which is what L1.2 exists to stop.
+   */
+  private readonly waiters: (() => void)[] = [];
   private _seq = 0;
   private _rawSeq = 0;
   private queue: Promise<void> = Promise.resolve();
@@ -289,6 +339,7 @@ export class TerminalSession {
     this.pty.on('data', (chunk) => {
       // Stamped here, at the byte, before anything decides what to do with it.
       this._lastByteAt = this.clock.now();
+      this.wake();
       if (this.jobs) {
         this.jobs.push(chunk);
         return;
@@ -303,6 +354,7 @@ export class TerminalSession {
       // alt-screen content is destroyed when the program leaves it (L0.1), so
       // the last live frame has to be classified before the exit is reported.
       this.jobs?.flush();
+      this.wake();
       this.enqueue(() => {
         for (const listener of this.exitListeners) listener(info);
       });
@@ -486,9 +538,11 @@ export class TerminalSession {
     this.queue = run.then(
       () => {
         this.pendings--;
+        this.wake();
       },
       () => {
         this.pendings--;
+        this.wake();
       },
     );
     return run;
@@ -530,6 +584,86 @@ export class TerminalSession {
       bytesPending: this.pendingBytes(),
       exit,
     };
+  }
+
+  /**
+   * Wait for the session to be quiet and caught up, or for the wait to end.
+   *
+   * Both halves are required, and the pairing is the point: quiet on its own
+   * would return while a large feed was still being parsed, and a caller
+   * reading the screen then would be reading one that is behind.
+   *
+   * It resolves on observation rather than on a fixed step: a byte arriving, a
+   * feed finishing and the process exiting all wake it, and otherwise it
+   * sleeps exactly until the moment the answer could change. A caller never
+   * invents the interval, which is the whole of L1.2 -- guessing how long to
+   * wait is how a driver silently succeeds at nothing.
+   *
+   * `idle` is not "finished". It says the quiet period was observed; whether
+   * the program is done is not something a byte interface can establish, and
+   * the result deliberately does not claim it.
+   */
+  async waitForIdle(options: WaitOptions): Promise<WaitResult> {
+    const startedAt = this.clock.now();
+    const deadline = startedAt + options.timeoutMs;
+
+    for (;;) {
+      const now = this.clock.now();
+      const state = this.state(now);
+
+      // Nothing more can arrive once the process is gone and its output has
+      // been parsed, so a quiet period would no longer be evidence of
+      // anything. Ending here rather than sitting it out.
+      if (state.exit !== null && state.drained === true) {
+        return { reason: 'exited', state, waitedMs: now - startedAt };
+      }
+      if (state.drained === true && state.idleMs !== null && state.idleMs >= options.idleMs) {
+        return { reason: 'idle', state, waitedMs: now - startedAt };
+      }
+      if (now >= deadline) {
+        return { reason: 'timeout', state, waitedMs: now - startedAt };
+      }
+
+      // Not drained, there is no moment to compute: only the pipeline knows
+      // when it will finish, so this waits on the change rather than on a
+      // clock. Drained, it waits exactly until the quiet period would elapse.
+      const remaining =
+        state.drained === true && state.idleMs !== null ? options.idleMs - state.idleMs : Infinity;
+      await this.nextChange(Math.min(deadline, now + remaining));
+    }
+  }
+
+  /**
+   * Wake anything waiting on this session changing.
+   *
+   * Called wherever the facts a wait reads can change: a byte arriving, a feed
+   * finishing, an exit. None of them decides whether the change matters -- the
+   * waiter re-reads the state and decides for itself.
+   */
+  private wake(): void {
+    if (this.waiters.length === 0) return;
+    for (const wake of this.waiters.splice(0)) wake();
+  }
+
+  /**
+   * Resolve on the session changing, or at `at` on the clock, whichever is
+   * first. `at` is a bound, not a poll: nothing here wakes on a fixed step.
+   */
+  private nextChange(at: number): Promise<void> {
+    return new Promise<void>((resolve) => {
+      let timer: unknown;
+      let done = false;
+      const finish = (): void => {
+        if (done) return;
+        done = true;
+        this.clock.clear(timer);
+        const i = this.waiters.indexOf(finish);
+        if (i >= 0) this.waiters.splice(i, 1);
+        resolve();
+      };
+      this.waiters.push(finish);
+      timer = this.clock.set(finish, Math.max(0, at - this.clock.now()));
+    });
   }
 
   /**
@@ -605,5 +739,7 @@ export class TerminalSession {
     this.jobs?.dispose();
     this.screen.dispose();
     this.pty.dispose();
+    // Anything waiting is waiting on a session that will never change again.
+    this.wake();
   }
 }
