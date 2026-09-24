@@ -80,9 +80,11 @@ export function classify(params: {
   after: Frame;
   fromByte: number;
   toByte: number;
+  /** Rows the emulator reports the content moved. See `scrollDelta`. */
+  scrolledBy?: number;
 }): ClassifiedUpdate {
-  const { before, after, fromByte, toByte } = params;
-  return { segments: [inferSegment(before, after, fromByte, toByte)], fromByte, toByte };
+  const { before, after, fromByte, toByte, scrolledBy } = params;
+  return { segments: [inferSegment(before, after, fromByte, toByte, scrolledBy)], fromByte, toByte };
 }
 
 /**
@@ -140,8 +142,14 @@ export function coalesce(segments: readonly Segment[]): Segment[] {
  * overwritten, or reached. Nothing here abstains, reports doubt, or declines
  * -- see the file header and CLASSIFIER.md §3.5.
  */
-function inferSegment(before: Frame, after: Frame, fromByte: number, toByte: number): Segment {
-  const scrolledBy = scrollDelta(before, after);
+function inferSegment(
+  before: Frame,
+  after: Frame,
+  fromByte: number,
+  toByte: number,
+  reportedScroll?: number,
+): Segment {
+  const scrolledBy = scrollDelta(before, after, reportedScroll);
   const { erased, overwrote, reachedBack } = diffFacts(before, after, scrolledBy);
 
   // A bare carriage-return overwrite emits no op at all (CLASSIFIER.md §9.2),
@@ -246,7 +254,12 @@ function overwroteNonBlank(prev: string, next: string): boolean {
  * then misread as an overwrite of every row. Fall back to aligning the frames'
  * own lines: the shift whose row-by-row match is best.
  */
-function scrollDelta(before: Frame, after: Frame): number {
+function scrollDelta(before: Frame, after: Frame, reported = 0): number {
+  // Trust the emulator when it reports a scroll. It counts rows as they move,
+  // so it stays correct where `viewportY` does not -- a burst larger than the
+  // grid moves every visible line off, and aligning the frames afterwards finds
+  // no overlap to recover the shift from.
+  if (reported > 0) return reported;
   const declared = after.viewportY - before.viewportY;
   const rows = after.lines.length;
   if (rows === 0) return declared;

@@ -181,6 +181,8 @@ export class ScreenModel {
 
   private _cols: number;
   private _rows: number;
+  private _scrolled = 0;
+  private _scrollPos = 0;
 
   constructor(cols: number, rows: number) {
     this._cols = cols;
@@ -189,6 +191,30 @@ export class ScreenModel {
     // Installed immediately so no bytes can reach the parser unobserved.
     this.ops = new EditRecord(this.terminal);
     this.text = new TextLog(this.terminal);
+    this.terminal.onScroll((position) => {
+      // The emulator reports one scroll per row moved, with the new viewport
+      // position. Counted here rather than read from `viewportY`, which
+      // saturates once the scrollback ring is full and then reports 0 while
+      // content keeps moving (HISTORY.md §3).
+      const delta = position > this._scrollPos ? position - this._scrollPos : 1;
+      this._scrolled += delta;
+      this._scrollPos = position;
+    });
+  }
+
+  /**
+   * Rows the content moved up since this was last called. Resets on read.
+   *
+   * A fact about the screen, not about the program: the emulator reporting
+   * that it shifted content, the same way it reports a linefeed. Without it a
+   * burst larger than the grid is unreadable — every visible line is replaced,
+   * no overlap survives to align against, and appending looks exactly like
+   * repainting. See `classify.ts`.
+   */
+  takeScrolledRows(): number {
+    const n = this._scrolled;
+    this._scrolled = 0;
+    return n;
   }
 
   get cols(): number {

@@ -30,6 +30,7 @@ async function update(
       after,
       fromByte,
       toByte: s.ops.bytesFed,
+      scrolledBy: s.takeScrolledRows(),
     }).segments,
     // Kept so a test can report how much output an update stood for. The
     // verdict does not read it.
@@ -79,6 +80,27 @@ test('a pager is drawing, and returning to the shell is writing', async () => {
   assert.ok(back.segments.length > 0, 'exiting produced a segment');
   const after = await update(s, 'more shell output\r\n');
   assert.deepEqual(kinds(after.segments), ['writing'], 'back in the shell, appending is writing');
+});
+
+test('appending more lines than the grid can retain is still writing', async () => {
+  // The case a frame diff cannot solve on its own: a burst larger than the grid
+  // displaces every visible line, so no overlap survives to align against, and
+  // comparing the frames row-for-row makes appending look exactly like a full
+  // rewrite. The emulator reports the scroll, which is why this is a
+  // screen-model fact rather than something inferred after the fact.
+  const s = new ScreenModel(30, 6);
+  const lines = (n: number, tag: string): string =>
+    Array.from({ length: n }, (_, i) => `${tag}${i}\r\n`).join('');
+  await update(s, lines(5, 'a'));
+  const few = await update(s, lines(2, 'new'));
+  assert.deepEqual(kinds(few.segments), ['writing'], 'a small append is writing');
+  const many = await update(s, lines(8, 'more'));
+  assert.deepEqual(
+    kinds(many.segments),
+    ['writing'],
+    'a burst that pushes every visible line off is appending, not repainting',
+  );
+  assert.equal(many.segments[0]!.evidence.scrolledBy, 8, 'the scroll was measured');
 });
 
 test('a bare CR overwrite is drawing even with no control op', async () => {

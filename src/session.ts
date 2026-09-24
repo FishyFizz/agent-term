@@ -267,11 +267,15 @@ export class TerminalSession {
       const text = this.screen.text.drain();
 
       this._seq++;
+      // Read after the feed and reset on read, so this is the scroll this
+      // delivery caused rather than a running total.
+      const scrolledBy = this.screen.takeScrolledRows();
       const classified = classify({
         before,
         after,
         fromByte,
         toByte: this.screen.ops.bytesFed,
+        scrolledBy,
       });
 
       return {

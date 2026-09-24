@@ -82,7 +82,7 @@ export async function classifyTraceStreaming(
     screen.ops.clear();
     const after = frameOf(screen);
 
-    for (const seg of classify({ before, after, fromByte: prevTo, toByte }).segments) {
+    for (const seg of classify({ before, after, fromByte: prevTo, toByte, scrolledBy: screen.takeScrolledRows() }).segments) {
       segments.push(seg);
     }
     prevTo = toByte;

@@ -47,12 +47,11 @@ const EXPECTED = {
    * Deliveries grouped at the boundaries the programme drew -- the mode the
    * server actually delivers in, so this is the number to watch.
    *
-   * The two that remain are not verdict problems. One is a resize reflowing
-   * existing content, so the job after it inherits rows that changed without
-   * being written to. The other expects `drawing` over a span that also
-   * contains log lines arriving, which a single verdict cannot express.
+   * The one that remains is not a verdict problem: it expects `drawing` over a
+   * span that also contains log lines arriving, which a single verdict cannot
+   * express.
    */
-  jobs: 21,
+  jobs: 22,
 };
 
 async function run(

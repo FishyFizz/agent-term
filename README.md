@@ -50,7 +50,7 @@ against the previous one or, where a delta would not be smaller, as a keyframe
 (`delta.ts`), so a repainting TUI does not retain a full grid per frame. `host.ts`
 is the composition root: it starts a session and its recording in one call.
 
-It is measured against `corpus/` — 23 programmes, 46 recorded traces — at 21/23 under
+It is measured against `corpus/` — 23 programmes, 46 recorded traces — at 22/23 under
 job-aligned replay, 20/23 op-aligned and 17/23 under 64-byte chunks. Those numbers are
 measurements of a hand-written label set, not a specification: a rise is not
 automatically progress. The corpus's job is exactness — every delivery of every trace
