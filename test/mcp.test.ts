@@ -38,7 +38,13 @@ test('the surface exposes the core loop', async (t) => {
 
   const tools = await client.listTools();
   const names = tools.tools.map((tool) => tool.name).sort();
-  assert.deepEqual(names, ['close_session', 'open_session', 'read_screen', 'send_input']);
+  assert.deepEqual(names, [
+    'close_session',
+    'open_session',
+    'read_screen',
+    'send_input',
+    'wait_for_idle',
+  ]);
   for (const tool of tools.tools) {
     assert.ok(tool.description && tool.description.length > 20, `${tool.name} says what it does`);
     assert.ok(tool.inputSchema, `${tool.name} declares its input`);
@@ -78,6 +84,75 @@ test('an agent can open a shell, run a command, and read the result', async (t) 
   assert.ok(payload.segments.length > 0, 'with what changed on it');
   assert.equal(payload.segments[0]!.kind, 'writing', 'appended text is reported as writing');
   assert.ok(payload.io.bytesRead > 0, 'and a byte watermark to distinguish quiet from unread');
+});
+
+test('a read after a wait is the new state, not the one the send interrupted', async (t) => {
+  const { client, host, close } = await connected();
+  t.after(() => {
+    host.disposeAll();
+    return close();
+  });
+
+  const opened = await call(client, 'open_session', {});
+  const sessionId = (opened.structuredContent as { sessionId: string }).sessionId;
+  await call(client, 'send_input', { sessionId, text: 'echo WAITED-WELL', submit: true });
+
+  // No polling loop anywhere in this test: the wait is what finds the output.
+  const waited = await call(client, 'wait_for_idle', { sessionId, idleMs: 300, timeoutMs: 15000 });
+  const result = waited.structuredContent as {
+    reason: string;
+    waitedMs: number;
+    state: { running: boolean; idleMs: number | null; drained: boolean | null };
+  };
+  assert.ok(
+    result.reason === 'idle' || result.reason === 'exited',
+    `the wait ended well, got: ${result.reason}`,
+  );
+  assert.ok(result.waitedMs >= 0, 'and reports how long it took');
+  assert.equal(result.state.drained, true, 'drained: what it produced has been read through');
+
+  const read = await call(client, 'read_screen', { sessionId });
+  const screen = (read.content?.[0]?.text ?? '') + JSON.stringify(read.structuredContent ?? {});
+  assert.ok(screen.includes('WAITED-WELL'), `the output is there, got: ${screen.slice(0, 300)}`);
+});
+
+test('a read reports the session state as facts, with no verdict on it', async (t) => {
+  const { client, host, close } = await connected();
+  t.after(() => {
+    host.disposeAll();
+    return close();
+  });
+
+  const opened = await call(client, 'open_session', {});
+  const sessionId = (opened.structuredContent as { sessionId: string }).sessionId;
+  await call(client, 'wait_for_idle', { sessionId, idleMs: 200, timeoutMs: 15000 });
+
+  const read = await call(client, 'read_screen', { sessionId });
+  const state = (read.structuredContent as { state: Record<string, unknown> }).state;
+  assert.deepEqual(
+    Object.keys(state).sort(),
+    ['bytesPending', 'drained', 'exit', 'idleMs', 'running'],
+    'a caller is given measurements and can find no field that decided for it',
+  );
+  assert.equal(state.running, true, 'running');
+  assert.equal(state.exit, null, 'and no exit');
+});
+
+test('a wait that cannot be satisfied says so, rather than hanging', async (t) => {
+  const { client, host, close } = await connected();
+  t.after(() => {
+    host.disposeAll();
+    return close();
+  });
+
+  const opened = await call(client, 'open_session', {});
+  const sessionId = (opened.structuredContent as { sessionId: string }).sessionId;
+
+  // A minute of quiet asked for, 50ms allowed: unreachable, and reported.
+  const waited = await call(client, 'wait_for_idle', { sessionId, idleMs: 60000, timeoutMs: 50 });
+  const result = waited.structuredContent as { reason: string; waitedMs: number };
+  assert.equal(result.reason, 'timeout', 'gave up rather than hanging');
+  assert.ok(result.waitedMs <= 50 + 100, `and did not overrun by much (${result.waitedMs}ms)`);
 });
 
 test('an unknown session is a typed error, not a stack trace', async (t) => {

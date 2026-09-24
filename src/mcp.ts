@@ -1,17 +1,25 @@
 /**
  * The MCP surface — a spike of the core loop, not the whole thing.
  *
- * Four tools, because that is the smallest set an agent can drive a terminal
- * with: open one, type into it, read what happened, close it. Everything else
- * — history paging, intermediate playback, settle detection, interaction
- * beyond plain text — goes on top of these rather than beside them, and is
- * deliberately not here yet.
+ * Five tools, because that is the smallest set an agent can drive a terminal
+ * with: open one, type into it, wait for it to stop changing, read what
+ * happened, close it. Everything else — history paging, intermediate playback,
+ * interaction beyond plain text — goes on top of these rather than beside them,
+ * and is deliberately not here yet.
  *
  * The shape of a result matters more than the number of tools. A read returns
  * what a human at the screen would say: the screen, what changed on it, and
  * how much output the change stands for. It does not return escape sequences
  * and it does not ask the agent to guess a mode (L0.1). Where a value is not
  * knowable it is `null`, never 0 (L1.3).
+ *
+ * A read also reports the session's state as facts — whether it is running,
+ * how long it has been idle, whether what it produced has been read through.
+ * It does not report "settled". Whether a live program will produce more
+ * output is not provable at a byte interface, and a value claiming otherwise
+ * would be a judgement dressed as an observation (GOAL.md L1.2). The wait is
+ * the same: it says which of `idle`, `exited` or `timeout` stopped it, and
+ * leaves what that means to the caller, who knows what it is driving.
  *
  * Errors are typed and actionable rather than opaque (L1.5): a caller gets a
  * code it can branch on, not a stack trace.
@@ -122,13 +130,18 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
       description:
         'The screen as it is now, what changed on it, and how much output that change ' +
         'stands for. Returns the last classified update, or null when nothing has arrived ' +
-        'yet — which is not the same as an empty screen.',
+        'yet — which is not the same as an empty screen. Also reports `state`: whether ' +
+        'the session is running, how long it has been idle, and whether what it produced ' +
+        'has been read through.',
       inputSchema: { sessionId: z.string() },
     },
     async ({ sessionId }) => {
       const target = session(sessionId);
       if (!target) return fail('no_session', `no session ${sessionId}`);
       const last = host.lastUpdate(sessionId);
+      // The state rides along on every read, so a caller can tell "nothing
+      // arrived" from "has not been read yet" without a second call.
+      const state = target.state();
       if (!last) {
         return {
           content: [{ type: 'text', text: '(no output yet)' }],
@@ -137,12 +150,41 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
             screen: target.screen.snapshot().lines,
             update: null,
             bytesRead: target.pty.bytesRead,
+            state,
           },
         };
       }
       return {
         content: [{ type: 'text', text: last.screen.lines.join('\n') }],
-        structuredContent: { sessionId, ...present(last) },
+        structuredContent: { sessionId, ...present(last), state },
+      };
+    },
+  );
+
+  server.registerTool(
+    'wait_for_idle',
+    {
+      title: 'Wait for a session to stop changing',
+      description:
+        'Block until the session has been quiet for `idleMs` and everything it produced ' +
+        'has been read through, or until `timeoutMs` passes. Returns which of those ' +
+        'stopped it: `idle`, `exited`, or `timeout`. `idle` does NOT mean the program has ' +
+        'finished — nothing observable can establish that while it runs; it means the ' +
+        'quiet period you asked for was observed. Use this instead of sleeping after a ' +
+        'send: a read taken straight after a send returns the previous state.',
+      inputSchema: {
+        sessionId: z.string(),
+        idleMs: z.number().int().nonnegative().describe('How long the pty must have been quiet.'),
+        timeoutMs: z.number().int().positive().describe('Give up after this long.'),
+      },
+    },
+    async ({ sessionId, idleMs, timeoutMs }) => {
+      const target = session(sessionId);
+      if (!target) return fail('no_session', `no session ${sessionId}`);
+      const result = await target.waitForIdle({ idleMs, timeoutMs });
+      return {
+        content: [{ type: 'text', text: result.reason }],
+        structuredContent: { sessionId, ...result },
       };
     },
   );
