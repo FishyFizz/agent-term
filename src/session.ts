@@ -21,6 +21,7 @@ import { gridDelta, type GridDelta } from './delta.js';
 import type { TextLine } from './text-log.js';
 import type { SessionOptions } from './types.js';
 import { assertGridSize } from './types.js';
+import { JobDetector, type JobCloseReason, type Job } from './jobs.js';
 
 /** One classified change to a session. */
 export interface SessionUpdate {
@@ -54,6 +55,49 @@ export interface SessionUpdate {
   grid: GridDelta | null;
   /** The screen after this update. Present whenever the change touched it. */
   screen: ReturnType<ScreenModel['snapshot']>;
+  /**
+   * What was merged into this update, or `null` when nothing was.
+   *
+   * `null` is the honest value when the session is not grouping output into
+   * jobs, or when this update came from a direct `feed` — GOAL.md L1.3: an
+   * unknown is `null`, never a fabricated `1`.
+   *
+   * `chunks > 1` is the signal a consumer acts on: the screen it is looking at
+   * is the net effect of that many raw deliveries, so *intermediate states
+   * existed and were not shown*. A selector whose highlight moved and moved
+   * back is the case that matters — it nets to no visible change at all, and
+   * the count is the only evidence anything happened.
+   */
+  collapsed: CollapsedInfo | null;
+}
+
+/**
+ * What one delivered job swallowed.
+ *
+ * Same meaning whatever the granularity: a job is one update, and this says
+ * how much raw output it stands for, so a consumer can decide to go back and
+ * read the intermediates rather than being told about them.
+ */
+export interface CollapsedInfo {
+  /** Raw pty deliveries merged into this update. */
+  chunks: number;
+  /**
+   * Whether states existed that this update does not show.
+   *
+   * Redundant with `chunks > 1`, and deliberately so: it is the one field a
+   * consumer has to act on without reading documentation. When it is true the
+   * screen being shown is a net effect, and states between it and the previous
+   * update were seen and then collapsed away.
+   */
+  intermediates: boolean;
+  /** Ops recorded across the merged span. */
+  ops: number;
+  /** Bytes merged. Equal to `toByte - fromByte`; kept so it need not be derived. */
+  bytes: number;
+  /** Why the job stopped accumulating — which is why the granularity changed. */
+  reason: JobCloseReason;
+  /** Milliseconds between the first and last delivery in the job. */
+  spanMs: number;
 }
 
 /**
@@ -104,6 +148,8 @@ export class TerminalSession {
   private readonly listeners: ((update: SessionUpdate) => void)[] = [];
   private readonly resizeListeners: ((size: SessionSize) => void)[] = [];
   private readonly exitListeners: ((info: PtyExitInfo) => void)[] = [];
+  /** Present only when the session was opened with a `jobPolicy`. */
+  private readonly jobs?: JobDetector;
   private _seq = 0;
   private queue: Promise<void> = Promise.resolve();
   private pendings = 0;
@@ -112,15 +158,31 @@ export class TerminalSession {
     this.id = id;
     this.pty = new PtySession(id, options);
     this.screen = new ScreenModel(this.pty.cols, this.pty.rows);
-    this.pty.on('data', (chunk) => {
-      void this.feed(chunk).then((update) => {
-        for (const listener of this.listeners) listener(update);
+
+    if (options.jobPolicy) {
+      // Grouped at the boundary the program drew rather than the one the pty's
+      // buffer happened to fill: `jobs.ts` has the reasoning, and
+      // CLASSIFIER.md §9.3 has the measurement that makes it necessary.
+      this.jobs = new JobDetector(options.jobPolicy, (job) => {
+        void this.feed(job.bytes, job).then(this.deliver);
       });
+    }
+
+    this.pty.on('data', (chunk) => {
+      if (this.jobs) {
+        this.jobs.push(chunk);
+        return;
+      }
+      void this.feed(chunk).then(this.deliver);
     });
     // Queued, not fired directly: the last bytes of a session are delivered
     // before it exits, and a caller told "it exited" while an update is still
     // in the queue would have to guess whether to wait.
     this.pty.on('exit', (info) => {
+      // Flushed first, for the same reason as a resize and more urgently:
+      // alt-screen content is destroyed when the program leaves it (L0.1), so
+      // the last live frame has to be classified before the exit is reported.
+      this.jobs?.flush();
       this.enqueue(() => {
         for (const listener of this.exitListeners) listener(info);
       });
@@ -152,6 +214,11 @@ export class TerminalSession {
     return subscribe(this.exitListeners, listener);
   }
 
+  /** Hand one update to every listener. */
+  private readonly deliver = (update: SessionUpdate): void => {
+    for (const listener of this.listeners) listener(update);
+  };
+
   /**
    * Run `task` after everything already queued.
    *
@@ -169,8 +236,15 @@ export class TerminalSession {
     );
   }
 
-  /** Feed one chunk of pty output and classify it. Serialized. */
-  feed(chunk: Buffer): Promise<SessionUpdate> {
+  /**
+   * Feed one chunk of pty output and classify it. Serialized.
+   *
+   * `job` may carry the group this chunk belongs to, in which case the update
+   * reports what was merged. A caller feeding bytes directly gets
+   * `collapsed: null`, which is correct: nothing was merged, and claiming `1`
+   * would say otherwise (GOAL.md L1.3).
+   */
+  feed(chunk: Buffer, job?: Job): Promise<SessionUpdate> {
     this.pendings++;
     const run = this.queue.then(async () => {
       const fromByte = this.screen.ops.bytesFed;
@@ -214,6 +288,16 @@ export class TerminalSession {
         // pty is quiet -- `bytesRead` is the watermark that answers that.
         io: { bytesRead: this.pty.bytesRead, bytesPending: 0 },
         screen: afterSnap,
+        collapsed: job
+          ? {
+              chunks: job.chunks,
+              intermediates: job.chunks > 1,
+              ops: ops.length,
+              bytes: classified.toByte - fromByte,
+              reason: job.reason,
+              spanMs: job.closedAt - job.startedAt,
+            }
+          : null,
       } satisfies SessionUpdate;
     });
 
@@ -250,9 +334,17 @@ export class TerminalSession {
    * boundary needs it ordered against the output, and a resize that overtook a
    * delivery in flight would be recorded as having happened before output that
    * was produced at the old size.
+   *
+   * A pending job is flushed first, because a job may not straddle a boundary
+   * that freezes history: everything before a resize belongs to the old epoch
+   * at the old size (HISTORY.md §2). The job is closed but its bytes are still
+   * fed through the queue, so they may land after the resize applies -- which
+   * is the case `history.ts` already handles by deriving epochs from the size
+   * a record reports rather than trusting the resize event.
    */
   resize(cols: number, rows: number): void {
     assertGridSize(cols, rows);
+    this.jobs?.flush();
     this.pty.resize(cols, rows);
     this.screen.resize(cols, rows);
     this.enqueue(() => {
@@ -270,6 +362,7 @@ export class TerminalSession {
     this.listeners.length = 0;
     this.resizeListeners.length = 0;
     this.exitListeners.length = 0;
+    this.jobs?.dispose();
     this.screen.dispose();
     this.pty.dispose();
   }
