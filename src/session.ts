@@ -165,6 +165,49 @@ export interface SessionIo {
   bytesPending: number | null;
 }
 
+/**
+ * What a session is doing, stated as facts.
+ *
+ * Three readings fall out of it, and they are the whole surface:
+ *
+ *   running, idle for x ms
+ *   exit, more to read
+ *   exit, drained
+ *
+ * There is deliberately no "settled". Whether a live program will produce more
+ * output is not provable at a byte interface: it may emit at any future moment
+ * for reasons entirely internal to it -- a timer, a network reply, a
+ * background job -- and the only event that closes the set is termination. A
+ * state claiming otherwise would be a judgement dressed as an observation.
+ * `idleMs` is the measurement; what it means is the caller's call, and the
+ * caller is the one that knows what it is driving.
+ *
+ * `exit` is the pty's own fact, not the session's queued `onExit`
+ * notification. The queued one fires only after the feed has drained, so a
+ * state built on it could never report "exit, more to read" -- the state would
+ * be unreachable, and the window it exists to describe would be invisible.
+ */
+export interface SessionState {
+  /** Whether the pty has reported the process gone. */
+  running: boolean;
+  /** Milliseconds since the pty last handed us a byte. `null` before the first. */
+  idleMs: number | null;
+  /**
+   * Whether everything the pty handed us has been through the parser.
+   *
+   * `false` after an exit is the window worth waiting in: the last of the
+   * output is still in the pipeline, and a read taken there is missing its
+   * tail with nothing left to correct it.
+   *
+   * `null` when it cannot be known — see `pendingBytes`.
+   */
+  drained: boolean | null;
+  /** Bytes the pty handed us that the parser has not finished with. */
+  bytesPending: number | null;
+  /** Exit info once the pty has reported the process gone, otherwise `null`. */
+  exit: PtyExitInfo | null;
+}
+
 /** A grid size a session was resized to. */
 export interface SessionSize {
   cols: number;
@@ -472,6 +515,35 @@ export class TerminalSession {
   idleMs(at: number = this.clock.now()): number | null {
     if (this._lastByteAt === null) return null;
     return at - this._lastByteAt;
+  }
+
+  /**
+   * What the session is doing, as facts. `at` is injectable so a caller can
+   * ask about a moment it already has, rather than one this call invents.
+   */
+  state(at: number = this.clock.now()): SessionState {
+    const exit = this.pty.exitInfo;
+    return {
+      running: exit === null,
+      idleMs: this.idleMs(at),
+      drained: this.drained(),
+      bytesPending: this.pendingBytes(),
+      exit,
+    };
+  }
+
+  /**
+   * Whether everything the pty handed us has been through the parser.
+   *
+   * A queued feed is answered first and settles it: bytes are in flight, so
+   * the answer is no regardless of what the counters say. `null` only when the
+   * counters cannot be compared at all.
+   */
+  private drained(): boolean | null {
+    if (this.pendings > 0) return false;
+    const pending = this.pendingBytes();
+    if (pending === null) return null;
+    return pending === 0;
   }
 
   /**

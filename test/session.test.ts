@@ -202,6 +202,56 @@ test('idle is measured from the last byte, and is unknown before there is one', 
   assert.equal(session.idleMs(500), 500, 'reported as elapsed, not judged');
 });
 
+test('the state read reports facts, and no verdict about whether output is finished', async (t) => {
+  const clock = new FakeClock();
+  const session = new TerminalSession('state-probe', { command, args, cols: 80, rows: 24, clock });
+  t.after(() => session.dispose());
+
+  const before = session.state();
+  assert.equal(before.running, true, 'running');
+  assert.equal(before.exit, null, 'and no exit');
+  assert.equal(before.idleMs, null, 'idle unknown, not zero');
+  assert.equal(before.drained, true, 'nothing arrived, so nothing is unparsed');
+
+  session.pty.write('echo state-probe\r');
+  assert.ok(await waitFor(() => session.pty.bytesRead > 0, { label: 'a byte from the pty' }));
+
+  // Bytes arrived that the parser has not seen. Stated as that -- not as
+  // "still producing", and not as anything about what comes next.
+  const during = session.state();
+  assert.equal(during.running, true, 'the program is still alive');
+  assert.equal(during.drained, false, 'bytes arrived that are not parsed yet');
+  assert.ok(during.bytesPending! > 0, 'and the count says how many');
+
+  // The contract, stated as a shape: a caller is given measurements and can
+  // find no field that has already decided for it.
+  assert.deepEqual(
+    Object.keys(during).sort(),
+    ['bytesPending', 'drained', 'exit', 'idleMs', 'running'],
+    'facts only — there is no settled',
+  );
+});
+
+test('an exit is reported as a fact, and drain follows it rather than being assumed', async (t) => {
+  const { session } = harness();
+  t.after(() => session.dispose());
+
+  session.pty.write('exit\r\n');
+  assert.ok(await waitFor(() => session.state().exit !== null, { label: 'the exit' }));
+
+  const exited = session.state();
+  assert.equal(exited.running, false, 'the pty reported the process gone');
+  assert.ok(exited.exit !== null, 'with the exit facts on it');
+
+  // Reached, not assumed: the last of the output is fed behind the exit, and a
+  // read taken before it lands is missing the tail with nothing left to correct
+  // it. That window is the whole reason "exit" and "drained" are separate.
+  assert.ok(
+    await waitFor(() => session.state().drained === true, { label: 'the tail to be parsed' }),
+  );
+  assert.equal(session.state().bytesPending, 0, 'nothing left unparsed');
+});
+
 test("every update's delta reproduces that update's screen exactly", async (t) => {
   const { session, updates } = harness();
   t.after(() => session.dispose());
