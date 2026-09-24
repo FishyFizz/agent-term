@@ -1,3 +1,5 @@
+import type { JobClock } from './jobs.js';
+
 /**
  * Opaque handle identifying a hosted terminal session.
  *
@@ -56,6 +58,18 @@ export interface SessionOptions {
    * (GOAL.md L1.3).
    */
   jobPolicy?: JobPolicy | false;
+
+  /**
+   * The clock the session measures silence with.
+   *
+   * Injected so a test advances time rather than sleeping through it: a quiet
+   * period that only sometimes elapses is the worst thing a test can assert,
+   * and a real clock makes every timing test both slow and flaky.
+   *
+   * Shared with the job detector, so the boundary a job closes on and the
+   * session's idle measurement cannot disagree about what time it is.
+   */
+  clock?: JobClock;
 }
 
 export const DEFAULT_COLS = 80;

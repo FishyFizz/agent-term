@@ -9,6 +9,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { TerminalSession } from '../src/session.js';
+import { FakeClock } from '../src/jobs.js';
 import { applyDelta } from '../src/delta.js';
 import { HistoryStore } from '../src/history.js';
 import { SessionHost } from '../src/host.js';
@@ -176,6 +177,29 @@ test('bytesPending is a count the parser disagrees with, never a hardcoded zero'
   // difference of the same thing: null, never a clamped zero.
   const direct = await session.feed(Buffer.from('x'));
   assert.equal(direct.io.bytesPending, null, 'unknown, not zero');
+});
+
+test('idle is measured from the last byte, and is unknown before there is one', async (t) => {
+  // A clock that only moves when told to: the fake clock's job here is to hold
+  // the job detector's gap timer shut, so no delivery ever completes.
+  const clock = new FakeClock();
+  const session = new TerminalSession('idle-probe', { command, args, cols: 80, rows: 24, clock });
+  t.after(() => session.dispose());
+
+  // Nothing has arrived, so "idle for how long" has no answer -- and not 0
+  // either: the program may still be starting. L1.3: an unknown is null.
+  assert.equal(session.idleMs(), null, 'unknown before the first byte');
+
+  session.pty.write('echo idle-probe\r');
+  assert.ok(await waitFor(() => session.pty.bytesRead > 0, { label: 'a byte from the pty' }));
+
+  // The whole point of measuring from the byte: no delivery has completed --
+  // the gap timer has never fired -- and idle is still answerable. A firehose
+  // is this state held open for seconds, and measuring from the last delivery
+  // would call that idle.
+  assert.equal(session.seq, 0, 'no delivery completed');
+  assert.equal(session.idleMs(), 0, 'stamped on the injected clock');
+  assert.equal(session.idleMs(500), 500, 'reported as elapsed, not judged');
 });
 
 test("every update's delta reproduces that update's screen exactly", async (t) => {

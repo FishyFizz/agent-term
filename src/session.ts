@@ -22,7 +22,7 @@ import type { TextLine } from './text-log.js';
 import type { ScreenSnapshot } from './screen.js';
 import type { SessionOptions } from './types.js';
 import { assertGridSize } from './types.js';
-import { JobDetector, DEFAULT_JOB_POLICY, type JobCloseReason, type Job } from './jobs.js';
+import { JobDetector, DEFAULT_JOB_POLICY, realClock, type JobClock, type JobCloseReason, type Job } from './jobs.js';
 
 /** One classified change to a session. */
 export interface SessionUpdate {
@@ -191,6 +191,7 @@ export class TerminalSession {
   readonly id: string;
   readonly pty: PtySession;
   readonly screen: ScreenModel;
+  private readonly clock: JobClock;
 
   private readonly listeners: ((update: SessionUpdate) => void)[] = [];
   private readonly resizeListeners: ((size: SessionSize) => void)[] = [];
@@ -198,6 +199,13 @@ export class TerminalSession {
   /** Present unless the session was opened with `jobPolicy: false`. */
   private readonly jobs?: JobDetector;
   private readonly deliveryListeners: ((delivery: Delivery) => void)[] = [];
+  /**
+   * When the last byte arrived from the pty, or `null` before the first.
+   *
+   * Set on the pty's `data`, not on delivery: see `idleMs` for why the
+   * difference is the whole point.
+   */
+  private _lastByteAt: number | null = null;
   private _seq = 0;
   private _rawSeq = 0;
   private queue: Promise<void> = Promise.resolve();
@@ -214,6 +222,7 @@ export class TerminalSession {
 
   constructor(id: string, options: SessionOptions = {}) {
     this.id = id;
+    this.clock = options.clock ?? realClock;
     this.pty = new PtySession(id, options);
     this.screen = new ScreenModel(this.pty.cols, this.pty.rows);
 
@@ -225,12 +234,18 @@ export class TerminalSession {
       // Grouped at the boundary the program drew rather than the one the pty's
       // buffer happened to fill: `jobs.ts` has the reasoning, and
       // CLASSIFIER.md §9.3 has the measurement that makes it necessary.
-      this.jobs = new JobDetector(policy, (job) => {
-        void this.feed(job.bytes, job).then(this.deliver);
-      });
+      this.jobs = new JobDetector(
+        policy,
+        (job) => {
+          void this.feed(job.bytes, job).then(this.deliver);
+        },
+        this.clock,
+      );
     }
 
     this.pty.on('data', (chunk) => {
+      // Stamped here, at the byte, before anything decides what to do with it.
+      this._lastByteAt = this.clock.now();
       if (this.jobs) {
         this.jobs.push(chunk);
         return;
@@ -439,6 +454,24 @@ export class TerminalSession {
   /** Feeds queued but not yet processed. */
   get pending(): number {
     return this.pendings;
+  }
+
+  /**
+   * Milliseconds since the pty last handed us a byte. `null` before the first.
+   *
+   * Measured from the *byte*, not from the last delivery. A program that never
+   * pauses never opens a gap, so a job stays open until a cap closes it and no
+   * delivery completes for seconds at a time — idle measured from the last
+   * delivery would report "idle for 2560ms" while the program was flooding
+   * output, which is the one thing this number must never do.
+   *
+   * It is a measurement and nothing else. It does not say the program has
+   * finished; nothing observable can, and a caller deciding whether to act is
+   * making a judgement this number deliberately does not make for it.
+   */
+  idleMs(at: number = this.clock.now()): number | null {
+    if (this._lastByteAt === null) return null;
+    return at - this._lastByteAt;
   }
 
   /**
