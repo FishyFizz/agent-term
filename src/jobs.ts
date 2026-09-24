@@ -25,6 +25,28 @@
  */
 import type { JobPolicy } from './types.js';
 
+/**
+ * The policy a session uses when it is not given one.
+ *
+ * Grouping is the default because where a delivery begins decides what the
+ * classifier can see (CLASSIFIER.md §9.3), and the alternative is to let a
+ * pty buffer decide that. Measured on the corpus: every threshold from 20ms to
+ * 70ms separates the two pauses a real programme makes — 6ms within an act,
+ * 80–120ms between acts — and scores identically across that range. 50ms sits
+ * in the middle of it.
+ *
+ * The caps exist for the pathological case GOAL.md calls out: a program that
+ * never goes quiet. Without them a firehose holds one job open forever, and
+ * the thing meant to provide bounded delivery would be the thing violating it.
+ * They are set well above what any corpus programme writes, so they do not
+ * change the measured score.
+ */
+export const DEFAULT_JOB_POLICY: JobPolicy = {
+  gapMs: 50,
+  maxBytes: 64 * 1024,
+  maxChunks: 256,
+};
+
 /** Why a job stopped accumulating. Reported so a consumer can read the granularity. */
 export type JobCloseReason =
   /** The pty went quiet for the policy's gap. */

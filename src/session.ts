@@ -21,7 +21,7 @@ import { gridDelta, type GridDelta } from './delta.js';
 import type { TextLine } from './text-log.js';
 import type { SessionOptions } from './types.js';
 import { assertGridSize } from './types.js';
-import { JobDetector, type JobCloseReason, type Job } from './jobs.js';
+import { JobDetector, DEFAULT_JOB_POLICY, type JobCloseReason, type Job } from './jobs.js';
 
 /** One classified change to a session. */
 export interface SessionUpdate {
@@ -148,7 +148,7 @@ export class TerminalSession {
   private readonly listeners: ((update: SessionUpdate) => void)[] = [];
   private readonly resizeListeners: ((size: SessionSize) => void)[] = [];
   private readonly exitListeners: ((info: PtyExitInfo) => void)[] = [];
-  /** Present only when the session was opened with a `jobPolicy`. */
+  /** Present unless the session was opened with `jobPolicy: false`. */
   private readonly jobs?: JobDetector;
   private _seq = 0;
   private queue: Promise<void> = Promise.resolve();
@@ -159,11 +159,15 @@ export class TerminalSession {
     this.pty = new PtySession(id, options);
     this.screen = new ScreenModel(this.pty.cols, this.pty.rows);
 
-    if (options.jobPolicy) {
+    // Grouping is the default: where a delivery begins decides what the
+    // classifier can see (CLASSIFIER.md §9.3), and the alternative is letting
+    // the pty's buffer decide it. `false` is the opt-out.
+    const policy = options.jobPolicy === false ? undefined : (options.jobPolicy ?? DEFAULT_JOB_POLICY);
+    if (policy) {
       // Grouped at the boundary the program drew rather than the one the pty's
       // buffer happened to fill: `jobs.ts` has the reasoning, and
       // CLASSIFIER.md §9.3 has the measurement that makes it necessary.
-      this.jobs = new JobDetector(options.jobPolicy, (job) => {
+      this.jobs = new JobDetector(policy, (job) => {
         void this.feed(job.bytes, job).then(this.deliver);
       });
     }

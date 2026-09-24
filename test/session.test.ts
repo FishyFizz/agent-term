@@ -298,7 +298,11 @@ test('history reconstructs every screen of a live session', async (t) => {
       `the screen at seq ${record.seq} is the screen the session reported`,
     );
   }
-  assert.ok(checked > 5, `compared real screens (${checked})`);
+  // Not an absolute count: grouping output into jobs is on by default, so a
+  // burst the pty delivered as many reads arrives as one record. What matters
+  // is that every record reconstructs the screen the session reported, which
+  // the deepEqual above asserts for each one.
+  assert.ok(checked >= 2, `compared real screens (${checked})`);
 });
 
 test('a live resize splits the timeline and freezes the old epoch at its size', async (t) => {

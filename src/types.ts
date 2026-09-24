@@ -43,12 +43,19 @@ export interface SessionOptions {
   /**
    * Group output into jobs before classifying it.
    *
-   * Absent means what the session has always done: one classified update per
-   * raw pty delivery. That is the honest default for a caller that wants every
-   * byte boundary, and it is what the corpus's per-op replay measures. Setting
-   * a policy is what makes a repaint legible — see `src/jobs.ts`.
+   * On by default, because where a delivery begins decides what the classifier
+   * can see (CLASSIFIER.md §9.3) and leaving it to the pty means letting a
+   * buffer decide. Pass `false` for what a session did before jobs existed:
+   * one classified update per raw pty delivery, which is the honest setting
+   * for a caller that wants every byte boundary and is what the corpus's
+   * op-aligned replay measures.
+   *
+   * The numbers are policy; absent means `DEFAULT_JOB_POLICY`.
+   *
+   * Off, the session reports `collapsed: null` rather than an invented `1`
+   * (GOAL.md L1.3).
    */
-  jobPolicy?: JobPolicy;
+  jobPolicy?: JobPolicy | false;
 }
 
 export const DEFAULT_COLS = 80;

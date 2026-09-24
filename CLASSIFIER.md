@@ -356,7 +356,8 @@ not about one of them.
    - **Coalescing is a classification input, not merely a delivery policy.**
      Where a window opens decides whether an overwrite is visible at all. This
      is L1.1's territory, but L0 cannot pretend to be neutral about it — which
-     is why `jobs.ts` lives in `src/` and not above it.
+     is why `jobs.ts` lives in `src/` and not above it, and why grouping is on
+     for every session unless `jobPolicy: false` says otherwise.
    - **History inherits the same resolution.** A timeline entry is a delivery, so
      a seek resolves to the entry at or before the point asked for and does not
      invent precision between entries (`src/history.ts`). See `HISTORY.md`.
@@ -376,7 +377,9 @@ not about one of them.
    period is measured from the last byte, not from when the job opened, so a
    slow but continuous program is not chopped at arbitrary intervals.
    Timing policy does not leak into L0: `jobs.ts` takes a clock and a scheduler
-   by injection, and its tests advance time rather than sleeping.
+   by injection, and its tests advance time rather than sleeping. The default
+   numbers live in one place, `DEFAULT_JOB_POLICY`, so the policy can change
+   without touching the mechanism.
 5. **Whether the text log is L0 or L1.** — **closed: L0.** It is built
    (`src/text-log.ts`), and the argument above is the reason: the screen grid
    holds the viewport, so a line that scrolls out is in no snapshot at all, and

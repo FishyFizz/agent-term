@@ -47,7 +47,7 @@ const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const GAP_MS = 30;
 
-function open(options: { jobPolicy?: { gapMs: number } } = {}): {
+function open(options: { jobPolicy?: { gapMs: number } | false } = {}): {
   session: TerminalSession;
   updates: SessionUpdate[];
 } {
@@ -127,8 +127,8 @@ test('merged updates report intermediates the consumer did not see', async (t) =
   }
 });
 
-test('without a policy the session reports no merging rather than inventing one', async (t) => {
-  const { session, updates } = open();
+test('with grouping opted out, the session reports no merging rather than inventing one', async (t) => {
+  const { session, updates } = open({ jobPolicy: false });
   t.after(() => session.dispose());
 
   const got = await waitFor(() => updates.length >= 1);

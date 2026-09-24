@@ -60,8 +60,8 @@ Not built: the MCP tool surface, delivery and boundedness (L1.1), settle
 detection (L1.2), interaction (L1.4) and honest errors (L1.5), and retention
 and durability (L3.4). L1.3 is half-there — the byte watermarks exist on the
 session and on the pty, and nothing consumes them yet. Grouping output into jobs
-is opt-in via `SessionOptions.jobPolicy`; without it a session still delivers one
-update per raw pty read.
+on by default (`DEFAULT_JOB_POLICY`); `SessionOptions.jobPolicy: false` opts out and
+gives one update per raw pty read.
 
 ## Development
 
