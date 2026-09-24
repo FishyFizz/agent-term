@@ -16,13 +16,11 @@ import type { Segment } from '../src/classify.js';
 async function update(
   s: ScreenModel,
   bytes: string,
-): Promise<{ segments: Segment[]; screen: ScreenModel; ops: ReturnType<ScreenModel['ops']['recorded']['slice']> }> {
+): Promise<{ segments: Segment[]; screen: ScreenModel }> {
   const before = frameOf(s);
   const fromByte = s.ops.bytesFed;
-  await s.feed(bytes);
-  const after = frameOf(s);
-  const ops = s.ops.recorded.filter((o) => o.byteOffset >= fromByte);
-  s.ops.clear();
+  const facts = await s.feed(bytes);
+  const after = frameOf(s, facts.after);
   const from = { ...before };
   return {
     segments: classify({
@@ -30,11 +28,8 @@ async function update(
       after,
       fromByte,
       toByte: s.ops.bytesFed,
-      scrolledBy: s.takeScrolledRows(),
+      scrolledBy: facts.scrolledRows,
     }).segments,
-    // Kept so a test can report how much output an update stood for. The
-    // verdict does not read it.
-    ops,
     screen: s,
   };
 }

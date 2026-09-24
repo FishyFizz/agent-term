@@ -5,96 +5,125 @@
  * the history design rests on: if the log stops being lossless past the
  * scrollback horizon, L0.3's "page back to any earlier part of that build"
  * quietly stops being satisfiable, and nothing else would notice.
+ *
+ * They drive `ScreenModel.feed` rather than a bare `TextLog`, because capture
+ * is not a property of the log alone any more: a line is *triggered* by a
+ * completion signal and *judged* against the diff of the feed that carries it.
+ * A test that writes to the terminal directly exercises neither the second
+ * trigger nor the judgement, and would pass while both were broken.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createTerminal, type XtermTerminal } from '../src/xterm.js';
-import { TextLog } from '../src/text-log.js';
+import { ScreenModel, type ScreenFacts } from '../src/screen.js';
+import type { TextLine } from '../src/text-log.js';
 
-/** Feed and wait, exactly as `ScreenModel.feed` does: count, then write. */
-async function feed(terminal: XtermTerminal, log: TextLog, data: string | Buffer): Promise<void> {
-  const bytes = typeof data === 'string' ? Buffer.from(data, 'utf8') : data;
-  log.noteBytes(bytes.length);
-  await new Promise<void>((resolve) => terminal.write(new Uint8Array(bytes), () => resolve()));
+/** Feed a screen and hand back the lines that feed produced. */
+function feed(screen: ScreenModel, data: string | Buffer): Promise<TextLine[]> {
+  return screen.feed(data).then((facts: ScreenFacts) => facts.text);
 }
 
 test('every completed line is captured, in order', async () => {
-  const terminal = createTerminal({ cols: 20, rows: 5 });
-  const log = new TextLog(terminal);
-  await feed(terminal, log, 'alpha\r\nbeta\r\ngamma\r\n');
+  const screen = new ScreenModel(20, 5);
+  const lines = await feed(screen, 'alpha\r\nbeta\r\ngamma\r\n');
 
   assert.deepEqual(
-    log.drain().map((l) => l.text),
+    lines.map((l) => l.text),
     ['alpha', 'beta', 'gamma'],
   );
-  terminal.dispose();
-  log.dispose();
+  screen.dispose();
 });
 
 test('repeated lines are kept — this is a log, not a set', async () => {
-  const terminal = createTerminal({ cols: 20, rows: 5 });
-  const log = new TextLog(terminal);
-  await feed(terminal, log, 'Compiling a\r\nCompiling a\r\nCompiling a\r\n');
+  const screen = new ScreenModel(20, 5);
+  const lines = await feed(screen, 'Compiling a\r\nCompiling a\r\nCompiling a\r\n');
 
-  const lines = log.drain();
   assert.equal(lines.length, 3, 'a build log that repeats a line is the common case');
   assert.deepEqual(
     lines.map((l) => l.text),
     ['Compiling a', 'Compiling a', 'Compiling a'],
   );
-  terminal.dispose();
-  log.dispose();
+  screen.dispose();
 });
 
 test('lines survive a scrollback overflow', async () => {
   // The decisive case: the buffer is deliberately far too small to hold the
-  // output, so anything reading the grid loses it. The linefeed stream does not.
-  const terminal = createTerminal({ cols: 20, rows: 5, scrollback: 10 });
-  const log = new TextLog(terminal);
+  // output, so anything reading the grid loses it. This is why the trigger is a
+  // per-line signal and cannot be the diff -- a before/after comparison of the
+  // whole run would see only the last five rows.
+  const screen = new ScreenModel(20, 5, 10);
 
   const N = 200;
-  for (let i = 0; i < N; i++) await feed(terminal, log, `line ${i}\r\n`);
+  const lines: TextLine[] = [];
+  for (let i = 0; i < N; i++) lines.push(...(await feed(screen, `line ${i}\r\n`)));
 
-  const lines = log.drain();
-  assert.equal(lines.length, N, `captured every line, though the buffer holds only ${terminal.buffer.active.length}`);
+  assert.equal(lines.length, N, `captured every line, though the buffer holds only ${screen.terminal.buffer.active.length}`);
   assert.equal(lines[0]?.text, 'line 0', 'the oldest line is the one the buffer dropped first');
   assert.equal(lines[N - 1]?.text, `line ${N - 1}`);
   assert.equal(new Set(lines.map((l) => l.text)).size, N, 'none dropped, none duplicated');
   assert.ok(
-    terminal.buffer.active.length <= 15,
-    `the buffer really did overflow (length ${terminal.buffer.active.length})`,
+    screen.terminal.buffer.active.length <= 15,
+    `the buffer really did overflow (length ${screen.terminal.buffer.active.length})`,
   );
 
-  terminal.dispose();
-  log.dispose();
+  screen.dispose();
 });
 
-test('a CUP-drawn screen writes nothing to the log', async () => {
-  // Drawn content is the screen grid's to record. If a repaint landed here too,
-  // every TUI frame would pollute the text of the session.
-  const terminal = createTerminal({ cols: 24, rows: 5 });
-  const log = new TextLog(terminal);
+test('a line ended by cursor positioning is captured, not only by a linefeed', async () => {
+  // The Windows case, and the reason the trigger is not just `onLineFeed`.
+  // ConPTY terminates a program's output by positioning the cursor, so the
+  // linefeed count for the feed is zero:
+  //
+  //   echo RAW-CHECK<LF> <ESC>[?25l RAW-CHECK <ESC>[7;1H prompt><ESC>[?25h
+  //
+  // The line reaches the screen either way, so a log that missed it would
+  // disagree with the screen -- the one thing it must never do.
+  const screen = new ScreenModel(40, 8);
+  await feed(screen, 'PS> echo RAW-CHECK\r\n');
+  const lines = await feed(screen, '\x1b[?25lRAW-CHECK\x1b[7;1HPS> \x1b[?25h');
 
-  let frame = '\x1b[?1049h';
-  for (let row = 0; row < 5; row++) frame += `\x1b[${row + 1};1H\x1b[2Krow content ${row}`;
-  await feed(terminal, log, frame);
+  assert.deepEqual(
+    lines.map((l) => l.text),
+    ['RAW-CHECK'],
+    'the output line is captured even though nothing emitted a linefeed for it',
+  );
+  assert.ok(
+    screen.snapshot().lines.some((l) => l.trim() === 'RAW-CHECK'),
+    'and the screen agrees it is there',
+  );
+  screen.dispose();
+});
 
-  assert.deepEqual(log.drain(), [], 'a CUP-drawn screen completes no lines');
-  terminal.dispose();
-  log.dispose();
+test('the first paint is text; a repaint of the same rows is not', async () => {
+  // A program drawing onto blank cells is indistinguishable from appending, so
+  // it is recorded -- the agent sees the full draw either way. A frame that
+  // rewrites rows it already wrote is a repaint, and the screen diff says so.
+  const screen = new ScreenModel(24, 5);
+  const paint = (tag: string): string => {
+    let frame = '\x1b[?1049h';
+    for (let row = 0; row < 5; row++) frame += `\x1b[${row + 1};1H\x1b[2K${tag} ${row}`;
+    return frame;
+  };
+
+  const first = await feed(screen, paint('row'));
+  assert.deepEqual(
+    first.map((l) => l.text),
+    ['row 0', 'row 1', 'row 2', 'row 3'],
+    'rows above the cursor arrived on blank cells: that is text',
+  );
+
+  const second = await feed(screen, paint('other'));
+  assert.deepEqual(second, [], 'rewriting rows that already held content is a repaint');
+  screen.dispose();
 });
 
 test('lines written on the alt screen are captured, and marked', async () => {
   // L0.1's corollary: the alt screen is not a verdict, and a program can write
   // on it exactly as on the normal screen. That content is destroyed when the
   // program leaves the alt screen, so this sink is the only record of it.
-  const terminal = createTerminal({ cols: 24, rows: 5 });
-  const log = new TextLog(terminal);
+  const screen = new ScreenModel(24, 5);
+  await feed(screen, '\x1b[?1049h');
+  const lines = await feed(screen, 'alt one\r\nalt two\r\n');
 
-  await feed(terminal, log, '\x1b[?1049h');
-  await feed(terminal, log, 'alt one\r\nalt two\r\n');
-
-  const lines = log.drain();
   assert.deepEqual(
     lines.map((l) => l.text),
     ['alt one', 'alt two'],
@@ -104,36 +133,34 @@ test('lines written on the alt screen are captured, and marked', async () => {
     'the buffer is recorded as context, so a caller can tell the two apart',
   );
 
-  await feed(terminal, log, '\x1b[?1049l');
-  assert.deepEqual(log.drain(), [], 'leaving the alt screen completes no line of its own');
-  terminal.dispose();
-  log.dispose();
+  const after = await feed(screen, '\x1b[?1049l');
+  assert.deepEqual(after, [], 'leaving the alt screen completes no line of its own');
+  screen.dispose();
 });
 
 test('byte stamps locate a line in the delivery that produced it', async () => {
-  const terminal = createTerminal({ cols: 20, rows: 5 });
-  const log = new TextLog(terminal);
+  const screen = new ScreenModel(20, 5);
+  await feed(screen, 'first\r\n'); // 7 bytes
+  const lines = await feed(screen, 'second\r\n'); // 8 more
 
-  await feed(terminal, log, 'first\r\n'); // 7 bytes
-  await feed(terminal, log, 'second\r\n'); // 8 more
-
-  const lines = log.drain();
   assert.deepEqual(
     lines.map((l) => l.byte),
-    [7, 15],
-    'each line carries the offset the delivery ended at',
+    [15],
+    'a line carries the offset its delivery ended at',
   );
-  terminal.dispose();
-  log.dispose();
+  screen.dispose();
 });
 
-test('drain empties the log, so nothing is counted twice', async () => {
-  const terminal = createTerminal({ cols: 20, rows: 5 });
-  const log = new TextLog(terminal);
-  await feed(terminal, log, 'one\r\n');
+test('a line is reported once, by the feed that completed it', async () => {
+  const screen = new ScreenModel(20, 5);
+  const first = await feed(screen, 'one\r\n');
+  assert.equal(first.length, 1);
 
-  assert.equal(log.drain().length, 1);
-  assert.equal(log.drain().length, 0, 'a second drain has nothing left');
-  terminal.dispose();
-  log.dispose();
+  const second = await feed(screen, '\r\n');
+  assert.deepEqual(
+    second.map((l) => l.text),
+    [''],
+    'the second feed reports its own blank line and does not repeat the first',
+  );
+  screen.dispose();
 });

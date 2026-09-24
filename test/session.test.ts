@@ -385,3 +385,27 @@ test('resizing a live session keeps pty and screen in step', async (t) => {
   assert.equal(last.screen.cols, 120, 'updates report the new size');
   for (const line of last.screen.lines) assert.equal(line.length, 120, 'rows are the new width');
 });
+
+test('the text log keeps a line the shell terminated by positioning', async (t) => {
+  // The bug this exists to prevent, and it only shows over a real ConPTY feed:
+  // PowerShell ends an output line with `[7;1H`, not a linefeed, so a log
+  // that captured only on `onLineFeed` put the line on the screen and never in
+  // the record. Everything above then disagreed with itself -- `read_screen`
+  // would report a screen containing a line its own `text` did not have.
+  const { session, updates } = harness();
+  t.after(() => session.dispose());
+
+  const OUT = 'AGENTTERM-CONPTY-LINE';
+  session.pty.write(`echo ${OUT}\r\n`);
+
+  const got = await waitFor(
+    () => updates.some((u) => u.text.some((l) => l.text.trim() === OUT)),
+    { label: 'the output line in the text log' },
+  );
+  assert.ok(got, 'the line the shell wrote is in the text log');
+
+  // And the screen agrees, which is the invariant: a row written in the window
+  // may not be missing from the text.
+  const onScreen = updates.some((u) => u.screen.lines.some((l) => l.trim() === OUT));
+  assert.ok(onScreen, 'the same line is on the screen it was written to');
+});

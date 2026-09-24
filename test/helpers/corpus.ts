@@ -76,13 +76,11 @@ export async function classifyTraceStreaming(
     }
 
     const before = frameOf(screen);
-    await screen.feed(chunk);
-    const ops = [...screen.ops.recorded];
+    const facts = await screen.feed(chunk);
     const toByte = screen.ops.bytesFed;
-    screen.ops.clear();
-    const after = frameOf(screen);
+    const after = frameOf(screen, facts.after);
 
-    for (const seg of classify({ before, after, fromByte: prevTo, toByte, scrolledBy: screen.takeScrolledRows() }).segments) {
+    for (const seg of classify({ before, after, fromByte: prevTo, toByte, scrolledBy: facts.scrolledRows }).segments) {
       segments.push(seg);
     }
     prevTo = toByte;

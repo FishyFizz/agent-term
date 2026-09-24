@@ -41,11 +41,31 @@
  */
 import { createTerminal, type IBufferCell, type XtermTerminal } from './xterm.js';
 import { EditRecord, type Op } from './edit-record.js';
-import { TextLog } from './text-log.js';
+import { TextLog, type TextLine } from './text-log.js';
+import { frameOf, rowDiff, type Frame } from './classify.js';
 import { assertGridSize } from './types.js';
 
 /** One row of the screen, as text. Glyph-indexed; see `ScreenSnapshot.wide`. */
 export type ScreenRow = string;
+
+/**
+ * What one `feed` did, as facts.
+ *
+ * Verdicts are deliberately absent: the classifier reads these and no one else
+ * should be told what they mean. Everything here is an observation — two
+ * frames, the ops between them, how far content moved, and the lines the feed
+ * completed.
+ */
+export interface ScreenFacts {
+  before: ScreenSnapshot;
+  after: ScreenSnapshot;
+  /** Control operations recorded during this feed, in order. */
+  ops: Op[];
+  /** Rows the emulator reports the content moved. */
+  scrolledRows: number;
+  /** Lines this feed completed and the diff judged to be text. */
+  text: TextLine[];
+}
 
 /** A run of columns sharing one appearance, half-open `[from, to)`. */
 export interface StyleRun {
@@ -184,10 +204,10 @@ export class ScreenModel {
   private _scrolled = 0;
   private _scrollPos = 0;
 
-  constructor(cols: number, rows: number) {
+  constructor(cols: number, rows: number, scrollback?: number) {
     this._cols = cols;
     this._rows = rows;
-    this.terminal = createTerminal({ cols, rows });
+    this.terminal = createTerminal({ cols, rows, ...(scrollback === undefined ? {} : { scrollback }) });
     // Installed immediately so no bytes can reach the parser unobserved.
     this.ops = new EditRecord(this.terminal);
     this.text = new TextLog(this.terminal);
@@ -226,19 +246,65 @@ export class ScreenModel {
   }
 
   /**
-   * Feed raw pty bytes to the emulator.
+   * Feed raw pty bytes to the emulator, and report what the feed did.
    *
-   * Resolves once the emulator has parsed them, which is the only point at
-   * which `snapshot()` and `ops` reflect this input.
+   * This is the single witness. Two snapshots are taken — before and after —
+   * and everything downstream reads them: the classifier's frames, the grid
+   * delta, the text log's judgement. Callers used to take their own pair around
+   * this call, which was a second witness to the same input and could drift
+   * from it.
+   *
+   * The text log's second trigger runs here too: a line ConPTY terminates by
+   * positioning instead of a linefeed is only visible as a row the cursor left,
+   * which is knowable after the parse and not during it.
    */
-  feed(data: Buffer | string): Promise<void> {
+  async feed(data: Buffer | string): Promise<ScreenFacts> {
     const bytes = typeof data === 'string' ? Buffer.from(data, 'utf8') : data;
+    const before = this.snapshot();
+    const opsBefore = this.ops.recorded.length;
     // Counted before the write: handlers run during it, and by then the
     // offset must already include the bytes that produced them.
     this.ops.noteBytes(bytes.length);
     this.text.noteBytes(bytes.length);
-    return new Promise((resolve) => {
+    await new Promise<void>((resolve) => {
       this.terminal.write(new Uint8Array(bytes), () => resolve());
+    });
+
+    const after = this.snapshot();
+    const scrolledRows = this.takeScrolledRows();
+    // Sliced, not cleared: a live session drops the ops it has reported, so it
+    // does not accumulate, while the corpus recorder keeps the whole stream for
+    // the trace. Which of those is wanted is the caller's business.
+    const ops = this.ops.recorded.slice(opsBefore);
+
+    this.finishText(frameOf(this, before), frameOf(this, after), scrolledRows);
+
+    return { before, after, ops, scrolledRows, text: this.text.drain() };
+  }
+
+  /**
+   * Complete the text log for one feed: take the rows the cursor left, then let
+   * the diff say which candidates are text.
+   */
+  private finishText(before: Frame, after: Frame, scrolledRows: number): void {
+    const buffer = this.terminal.buffer.active;
+    this.text.captureLeftRows(buffer.cursorY, buffer.viewportY, (y) =>
+      rowDiff(before.lines, after.lines, scrolledRows, y).changed,
+    );
+    this.text.resolve((row) => {
+      // Above the viewport: the line was written and then scrolled out of
+      // sight, which is what appending does. It has no counterpart in either
+      // frame to compare against, so it stands.
+      const y = row - buffer.viewportY;
+      if (y < 0 || y >= after.lines.length) return true;
+      // Kept unless the row was erased or overwritten. Note this is *not* "did
+      // the row change": a line is written by one feed and completed by the
+      // linefeed in a later one, and in the later feed its row is untouched.
+      // Asking whether it changed would drop every line whose content arrived
+      // in the previous delivery -- which on ConPTY is most of them, since the
+      // CRLF is routinely split across two pty reads.
+      const diff = rowDiff(before.lines, after.lines, scrolledRows, y);
+      return !diff.erased && !diff.overwrote;
     });
   }
 

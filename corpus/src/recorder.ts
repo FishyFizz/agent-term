@@ -60,9 +60,16 @@ export class Recorder {
     return this.screen.rows;
   }
 
-  /** Feed bytes. Resolves once the emulator has parsed them. */
-  write(data: string | Buffer): Promise<void> {
-    return this.screen.feed(data);
+  /**
+   * Feed bytes and keep the lines the feed completed.
+   *
+   * The lines arrive with the feed rather than being drained later: the text
+   * log judges a line against the diff of the feed that produced it, so the
+   * result exists only at that moment. Draining afterwards would find nothing.
+   */
+  async write(data: string | Buffer): Promise<void> {
+    const facts = await this.screen.feed(data);
+    for (const line of facts.text) this.textLog.push(line.text);
   }
 
   /**
@@ -95,33 +102,12 @@ export class Recorder {
     return frame;
   }
 
-  /**
-   * Take the lines the model has captured since the last call.
-   *
-   * The model's own `TextLog` (src/text-log.ts) reads each completed line at the
-   * linefeed that finished it, which is the only lossless point: once a line
-   * falls out of a bounded scrollback the grid cannot give it back.
-   *
-   * The version this replaces re-derived lines from the buffer instead, and was
-   * wrong twice over -- it indexed `getLine(y)` absolutely, so it read the top
-   * of scrollback rather than the visible rows (the trap `screen.ts` warns
-   * about), and it de-duplicated through `includes`, which made it a set of
-   * distinct lines rather than a log. A build log repeating "Compiling foo" is
-   * the common case, and that is exactly what a set loses.
-   */
-  private collectText(): void {
-    for (const line of this.screen.text.drain()) this.textLog.push(line.text);
-  }
-
   get bytesWritten(): number {
     return this.screen.ops.bytesFed;
   }
 
   /** Everything recorded, for `assemble` to fold into a `Trace`. */
   recorded(): { ops: readonly Op[]; frames: Frame[]; textLog: string[] } {
-    // Collected here rather than at each capture: the log belongs to the run,
-    // and `assemble` asks for it once the programme has finished.
-    this.collectText();
     return { ops: this.screen.ops.recorded, frames: this.frames, textLog: this.textLog };
   }
 

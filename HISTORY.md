@@ -118,13 +118,17 @@ grid holds the *viewport*, so a build log that overflows scrollback leaves no re
 itself, and L0.3's "page back to any earlier part of that build" is unsatisfiable from the grid
 alone.
 
-`src/text-log.ts` reads the completed line at the linefeed that finished it, which is the only
-lossless point. Verified:
+`src/text-log.ts` captures in two stages, and keeping them apart is the design. A line is
+**triggered** by a per-line signal — a linefeed, or the cursor leaving a row — and **judged**
+by the row diff of the feed that carries it: content arriving where there was none is text, an
+erase or an overwrite is a repaint and is dropped. Verified:
 
 | Claim | Result |
 |---|---|
-| The buffer is lossy; the linefeed stream is not | 200 lines into a 5-row terminal with 10 lines of scrollback: **15 kept**, **200 recovered**, distinct |
-| A CUP-drawn TUI writes nothing to the log | an alt-screen menu drawn with `CUP`+`EL` per row: **0** linefeed events |
+| The buffer is lossy; the per-line signal is not | 200 lines into a 5-row terminal with 10 lines of scrollback: **15 kept**, **200 recovered**, distinct |
+| The trigger cannot be the diff | 200 lines into a 5-row terminal: a before/after comparison of that feed sees **five** rows. The other 195 were never in any frame, so they are only recoverable from a per-line signal |
+| A linefeed is not the only completion signal | Windows ConPTY ended an output line with `\x1b[7;1H` and emitted **0** linefeeds for it; the line reached the screen and not the log until the cursor-left trigger was added |
+| A repaint of rows that already held content is not text | an alt-screen frame rewriting its own rows: **0** lines. The first paint onto blank rows *is* text — it is indistinguishable from appending, and the agent sees the full draw either way |
 | A program that *writes* on the alt screen does | 2 lines captured, and that content is destroyed on exit — so the sink records both buffers and stamps which one. L0.1's corollary is that the alt screen is not a verdict |
 
 It is append-only and never de-duplicated: two identical lines are two lines. A build log

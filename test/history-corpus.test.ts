@@ -60,15 +60,13 @@ async function replayIntoHistory(history: SessionHistory, trace: ReturnType<type
     }
 
     const before = frameOf(screen);
-    await screen.feed(chunk);
-    const after = frameOf(screen);
-    const ops = [...screen.ops.recorded];
+    const facts = await screen.feed(chunk);
+    const after = frameOf(screen, facts.after);
     const toByte = screen.ops.bytesFed;
-    screen.ops.clear();
 
     const snap = screen.snapshot();
-    const text: TextLine[] = screen.text.drain();
-    const segments = classify({ before, after, fromByte: prevTo, toByte, scrolledBy: screen.takeScrolledRows() }).segments;
+    const text: TextLine[] = facts.text;
+    const segments = classify({ before, after, fromByte: prevTo, toByte, scrolledBy: facts.scrolledRows }).segments;
 
     seq++;
     history.push({

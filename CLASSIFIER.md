@@ -388,7 +388,8 @@ not about one of them.
    L0.3's "page back to any earlier part" is unsatisfiable without a separate
    record. Measured: 200 lines into a 5-row terminal with 10 lines of scrollback
    leaves 15 of them in the buffer, while reading the completed line at each
-   linefeed yields all 200, distinct. See `HISTORY.md`.
+   per-line signal yields all 200, distinct — a frame comparison of that feed would see five
+   rows, which is why the trigger cannot be the diff. See `HISTORY.md`.
 
 ---
 

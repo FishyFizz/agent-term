@@ -56,10 +56,10 @@ export interface ClassifiedUpdate {
 }
 
 /**
- * A screen captured before and after a segment, used to answer structural
- * questions about what the segment did.
+ * A screen captured before and after a delivery, used to answer structural
+ * questions about what it did.
  */
-interface Frame {
+export interface Frame {
   lines: string[];
   cursorY: number;
   viewportY: number;
@@ -192,6 +192,50 @@ function inferSegment(
  * a trailing carriage return after appended text leaves the cursor at column 0
  * with the text intact, which every build log does.
  */
+/**
+ * What one row did between two frames, scroll-normalised.
+ *
+ * The single row comparison in the repo. `diffFacts` reads it in aggregate to
+ * answer the classifier's questions; `text-log.ts` reads it per row to decide
+ * whether a captured line is text or a repaint. Two comparisons would be two
+ * witnesses, and they could disagree.
+ *
+ * A row that was erased or overwritten is a repaint — something was there and
+ * is now gone or different. Anything else is content arriving, which is the
+ * text log's definition of a line. Note that "arriving" is not the same as
+ * "changed in this window": a line is often written by one delivery and
+ * completed by the next, and in the second its row is untouched. So the text
+ * log asks whether a row was *replaced*, not whether it changed.
+ */
+export interface RowDiff {
+  /** True when the row differs from its counterpart in `before`. */
+  changed: boolean;
+  /** Non-blank cells became blank. */
+  erased: boolean;
+  /** Non-blank cells changed to different non-blank content. */
+  overwrote: boolean;
+}
+
+export function rowDiff(
+  before: readonly string[],
+  after: readonly string[],
+  scrolledBy: number,
+  y: number,
+): RowDiff {
+  const none: RowDiff = { changed: false, erased: false, overwrote: false };
+  const prevIdx = y + scrolledBy;
+  // A row with no counterpart in `before` -- below the buffer, or shifted off
+  // the top -- is newly revealed. The common case is the bottom of a scroll.
+  if (prevIdx < 0 || prevIdx >= before.length) {
+    return { changed: true, erased: false, overwrote: false };
+  }
+  const prev = before[prevIdx] ?? '';
+  const next = after[y] ?? '';
+  if (prev === next) return none;
+
+  return { changed: true, erased: blanked(prev, next), overwrote: overwroteNonBlank(prev, next) };
+}
+
 function diffFacts(
   before: Frame,
   after: Frame,
@@ -208,23 +252,15 @@ function diffFacts(
   const writeRow = before.cursorY;
 
   for (let y = 0; y < rows; y++) {
+    const row = rowDiff(before.lines, after.lines, scrolledBy, y);
+    if (!row.changed) continue;
+
+    // A row shifted off the top has no `before` counterpart to reach back into.
     const prevIdx = y + scrolledBy;
-    // A row with no counterpart in `before` -- either below the buffer or
-    // shifted off the top -- is not evidence of reaching back. The common case
-    // is the bottom of a scroll: newly revealed content.
-    if (prevIdx < 0 || prevIdx >= before.lines.length) continue;
+    if (prevIdx >= 0 && prevIdx < before.lines.length && prevIdx < writeRow) reachedBack = true;
 
-    const prevLine = before.lines[prevIdx] ?? '';
-    const nextLine = after.lines[y] ?? '';
-    if (prevLine === nextLine) continue;
-
-    if (prevIdx < writeRow) reachedBack = true;
-
-    // Erasure: cells that were non-blank became blank.
-    if (blanked(prevLine, nextLine)) erased = true;
-
-    // Overwrite: non-blank cells changed to different non-blank content.
-    if (overwroteNonBlank(prevLine, nextLine)) overwrote = true;
+    if (row.erased) erased = true;
+    if (row.overwrote) overwrote = true;
   }
 
   return { erased, overwrote, reachedBack };

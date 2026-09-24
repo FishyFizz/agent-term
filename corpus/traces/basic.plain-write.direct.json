@@ -7,7 +7,7 @@
   "cols": 80,
   "rows": 8,
   "platform": "win32",
-  "recordedAt": "2026-09-24T06:25:04.191Z",
+  "recordedAt": "2026-09-24T08:27:50.324Z",
   "expectations": [
     {
       "from": 0,
@@ -25,7 +25,7 @@
       "cursorY": 1,
       "params": [],
       "altScreen": false,
-      "at": 1790231104129
+      "at": 1790238470261
     },
     {
       "name": "LINEFEED",
@@ -35,7 +35,7 @@
       "cursorY": 2,
       "params": [],
       "altScreen": false,
-      "at": 1790231104144
+      "at": 1790238470277
     },
     {
       "name": "LINEFEED",
@@ -45,7 +45,7 @@
       "cursorY": 3,
       "params": [],
       "altScreen": false,
-      "at": 1790231104159
+      "at": 1790238470293
     },
     {
       "name": "LINEFEED",
@@ -55,7 +55,7 @@
       "cursorY": 4,
       "params": [],
       "altScreen": false,
-      "at": 1790231104175
+      "at": 1790238470309
     },
     {
       "name": "LINEFEED",
@@ -65,7 +65,7 @@
       "cursorY": 5,
       "params": [],
       "altScreen": false,
-      "at": 1790231104190
+      "at": 1790238470324
     }
   ],
   "frames": [
@@ -100,23 +100,23 @@
   "arrivals": [
     {
       "offset": 0,
-      "at": 1790231104041
+      "at": 1790238470175
     },
     {
       "offset": 8,
-      "at": 1790231104050
+      "at": 1790238470183
     },
     {
       "offset": 16,
-      "at": 1790231104065
+      "at": 1790238470199
     },
     {
       "offset": 24,
-      "at": 1790231104081
+      "at": 1790238470214
     },
     {
       "offset": 32,
-      "at": 1790231104097
+      "at": 1790238470229
     }
   ],
   "bytes": 40,

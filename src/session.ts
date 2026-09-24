@@ -122,7 +122,7 @@ export interface CollapsedInfo {
  */
 export interface Intermediate extends Pick<
   SessionUpdate,
-  'at' | 'fromByte' | 'toByte' | 'segments' | 'text' | 'grid'
+  'at' | 'fromByte' | 'toByte' | 'text' | 'grid'
 > {
   /** Monotonic per session, independent of the job sequence. */
   rawSeq: number;
@@ -373,51 +373,40 @@ export class TerminalSession {
       let first = true;
 
       for (const part of parts) {
-        const beforeSnap = this.screen.snapshot();
-        const before = frameOf(this.screen, beforeSnap);
-        await this.screen.feed(part);
-        afterSnap = this.screen.snapshot();
-        after = frameOf(this.screen, afterSnap);
-        const recorded = this.screen.ops.recorded.filter((o) => o.byteOffset >= fromByte);
-        ops += recorded.length;
+        // One witness, and it belongs to the model: `feed` takes the frames,
+        // counts the ops and the scroll, judges the text, and hands all of it
+        // back. The caller used to take its own before/after pair around this
+        // call, which was a second witness to the same bytes.
+        const partFromByte = this.screen.ops.bytesFed;
+        const facts = await this.screen.feed(part);
+        // Dropped here, so a long session's op stream does not accumulate.
         this.screen.ops.clear();
-        // Read after each feed and reset on read, so this is the scroll this
-        // delivery caused. Summed for the job's verdict.
-        const scroll = this.screen.takeScrolledRows();
-        scrolled += scroll;
-        // Drained in the same window as the ops, so each line belongs to
-        // exactly one update and none is counted twice.
-        const partText = this.screen.text.drain();
-        text.push(...partText);
+        const beforeSnap = facts.before;
+        afterSnap = facts.after;
+        after = frameOf(this.screen, afterSnap);
+        ops += facts.ops.length;
+        scrolled += facts.scrolledRows;
+        text.push(...facts.text);
 
         if (job) {
           const seq = ++this._rawSeq;
           if (rawFrom === 0) rawFrom = seq;
           rawTo = seq;
-          const grid = gridDelta(beforeSnap, afterSnap, after.viewportY - before.viewportY);
-          // A checkpoint wherever a delta would not be smaller, or could not
-          // be applied at all. Everything else is carried as a delta, which is
-          // what keeps this from being a grid per delivery.
-          const checkpoint =
-            first ||
-            grid === null ||
-            beforeSnap.cols !== afterSnap.cols ||
-            beforeSnap.rows !== afterSnap.rows ||
-            beforeSnap.buffer !== afterSnap.buffer;
+          // The hint is the emulator's own scroll count, not the viewport
+          // difference -- `viewportY` saturates once the scrollback ring is
+          // full and then reports 0 while content keeps moving (HISTORY.md 3).
+          const grid = gridDelta(beforeSnap, afterSnap, facts.scrolledRows);
+          // A delta is only expressible against a grid of the same shape;
+          // `gridDelta` returns null for a resize or a buffer switch, and the
+          // first delivery of a job has nothing behind it to be a delta from.
+          const checkpoint = first || grid === null;
           this.recordRaw({
             rawSeq: seq,
             job: this._seq + 1,
             at: Date.now(),
-            fromByte: this.screen.ops.bytesFed - part.length,
+            fromByte: partFromByte,
             toByte: this.screen.ops.bytesFed,
-            segments: classify({
-              before,
-              after,
-              fromByte: this.screen.ops.bytesFed - part.length,
-              toByte: this.screen.ops.bytesFed,
-              scrolledBy: scroll,
-            }).segments,
-            text: partText,
+            text: facts.text,
             grid,
             screen: checkpoint ? afterSnap : null,
             cursor: { x: afterSnap.cursorX, y: afterSnap.cursorY },
