@@ -14,20 +14,40 @@ inferred. The numbers come from the tests named beside them.
 ## 1. The shape
 
 A session's history is a sequence of **epochs**, one per grid size, split wherever the size
-changed. Each epoch holds an ordered, append-only list of **records**; each record is one
-delivery, and carries:
+changed. Each epoch holds an ordered, append-only list of **records**, and a record is one
+**delivery** — the raw stream, not an account of it:
 
 | Field | What it is |
 |---|---|
-| `seq`, `at`, `fromByte`, `toByte` | where the delivery sits in the session |
-| `segments` | the classified verdicts, in order (`CLASSIFIER.md` §2) |
+| `seq`, `job`, `at`, `fromByte`, `toByte` | where the delivery sits in the session, and which job it was grouped into |
 | `text` | the completed lines this delivery produced |
+| `scrolledRows` | how far the emulator reports the content moved |
 | `cursor`, `buffer` | where the terminal was left |
 | `grid` **or** `keyframe` | how to get this screen from the previous one |
 
+**What is deliberately absent is a verdict.** The stream records what happened; the
+`writing`/`drawing` distinction is read off the screen, so it is computed where it is needed
+rather than stored beside the frames it was taken from. Storing it would be a second opinion
+that could drift.
+
+The job the agent is shown is therefore a **projection** over a run of these, computed on
+read (`SessionHistory.jobs()`): group by `job`, classify from the screen before the first
+delivery to the screen after the last, and report how many deliveries it stands for. Nothing
+is stored per job, so a projection cannot disagree with the stream it came from — and it can
+be recomputed at a different granularity without re-recording anything. Verified: the
+projection reproduces both the screen *and* the verdicts the live session reached
+(`test/session.test.ts`).
+
+What was stored instead of a projection used to be the job records themselves, at the
+granularity the session happened to deliver at. That made the delivery policy part of the
+record: changing how output was grouped changed what history said had happened.
+
 Seeking is by **opaque token** (`h1.<epoch>.<record>`), never an integer index, so retention can
 change what a position means underneath without breaking a caller that holds one (`GOAL.md`
-L3.2). A token is itself a valid address, so `page.next` is passed straight back in.
+L3.2). A token is itself a valid address, so `page.next` is passed straight back in. A
+delivery that a job swallowed is addressable the same way — `deliveries(from, to)` takes the
+`seq` range the job reports — which is what makes intermediate playback a read rather than a
+separate store.
 
 ## 2. A resize is a boundary
 

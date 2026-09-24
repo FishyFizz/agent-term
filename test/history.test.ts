@@ -38,21 +38,6 @@ function snapshot(cols: number, rows: number, lines: string[]): ScreenSnapshot {
   };
 }
 
-function segment(fromByte: number, toByte: number, kind: Verdict): Segment {
-  return {
-    kind,
-    fromByte,
-    toByte,
-    evidence: {
-      erased: false,
-      overwrote: false,
-      reachedBack: false,
-      scrolledBy: 0,
-      altScreen: false,
-    },
-  };
-}
-
 /** Drive a timeline the way a session does, keeping the byte/seq clocks. */
 function feeder(history: SessionHistory, cols = 20, rows = 4) {
   let seq = 0;
@@ -63,7 +48,7 @@ function feeder(history: SessionHistory, cols = 20, rows = 4) {
   return {
     write(
       lines: string[],
-      opts: { kind?: Verdict; text?: string[]; cols?: number; rows?: number } = {},
+      opts: { text?: string[]; cols?: number; rows?: number } = {},
     ): number {
       seq++;
       const size = { cols: opts.cols ?? cols, rows: opts.rows ?? rows };
@@ -77,11 +62,12 @@ function feeder(history: SessionHistory, cols = 20, rows = 4) {
       }));
       const input: HistoryInput = {
         seq,
+        job: seq,
         at: at++,
         fromByte,
         toByte: byte,
-        segments: [segment(fromByte, byte, opts.kind ?? 'writing')],
         text,
+        scrolledRows: 0,
         grid: previous ? gridDelta(previous, screen) : null,
         screen,
       };
@@ -304,18 +290,6 @@ test('a bounded read reports what the limit withheld', () => {
   assert.equal(next.records.length, 3);
   assert.equal(next.truncated, false);
   assert.equal(next.records[0]?.seq, 3, 'resumes exactly where the last page stopped');
-});
-
-test('records can be filtered by kind without losing the cursor', () => {
-  const history = new SessionHistory('s');
-  const f = feeder(history);
-  f.write(['w'], { kind: 'writing' });
-  f.write(['d'], { kind: 'drawing' });
-  f.write(['w'], { kind: 'writing' });
-
-  const drawings = history.read({ kind: 'drawing', limit: 10 });
-  assert.equal(drawings.records.length, 1);
-  assert.equal(drawings.records[0]?.seq, 2);
 });
 
 test('an ended session keeps its history, and says that it ended', () => {

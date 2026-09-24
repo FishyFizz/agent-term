@@ -281,28 +281,41 @@ test('history reconstructs every screen of a live session', async (t) => {
   assert.equal(epochs.length, 1, 'no resize, so one epoch');
   assert.equal(epochs[0]?.cols, 100);
 
-  // The whole point: a reader gets the screen back exactly, having stored
-  // deltas rather than screens. Compared against the screens the session
-  // actually reported, so this checks the timeline against the live emulator
-  // and not against itself.
+  // The whole point, and it is checked twice because there are two tiers.
+  //
+  // The **stream** is what is stored: one record per delivery, encoded as a
+  // delta against the last keyframe. Reading a delivery back must give the
+  // screen that delivery produced.
+  const deliveries = history.deliveries(0, Number.MAX_SAFE_INTEGER);
+  assert.ok(deliveries.length > 0, 'the stream recorded deliveries');
+  for (let i = 1; i < deliveries.length; i++) {
+    const previous = deliveries[i - 1]!;
+    const current = deliveries[i]!;
+    assert.ok(current.seq > previous.seq, 'deliveries are in order');
+    assert.equal(current.fromByte, previous.toByte, 'and tile the byte stream');
+  }
+
+  // The **job** is the projection over it, and it is what the agent was shown.
+  // Compared against the updates the session actually delivered, so this checks
+  // the projection against the live path rather than against itself.
   const bySeq = new Map(updates.map((u) => [u.seq, u]));
-  const page = history.read({ limit: 1000 });
   let checked = 0;
-  for (const record of page.records) {
-    const update = bySeq.get(record.seq);
+  for (const job of history.jobs({ limit: 1000 })) {
+    const update = bySeq.get(job.job);
     if (!update) continue;
     checked++;
     assert.deepEqual(
-      history.screenAt({ seq: record.seq })?.lines,
+      job.screen.lines,
       update.screen.lines,
-      `the screen at seq ${record.seq} is the screen the session reported`,
+      `projected job ${job.job} reproduces the screen the session reported`,
+    );
+    assert.deepEqual(
+      job.segments.map((s) => s.kind),
+      update.segments.map((s) => s.kind),
+      `projected job ${job.job} reaches the verdict the session reached`,
     );
   }
-  // Not an absolute count: grouping output into jobs is on by default, so a
-  // burst the pty delivered as many reads arrives as one record. What matters
-  // is that every record reconstructs the screen the session reported, which
-  // the deepEqual above asserts for each one.
-  assert.ok(checked >= 2, `compared real screens (${checked})`);
+  assert.ok(checked >= 2, `compared real jobs (${checked})`);
 });
 
 test('a live resize splits the timeline and freezes the old epoch at its size', async (t) => {

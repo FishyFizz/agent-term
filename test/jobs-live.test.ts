@@ -14,6 +14,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { TerminalSession, type SessionUpdate } from '../src/session.js';
+import { HistoryStore, type SessionHistory } from '../src/history.js';
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -49,6 +50,7 @@ const GAP_MS = 30;
 
 function open(options: { jobPolicy?: { gapMs: number } | false } = {}): {
   session: TerminalSession;
+  history: SessionHistory;
   updates: SessionUpdate[];
 } {
   const session = new TerminalSession('jobs-live', {
@@ -60,7 +62,9 @@ function open(options: { jobPolicy?: { gapMs: number } | false } = {}): {
   });
   const updates: SessionUpdate[] = [];
   session.onUpdate((u) => updates.push(u));
-  return { session, updates };
+  // The stream is the timeline's, so playback is a read over it.
+  const history = new HistoryStore().open(session);
+  return { session, history, updates };
 }
 
 async function waitFor(predicate: () => boolean, timeoutMs = 15000): Promise<boolean> {
@@ -132,33 +136,33 @@ test('a merged job can be played back: the states it swallowed are readable', as
   // which is what makes a repaint legible, and what it nets to may be nothing
   // at all -- a highlight that moved out and back leaves no trace. The count
   // says something happened; this is the thing that shows what.
-  const { session, updates } = open({ jobPolicy: { gapMs: GAP_MS } });
+  const { session, history, updates } = open({ jobPolicy: { gapMs: GAP_MS } });
   t.after(() => session.dispose());
 
   await waitFor(() => updates.some((u) => u.collapsed && u.collapsed.chunks > 1));
   const job = updates.find((u) => u.collapsed && u.collapsed.chunks > 1)!;
   const { rawFrom, rawTo, chunks } = job.collapsed!;
 
-  const playback = session.intermediates(rawFrom, rawTo);
+  const playback = history.deliveries(rawFrom, rawTo);
   assert.equal(playback.length, chunks, 'one record per raw delivery the job swallowed');
   assert.ok(playback.length > 1, 'the job really did merge');
 
-  const seqs = playback.map((r) => r.rawSeq);
+  const seqs = playback.map((r) => r.seq);
   assert.deepEqual(seqs, [...seqs].sort((a, b) => a - b), 'in the order they arrived');
   for (const r of playback) {
     assert.equal(r.job, job.seq, 'tied to the job it was grouped into');
     assert.ok(r.screen, 'each one reconstructs to a screen');
   }
   assert.notDeepEqual(
-    playback[0]!.screen!.lines,
+    playback[0]!.screen.lines,
     job.screen.lines,
-    'the first intermediate state is not the net effect the job reported',
+    'the first intermediate state is not the first state the job reported',
   );
   // The strongest check available: replay the whole job and the last
   // intermediate must land on the screen the job itself reported. If a single
   // delta in the chain were lossy, this would not match.
   assert.deepEqual(
-    playback.at(-1)!.screen!.lines,
+    playback.at(-1)!.screen.lines,
     job.screen.lines,
     'replaying every intermediate lands on the screen the job reported',
   );

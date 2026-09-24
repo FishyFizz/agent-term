@@ -46,7 +46,8 @@
  * self-contained and a read never has to reach outside it.
  */
 import type { SessionId } from './types.js';
-import type { Segment, Verdict } from './classify.js';
+import { classify, frameFrom } from './classify.js';
+import type { Segment } from './classify.js';
 import type { TextLine } from './text-log.js';
 import type { ScreenSnapshot } from './screen.js';
 import type { GridDelta } from './delta.js';
@@ -78,16 +79,37 @@ export type HistoryAddress =
  */
 export type HistoryPoint = HistoryAddress | HistoryToken;
 
-/** One delivery as recorded, in the form this timeline needs. */
+/**
+ * One delivery as recorded — the canonical unit of this timeline.
+ *
+ * A delivery, not a job: the raw stream is the record, and the job the agent is
+ * shown is a *projection* over it (`jobs`). That is the difference between
+ * storing what happened and storing one account of what happened — a projection
+ * can be recomputed at a different granularity, and cannot disagree with the
+ * stream it came from because it is derived from it.
+ *
+ * Verdicts are deliberately absent. They are read off the screen like everything
+ * else (`classify`), so storing them would be a second opinion that could drift
+ * from the frames it was taken from.
+ */
 export interface HistoryRecord {
   seq: number;
+  /** The job this delivery was grouped into. See `jobs`. */
+  job: number;
   at: number;
   fromByte: number;
   toByte: number;
-  /** The interleaved verdicts, in order. */
-  segments: readonly Segment[];
   /** Completed lines produced by this delivery, in order. */
   text: readonly TextLine[];
+  /**
+   * Rows the emulator reported the content moved during this delivery.
+   *
+   * Kept because the projection classifies a job from the screen before it to
+   * the screen after it, and needs the scroll between them to compare the two
+   * at the right offset. Recovering it afterwards would mean re-deriving it
+   * from the grid, which is the guess `classify` exists to avoid.
+   */
+  scrolledRows: number;
   cursor: { x: number; y: number };
   buffer: 'normal' | 'alternate';
   /** What changed on the grid, or `null` when this record carries a keyframe. */
@@ -99,17 +121,17 @@ export interface HistoryRecord {
 /**
  * What a timeline needs from one delivery.
  *
- * `SessionUpdate` satisfies this structurally, so a live session records
- * directly -- and a replay can build the same shape without a pty, which is how
- * the corpus verifies the whole thing.
+ * A live session's deliveries satisfy this; so does a replay, which is how the
+ * corpus verifies the whole thing without a pty.
  */
 export interface HistoryInput {
   seq: number;
+  job: number;
   at: number;
   fromByte: number;
   toByte: number;
-  segments: readonly Segment[];
   text: readonly TextLine[];
+  scrolledRows: number;
   grid: GridDelta | null;
   screen: ScreenSnapshot;
 }
@@ -155,6 +177,30 @@ export interface HistoryPage {
   truncated: boolean;
   /** The page stopped because the next record is at a different grid size. */
   stoppedAtEpochEnd: boolean;
+}
+
+/**
+ * A job as the agent was shown it — computed from the stream, never stored.
+ *
+ * `segments` are here and not on a `HistoryRecord` because a delivery cannot
+ * carry a verdict the projection would agree with: the job's span is what was
+ * measured, so the job is what can be classified.
+ */
+export interface JobRecord {
+  /** The job's sequence number; the same one its update carried. */
+  job: number;
+  at: number;
+  fromByte: number;
+  toByte: number;
+  /** The verdict over the whole span, from the screen before it to after it. */
+  segments: readonly Segment[];
+  /** Completed lines across the span, in order. */
+  text: readonly TextLine[];
+  screen: ScreenSnapshot;
+  cursor: { x: number; y: number };
+  buffer: 'normal' | 'alternate';
+  /** How many raw deliveries this job stands for. */
+  chunks: number;
 }
 
 /** One bounded window of a timeline's text. */
@@ -206,7 +252,9 @@ export class SessionHistory {
       this.openEpoch(session.screen.cols, session.screen.rows);
     }
     const offs = [
-      session.onUpdate((update) => this.push(update)),
+      // Deliveries, not updates: this timeline records the stream, and the
+      // job the agent is shown is projected from it on read.
+      session.onDelivery((delivery) => this.push(delivery)),
       session.onResize((size) => this.resize(size.cols, size.rows)),
       session.onExit((info) => this.end(info)),
     ];
@@ -243,11 +291,12 @@ export class SessionHistory {
 
     target.records.push({
       seq: update.seq,
+      job: update.job,
       at: update.at,
       fromByte: update.fromByte,
       toByte: update.toByte,
-      segments: update.segments,
       text: update.text,
+      scrolledRows: update.scrolledRows,
       cursor: { x: update.screen.cursorX, y: update.screen.cursorY },
       buffer: update.screen.buffer,
       grid: isAnchor ? null : update.grid,
@@ -293,7 +342,7 @@ export class SessionHistory {
    * Crossing is a matter of reading again -- `next` addresses the first record
    * of the next epoch.
    */
-  read(options: { from?: HistoryToken; limit?: number; kind?: Verdict } = {}): HistoryPage {
+  read(options: { from?: HistoryToken; limit?: number } = {}): HistoryPage {
     const limit = options.limit ?? DEFAULT_LIMIT;
     const start = options.from === undefined ? { epoch: 0, index: 0 } : this.decode(options.from);
     const epoch = this.list[start.epoch];
@@ -305,7 +354,6 @@ export class SessionHistory {
     for (; index < epoch.records.length; index++) {
       const record = epoch.records[index];
       if (!record) break;
-      if (options.kind && !record.segments.some((s) => s.kind === options.kind)) continue;
       if (records.length === limit) {
         truncated = true;
         break;
@@ -335,7 +383,13 @@ export class SessionHistory {
   screenAt(address: HistoryPoint | undefined): ScreenSnapshot | null {
     const found = this.locate(address);
     if (!found) return null;
-    const { epoch, index } = found;
+    return this.screenInEpoch(found.epoch, found.index);
+  }
+
+  /** The screen one record in an epoch produced, folded from the keyframe before it. */
+  private screenInEpoch(epoch: Epoch, index: number): ScreenSnapshot | null {
+    const record = epoch.records[index];
+    if (!record) return null;
 
     let i = index;
     while (i > 0 && !epoch.records[i]?.keyframe) i--;
@@ -344,21 +398,96 @@ export class SessionHistory {
 
     let screen = anchor;
     for (let j = i + 1; j <= index; j++) {
-      const record = epoch.records[j];
-      if (!record) continue;
-      if (record.keyframe) screen = record.keyframe;
-      else if (record.grid) screen = applyDelta(screen, record.grid);
+      const at = epoch.records[j];
+      if (!at) continue;
+      if (at.keyframe) screen = at.keyframe;
+      else if (at.grid) screen = applyDelta(screen, at.grid);
     }
 
     // The cursor is not part of a delta; it belongs to the record being read.
-    const record = epoch.records[index];
-    if (!record) return null;
     return {
       ...screen,
       cursorX: record.cursor.x,
       cursorY: record.cursor.y,
       buffer: record.buffer,
     };
+  }
+
+  /**
+   * The deliveries in a sequence range, each with the screen it produced.
+   *
+   * The stream read straight: every delivery the session emitted, in order,
+   * with its state reconstructed. This is what `collapsed.intermediates`
+   * promises — the states a job swallowed, playable back — and it lives here
+   * because the stream is this timeline's, not the session's.
+   */
+  deliveries(from: number, to: number): Array<HistoryRecord & { screen: ScreenSnapshot }> {
+    const out: Array<HistoryRecord & { screen: ScreenSnapshot }> = [];
+    for (const epoch of this.list) {
+      for (let i = 0; i < epoch.records.length; i++) {
+        const record = epoch.records[i]!;
+        if (record.seq < from || record.seq > to) continue;
+        const screen = this.screenInEpoch(epoch, i);
+        if (screen) out.push({ ...record, screen });
+      }
+    }
+    return out.sort((a, b) => a.seq - b.seq);
+  }
+
+  /**
+   * The deliveries grouped into the jobs the agent was shown.
+   *
+   * The projection the canonical stream exists for. A job is classified from
+   * the screen before its first delivery to the screen after its last, across
+   * the whole span — which is what makes a repaint legible where no single
+   * delivery could show it. Nothing is stored per job; this is computed from
+   * the records every time it is asked for, so it cannot disagree with them.
+   */
+  jobs(options: { limit?: number } = {}): JobRecord[] {
+    const limit = options.limit ?? DEFAULT_LIMIT;
+    const out: JobRecord[] = [];
+    for (const epoch of this.list) {
+      for (let i = 0; i < epoch.records.length && out.length < limit; i++) {
+        const first = epoch.records[i]!;
+        // Only from a job's first delivery: a job never straddles an epoch,
+        // because a resize forces one closed (HISTORY.md §2).
+        if (i > 0 && epoch.records[i - 1]!.job === first.job) continue;
+
+        const group: HistoryRecord[] = [];
+        for (let j = i; j < epoch.records.length && epoch.records[j]!.job === first.job; j++) {
+          group.push(epoch.records[j]!);
+        }
+
+        const after = this.screenInEpoch(epoch, i + group.length - 1);
+        if (!after) continue;
+        // What the job started from: the delivery before it, or the epoch's
+        // first keyframe when the job opens the epoch.
+        const beforeScreen = i > 0 ? this.screenInEpoch(epoch, i - 1) : null;
+        const before = frameFrom(beforeScreen ?? after);
+        const scrolledBy = group.reduce((n, r) => n + r.scrolledRows, 0);
+        const classified = classify({
+          before,
+          after: frameFrom(after),
+          fromByte: first.fromByte,
+          toByte: group[group.length - 1]!.toByte,
+          scrolledBy,
+        });
+
+        out.push({
+          job: first.job,
+          at: first.at,
+          fromByte: first.fromByte,
+          toByte: group[group.length - 1]!.toByte,
+          segments: classified.segments,
+          text: group.flatMap((r) => r.text),
+          screen: after,
+          cursor: group[group.length - 1]!.cursor,
+          buffer: after.buffer,
+          chunks: group.length,
+        });
+      }
+    }
+    return out;
   }
 
   /**

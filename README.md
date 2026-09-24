@@ -33,24 +33,27 @@ record (`edit-record.ts`) and whose completed lines are kept in a text log
 (`text-log.ts`), classified per delivery as writing or drawing (`classify.ts`), exposed
 as a session (`session.ts`) held in a registry (`registry.ts`).
 
-Output is grouped into **jobs** before it is classified (`jobs.ts`): a job closes on a
-quiet period, on a cap, or on a forced flush at a resize, an exit or a dispose. Where a
-delivery begins decides what the classifier can see, so the boundary is the program's
-rather than the pty buffer's. Each delivery reports how many raw deliveries it stands
-for, so a burst that collapsed to little visible change says so — and the
-intermediates are not just counted but kept: `session.intermediates(rawFrom, rawTo)`
-plays back the states a job swallowed, in order. They are stored as a checkpoint plus
-deltas, not a grid each — measured on a scrolling log, 2% of the size at 120x40.
+The **stream is the record**: one entry per delivery (`Delivery`), each carrying the
+lines it completed, the scroll it caused, and its screen as a delta against the last
+keyframe — or as a keyframe, where a delta would not have been smaller. That is what
+`history.ts` stores. Measured on a scrolling log, a checkpoint plus deltas is 2% of a
+grid per delivery at 120x40.
+
+Output is grouped into **jobs** (`jobs.ts`): a job closes on a quiet period, on a cap,
+or on a forced flush at a resize, an exit or a dispose. Where a delivery begins decides
+what the classifier can see, so the boundary is the program's rather than the pty
+buffer's. But a job is a **projection** over the stream, computed on read
+(`history.jobs()`) — never stored — so it cannot disagree with the deliveries it came
+from, and it can be recomputed at a different granularity later.
 
 The verdict is read off **the screen and nothing else** — not off the escape sequences,
 and not off what the program appears to have intended. There is no abstention and no
 confidence value: the observations are a closed set. See `CLASSIFIER.md` §1 and §3.5.
 
-L0.3 is built on top: one append-only timeline per session (`history.ts`), split
-into **epochs** at each resize — a resize freezes what came before it, and frozen
-history is reported at the size it was produced at. Screens are stored as a delta
-against the previous one or, where a delta would not be smaller, as a keyframe
-(`delta.ts`), so a repainting TUI does not retain a full grid per frame. `host.ts`
+L0.3 is built on top: one append-only timeline per session, split into **epochs** at each
+resize — a resize freezes what came before it, and frozen history is reported at the size
+it was produced at. A job swallowed many deliveries is not a gap: each reports what it
+stands for, and `history.deliveries(from, to)` plays the states back in order. `host.ts`
 is the composition root: it starts a session and its recording in one call.
 
 It is measured against `corpus/` — 23 programmes, 46 recorded traces — at 23/23 under
@@ -59,19 +62,24 @@ measurements of a hand-written label set, not a specification: a rise is not
 automatically progress. The corpus's job is exactness — every delivery of every trace
 reconstructs its screen exactly — and the rule is written down in `CLASSIFIER.md` §11.
 
-Not built: the MCP tool surface, delivery and boundedness (L1.1), settle
-detection (L1.2), interaction (L1.4) and honest errors (L1.5), and retention
-and durability (L3.4). L1.3 is half-there — the byte watermarks exist on the
-session and on the pty, and nothing consumes them yet. Grouping output into jobs
-on by default (`DEFAULT_JOB_POLICY`); `SessionOptions.jobPolicy: false` opts out and
-gives one update per raw pty read.
+A **first MCP surface** exists (`src/mcp.ts`, `npm run mcp:http`): open a session, send
+input, read the screen, close it. It is a spike — history paging, intermediate playback,
+settle detection and interaction beyond plain text are not on it yet. The most obvious
+gap is that nothing can *wait*: a read taken straight after a send returns the previous
+state.
+
+Not built: delivery and boundedness (L1.1), settle detection (L1.2), interaction (L1.4)
+and honest errors beyond the four coded ones (L1.5), and retention and durability (L3.4).
+L1.3 is half-there — the byte watermarks exist on the session and on the pty, and nothing
+consumes them yet. Grouping is on by default (`DEFAULT_JOB_POLICY`);
+`SessionOptions.jobPolicy: false` opts out and gives one update per raw pty read.
 
 ## Development
 
 ```bash
 npm install
 npm run typecheck     # src, test, scripts and corpus — one project
-npm run test          # 151 tests
+npm run test          # 158 tests
 npm run smoke         # end-to-end against a real shell
 npm run corpus        # score the classifier across replay granularities
 ```

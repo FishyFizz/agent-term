@@ -332,13 +332,26 @@ function scoreShift(before: Frame, after: Frame, shift: number): number {
  * delivery to get the same grid trimmed and untrimmed is waste, not clarity.
  */
 export function frameOf(screen: ScreenModel, snap: ScreenSnapshot = screen.snapshot()): Frame {
+  return frameFrom(snap, screen.terminal.buffer.active.viewportY);
+}
+
+/**
+ * The frame a *stored* screen makes, with no live model behind it.
+ *
+ * The projection over a timeline classifies from screens that were recorded,
+ * not from an emulator still running, so it cannot ask `screen.terminal` for
+ * anything. `viewportY` is the one field it cannot supply; it is only ever a
+ * hint to `scrollDelta`, and a caller reconstructing from the stream passes the
+ * scroll it recorded, so nothing reads it.
+ */
+export function frameFrom(snap: ScreenSnapshot, viewportY = 0): Frame {
   return {
     // Right-trimmed. `snapshot()` pads rows to the full width so a caller can
     // index a cell, but comparing padded rows against trimmed ones makes
     // every trailing-blank difference look like a real change.
     lines: snap.lines.map((l) => l.replace(/\s+$/, '')),
     cursorY: snap.cursorY,
-    viewportY: screen.terminal.buffer.active.viewportY,
+    viewportY,
     altScreen: snap.buffer === 'alternate',
   };
 }

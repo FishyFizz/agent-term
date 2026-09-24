@@ -79,9 +79,6 @@ export interface SessionUpdate {
  * how much raw output it stands for, so a consumer can decide to go back and
  * read the intermediates rather than being told about them.
  */
-/** How many raw deliveries a session keeps for playback. See `TerminalSession`. */
-const RAW_HISTORY = 1024;
-
 export interface CollapsedInfo {
   /** Raw pty deliveries merged into this update. */
   chunks: number;
@@ -103,50 +100,45 @@ export interface CollapsedInfo {
   /** Milliseconds between the first and last delivery in the job. */
   spanMs: number;
   /**
-   * The raw deliveries this job stands for, as a half-open range of
-   * `rawSeq`. Pass to `TerminalSession.intermediates` to read them.
+   * The deliveries this job stands for, as an inclusive range of `Delivery.seq`.
+   * Pass to `SessionHistory.deliveries(from, to)` to read and play them back.
    *
-   * `0..0` when grouping is off: nothing was swallowed, so there is nothing
-   * to play back and the honest answer is an empty range rather than `1..1`.
+   * `0..0` when grouping is off: nothing was swallowed, so there is nothing to
+   * play back and the honest answer is an empty range rather than `1..1`.
    */
   rawFrom: number;
   rawTo: number;
 }
 
 /**
- * One raw delivery inside a job — a state the job's net effect swallowed.
+ * One raw delivery — the canonical unit of what a session produced.
  *
- * Kept so `collapsed.intermediates` is a promise that can be kept. A burst
- * that moved a highlight out and back nets to no visible change at all, and
- * the count alone cannot show what happened; these can.
+ * Emitted for every delivery, grouped or not, and recorded by the timeline.
+ * A job is a *projection* over a run of these (`history.jobs`), which is why
+ * nothing here carries a verdict: the presentation classifies the span from
+ * the frames, and a verdict stored beside those frames would be a second
+ * opinion that could drift from them.
+ *
+ * The screen is always supplied. Whether it is *kept* as a keyframe or encoded
+ * as a delta against the previous delivery is the timeline's decision, not the
+ * session's — encoding is what a store does.
  */
-export interface Intermediate extends Pick<
-  SessionUpdate,
-  'at' | 'fromByte' | 'toByte' | 'text' | 'grid'
-> {
+export interface Delivery {
   /** Monotonic per session, independent of the job sequence. */
-  rawSeq: number;
+  seq: number;
   /** The job this delivery was grouped into. */
   job: number;
-  /**
-   * The screen as it was — or `null`, when this record is carried as a delta
-   * instead and has to be reconstructed from the nearest checkpoint before it.
-   *
-   * A screen is kept where a delta would not be smaller, and wherever a delta
-   * could not be applied: the first delivery of a job, and any delivery whose
-   * grid size or active buffer changed. `delta.ts` decides the first case by
-   * returning `null`; the other two are here because a delta computed across
-   * a resize or a buffer switch describes a screen that never existed.
-   */
-  screen: ScreenSnapshot | null;
-  /**
-   * Cursor position, stored because a delta does not carry it.
-   *
-   * `applyDelta` reproduces glyphs, appearance and wide-glyph columns exactly
-   * — verified at every record of every trace — but not where the cursor got
-   * to. `history.ts` has the same split, for the same reason.
-   */
-  cursor: { x: number; y: number };
+  at: number;
+  fromByte: number;
+  toByte: number;
+  /** Completed lines this delivery produced. */
+  text: TextLine[];
+  /** Rows the emulator reported the content moved. */
+  scrolledRows: number;
+  /** What changed on the grid, or `null` when a delta would not be smaller. */
+  grid: GridDelta | null;
+  /** The screen after this delivery. */
+  screen: ScreenSnapshot;
 }
 
 /**
@@ -199,17 +191,9 @@ export class TerminalSession {
   private readonly exitListeners: ((info: PtyExitInfo) => void)[] = [];
   /** Present unless the session was opened with `jobPolicy: false`. */
   private readonly jobs?: JobDetector;
+  private readonly deliveryListeners: ((delivery: Delivery) => void)[] = [];
   private _seq = 0;
   private _rawSeq = 0;
-  /**
-   * The raw deliveries behind recent jobs, newest last.
-   *
-   * Bounded, because retention is not built (L3.4) and an unbounded list is
-   * the one thing this must not be: a firehose would grow it forever. Old
-   * entries drop off, so `intermediates` answers honestly about what is still
-   * held rather than pretending to remember everything.
-   */
-  private raw: Intermediate[] = [];
   private queue: Promise<void> = Promise.resolve();
   private pendings = 0;
 
@@ -282,48 +266,15 @@ export class TerminalSession {
     for (const listener of this.listeners) listener(update);
   };
 
-  /** Remember one raw delivery so its job can be played back. */
-  private readonly recordRaw = (record: Intermediate): void => {
-    this.raw.push(record);
-    if (this.raw.length > RAW_HISTORY) this.raw.splice(0, this.raw.length - RAW_HISTORY);
-  };
-
   /**
-   * The raw deliveries a job swallowed, in order.
+   * Every delivery this session produces, in order. Returns an unsubscribe.
    *
-   * This is what makes `collapsed.intermediates` worth reporting: a caller
-   * that saw a net effect with a suspiciously high collapsed count can read
-   * the states behind it instead of guessing. Returns fewer than asked for
-   * when retention has already dropped the older ones — it does not invent
-   * them.
+   * This is the stream: the raw record from which a job is projected, and what
+   * a timeline stores. Emitted whether or not output is being grouped — the
+   * grouping decides what the *agent* is shown, not what happened.
    */
-  intermediates(from: number, to: number): Intermediate[] {
-    const asked = this.raw.filter((r) => r.rawSeq >= from && r.rawSeq <= to);
-    if (asked.length === 0) return [];
-
-    // The newest checkpoint at or before the first one asked for. Deltas only
-    // run forwards, so reconstruction has to start from a real screen.
-    let anchor: ScreenSnapshot | null = null;
-    for (const r of this.raw) {
-      if (r.rawSeq > asked[0]!.rawSeq) break;
-      if (r.screen) anchor = r.screen;
-    }
-
-    const out: Intermediate[] = [];
-    let screen = anchor;
-    for (const r of asked) {
-      if (r.screen) {
-        screen = r.screen;
-        out.push(r);
-        continue;
-      }
-      // Nothing to apply onto: retention dropped the checkpoint this range
-      // reconstructed from. Skipped rather than guessed at.
-      if (!screen || !r.grid) continue;
-      screen = applyDelta(screen, r.grid);
-      out.push({ ...r, screen });
-    }
-    return out;
+  onDelivery(listener: (delivery: Delivery) => void): () => void {
+    return subscribe(this.deliveryListeners, listener);
   }
 
   /**
@@ -388,31 +339,29 @@ export class TerminalSession {
         scrolled += facts.scrolledRows;
         text.push(...facts.text);
 
+        // Emitted for every delivery, grouped or not: this is the stream, and
+        // the job is a projection over it. The hint is the emulator's own
+        // scroll count, not the viewport difference -- `viewportY` saturates
+        // once the scrollback ring is full and reports 0 while content keeps
+        // moving (HISTORY.md 3).
+        const seq = ++this._rawSeq;
+        const delivery: Delivery = {
+          seq,
+          job: job ? this._seq + 1 : seq,
+          at: Date.now(),
+          fromByte: partFromByte,
+          toByte: this.screen.ops.bytesFed,
+          text: facts.text,
+          scrolledRows: facts.scrolledRows,
+          grid: gridDelta(beforeSnap, afterSnap, facts.scrolledRows),
+          screen: afterSnap,
+        };
+        for (const listener of this.deliveryListeners) listener(delivery);
         if (job) {
-          const seq = ++this._rawSeq;
           if (rawFrom === 0) rawFrom = seq;
           rawTo = seq;
-          // The hint is the emulator's own scroll count, not the viewport
-          // difference -- `viewportY` saturates once the scrollback ring is
-          // full and then reports 0 while content keeps moving (HISTORY.md 3).
-          const grid = gridDelta(beforeSnap, afterSnap, facts.scrolledRows);
-          // A delta is only expressible against a grid of the same shape;
-          // `gridDelta` returns null for a resize or a buffer switch, and the
-          // first delivery of a job has nothing behind it to be a delta from.
-          const checkpoint = first || grid === null;
-          this.recordRaw({
-            rawSeq: seq,
-            job: this._seq + 1,
-            at: Date.now(),
-            fromByte: partFromByte,
-            toByte: this.screen.ops.bytesFed,
-            text: facts.text,
-            grid,
-            screen: checkpoint ? afterSnap : null,
-            cursor: { x: afterSnap.cursorX, y: afterSnap.cursorY },
-          });
-          first = false;
         }
+        first = false;
       }
 
       this._seq++;

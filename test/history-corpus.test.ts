@@ -65,17 +65,18 @@ async function replayIntoHistory(history: SessionHistory, trace: ReturnType<type
     const toByte = screen.ops.bytesFed;
 
     const snap = screen.snapshot();
-    const text: TextLine[] = facts.text;
-    const segments = classify({ before, after, fromByte: prevTo, toByte, scrolledBy: facts.scrolledRows }).segments;
 
     seq++;
     history.push({
       seq,
+      // Ungrouped here: the replay feeds one chunk at a time, so each is its
+      // own delivery and its own job.
+      job: seq,
       at: seq,
       fromByte: prevTo,
       toByte,
-      segments,
-      text,
+      text: facts.text,
+      scrolledRows: facts.scrolledRows,
       grid: previous ? gridDelta(previous, snap) : null,
       screen: snap,
     });
