@@ -12,6 +12,7 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "smoke": "tsx scripts/smoke.ts",
+    "mcp": "tsx scripts/mcp-stdio.ts",
     "test": "tsx --test test/*.test.ts corpus/test/*.test.ts",
     "test:unit": "tsx --test test/classify.test.ts test/screen.test.ts test/edit-record.test.ts test/text-log.test.ts test/delta.test.ts test/history.test.ts test/history-corpus.test.ts test/corpus.test.ts",
     "record": "tsx corpus/scripts/record.ts",

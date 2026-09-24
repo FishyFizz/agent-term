@@ -18,6 +18,7 @@ src/jobs.ts      job boundaries — where one delivery ends and the next begins
 src/             implementation
 corpus/          test programmes and recorded traces — the classifier's
                  regression suite; see corpus/README.md
+scripts/mcp-stdio.ts the MCP server over stdio — `npm run mcp`
 scripts/smoke.ts end-to-end check against a real shell
 scripts/corpus-score.ts
                  score the classifier across replay granularities
