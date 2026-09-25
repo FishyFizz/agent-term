@@ -44,6 +44,7 @@ test('the surface exposes the core loop', async (t) => {
     'read_screen',
     'send_input',
     'wait_for_idle',
+    'wait_for_output',
   ]);
   for (const tool of tools.tools) {
     assert.ok(tool.description && tool.description.length > 20, `${tool.name} says what it does`);
@@ -163,6 +164,93 @@ test('an unknown session is a typed error, not a stack trace', async (t) => {
   assert.equal(result.isError, true, 'reported as an error');
   const error = (result.structuredContent as { error: { code: string } }).error;
   assert.equal(error.code, 'no_session', 'with a code a caller can branch on');
+});
+
+test('a wait for output resolves on a pattern and says what matched', async (t) => {
+  const { client, host, close } = await connected();
+  t.after(() => {
+    host.disposeAll();
+    return close();
+  });
+
+  // A subject with a prompt on the current row and a distinct answer per
+  // input, so the wait can tell the prompt from the echo of what was typed.
+  const probe =
+    "let n=0;process.stdout.write('PROMPT> ');" +
+    "process.stdin.on('data',()=>{n++;process.stdout.write('GOT-'+n+'\\r\\n');" +
+    "setTimeout(()=>process.stdout.write('PROMPT> '),150)});";
+  const opened = await call(client, 'open_session', {
+    command: process.execPath,
+    args: ['-e', probe],
+  });
+  const sessionId = (opened.structuredContent as { sessionId: string }).sessionId;
+
+  // Nothing has been typed, so everything on the screen is new to this caller
+  // and the prompt that is already there matches.
+  const first = await call(client, 'wait_for_output', {
+    sessionId,
+    pattern: '^PROMPT>$',
+    timeoutMs: 10000,
+  });
+  assert.equal((first.structuredContent as { reason: string }).reason, 'matched');
+
+  await call(client, 'send_input', { sessionId, text: 'hello', submit: true });
+
+  const waited = await call(client, 'wait_for_output', {
+    sessionId,
+    pattern: '^PROMPT>$',
+    timeoutMs: 10000,
+  });
+  const payload = waited.structuredContent as {
+    reason: string;
+    match: { surface: string; text: string; row: number | null; atByte: number } | null;
+    sinceByte: number;
+    waitedMs: number;
+  };
+  assert.equal(payload.reason, 'matched', 'the prompt came back');
+  assert.ok(payload.match, 'with what matched');
+  assert.equal(payload.match!.surface, 'screen');
+  assert.equal(payload.match!.text, 'PROMPT>', 'the bare prompt, not the echoed line');
+  assert.ok(payload.match!.atByte > payload.sinceByte, 'and it was produced after the baseline');
+
+  // The text that the wait stood on is the caller's to read next, and a read
+  // taken now is one that does not need guessing about.
+  const read = await call(client, 'read_screen', { sessionId });
+  const screen = (read.content?.[0]?.text ?? '') + JSON.stringify(read.structuredContent ?? {});
+  assert.ok(screen.includes('GOT-1'), `the answer is on the screen, got: ${screen.slice(0, 300)}`);
+});
+
+test('a pattern that will not compile is a typed error', async (t) => {
+  const { client, host, close } = await connected();
+  t.after(() => {
+    host.disposeAll();
+    return close();
+  });
+
+  const opened = await call(client, 'open_session', {});
+  const sessionId = (opened.structuredContent as { sessionId: string }).sessionId;
+
+  const result = await call(client, 'wait_for_output', { sessionId, pattern: '(', timeoutMs: 100 });
+  assert.equal(result.isError, true, 'reported as an error');
+  const error = (result.structuredContent as { error: { code: string; message: string } }).error;
+  assert.equal(error.code, 'bad_pattern', 'with a code a caller can branch on');
+  assert.ok(error.message.includes('('), 'and the pattern it could not use');
+});
+
+test('a wait for output on an unknown session is a typed error', async (t) => {
+  const { client, close } = await connected();
+  t.after(close);
+
+  const result = await call(client, 'wait_for_output', {
+    sessionId: 'nope',
+    pattern: 'x',
+    timeoutMs: 100,
+  });
+  assert.equal(result.isError, true);
+  assert.equal(
+    (result.structuredContent as { error: { code: string } }).error.code,
+    'no_session',
+  );
 });
 
 test('closing ends the session and the tool says so', async (t) => {

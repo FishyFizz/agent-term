@@ -54,6 +54,19 @@ export class PtySession implements PtyEventTarget {
    * anything arrived since — the difference between "quiet" and "not read yet".
    */
   private _bytesRead = 0;
+  /**
+   * `bytesRead` when input was last written into the pty. Monotonic.
+   *
+   * The watermark a wait matches *after*: output a program produces in response
+   * to input is by construction produced after this point, while whatever was
+   * already on the screen is at or before it. Without it, a wait for a prompt
+   * would match the prompt that was already there (GOAL.md L1.3).
+   *
+   * Stamped here rather than by a caller because this is the one place bytes go
+   * in, so whoever writes -- the surface, a test, a script -- it cannot be
+   * forgotten (the same reason `dispose` owns the kill).
+   */
+  private _lastInputByte = 0;
 
   constructor(id: string, options: SessionOptions = {}) {
     const shell = defaultShell();
@@ -118,11 +131,22 @@ export class PtySession implements PtyEventTarget {
   }
 
   /**
+   * The byte watermark at the last write into the pty, or 0 before the first.
+   *
+   * A read taken now plus this value answers "has anything arrived since I
+   * typed?" without the caller having to remember what it wrote when.
+   */
+  get lastInputByte(): number {
+    return this._lastInputByte;
+  }
+
+  /**
    * Send input, exactly as a human typing would -- no implicit newline.
    * Callers that want a submitted line append `\r` (or `\n`) themselves.
    */
   write(input: string): void {
     if (!this._alive) return;
+    this._lastInputByte = this._bytesRead;
     this.pty.write(input);
   }
 

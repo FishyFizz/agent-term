@@ -12,6 +12,7 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "smoke": "tsx scripts/smoke.ts",
+    "life": "tsx fixtures/life/index.ts",
     "mcp": "tsx scripts/mcp-stdio.ts",
     "mcp:http": "tsx scripts/mcp-http.ts",
     "mcp:dev": "tsx watch scripts/mcp-http.ts",
@@ -28,6 +29,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@clack/prompts": "^1.8.1",
     "@types/express": "^5.0.6",
     "@types/node": "^26.6.2",
     "tsx": "^4.23.15",

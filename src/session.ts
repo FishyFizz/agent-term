@@ -18,6 +18,7 @@ import { ScreenModel } from './screen.js';
 import { classify, frameOf } from './classify.js';
 import type { Segment } from './classify.js';
 import { applyDelta, gridDelta, type GridDelta } from './delta.js';
+import { matchLine, matchRow, type MatchSurface, type OutputMatch } from './match.js';
 import type { TextLine } from './text-log.js';
 import type { ScreenSnapshot } from './screen.js';
 import type { SessionOptions } from './types.js';
@@ -250,6 +251,56 @@ export interface WaitOptions {
   timeoutMs: number;
 }
 
+/** What `waitForOutput` is asked for. */
+export interface WaitForOutputOptions {
+  /**
+   * The pattern to look for, already compiled.
+   *
+   * Compiled by the caller because a pattern that will not compile is the
+   * caller's mistake, not a fact about the session, and the surface turns it
+   * into a typed error before a wait exists (L1.5).
+   */
+  pattern: RegExp;
+  /** Which sinks to match: screen rows, completed lines, or both. Default `both`. */
+  surface?: MatchSurface;
+  /**
+   * Match only content produced *after* this byte watermark.
+   *
+   * Defaults to `pty.lastInputByte` — the byte the session was last typed into.
+   * A wait for output is nearly always a wait for a *reaction*, and a reaction
+   * is by construction produced after the input that caused it; without a
+   * baseline the prompt already on screen would match the instant the wait
+   * began, which is the bug this parameter exists to prevent (L1.3).
+   */
+  sinceByte?: number;
+  /** Stop waiting after this long, in milliseconds. */
+  timeoutMs: number;
+}
+
+/**
+ * Why a pattern wait ended.
+ *
+ * `matched` is a positive observation and needs no quiet period to mean
+ * anything, which is why there is no `idle` here: a match is visible the moment
+ * it is on screen. It is still not a verdict -- the tty echoes what is typed,
+ * so an echo is a match on new output like any other, and whether what matched
+ * was the program answering is the caller's call (L1.2).
+ */
+export type OutputWaitReason = 'matched' | 'exited' | 'timeout';
+
+/** The result of a wait for a pattern. */
+export interface OutputWaitResult {
+  reason: OutputWaitReason;
+  /** Where the pattern was seen, or `null` when it was not. */
+  match: OutputMatch | null;
+  /** What was observed when the wait ended. */
+  state: SessionState;
+  /** Milliseconds the wait lasted, on the session's clock. */
+  waitedMs: number;
+  /** The baseline used, so the caller can see what "new" meant. */
+  sinceByte: number;
+}
+
 /** A grid size a session was resized to. */
 export interface SessionSize {
   cols: number;
@@ -285,6 +336,17 @@ export class TerminalSession {
   private readonly jobs?: JobDetector;
   private readonly deliveryListeners: ((delivery: Delivery) => void)[] = [];
   /**
+   * Per row, the byte watermark of the delivery that last wrote it.
+   *
+   * What lets a wait tell a row that *appeared* from one that merely *moved*,
+   * which is the difference between a prompt the program just printed and a
+   * prompt that scrolled up and is still sitting there. Rows a delivery's
+   * `GridDelta` wrote are stamped; rows that only shifted are not, because a
+   * shift is reported as `scrollBy` and the runs describe the content that
+   * genuinely changed. O(rows) to keep -- forty numbers at 120x40.
+   */
+  private rowWrittenAt: number[];
+  /**
    * When the last byte arrived from the pty, or `null` before the first.
    *
    * Set on the pty's `data`, not on delivery: see `idleMs` for why the
@@ -318,6 +380,7 @@ export class TerminalSession {
     this.clock = options.clock ?? realClock;
     this.pty = new PtySession(id, options);
     this.screen = new ScreenModel(this.pty.cols, this.pty.rows);
+    this.rowWrittenAt = new Array<number>(this.screen.rows).fill(0);
 
     // Grouping is the default: where a delivery begins decides what the
     // classifier can see (CLASSIFIER.md §9.3), and the alternative is letting
@@ -472,15 +535,21 @@ export class TerminalSession {
         // once the scrollback ring is full and reports 0 while content keeps
         // moving (HISTORY.md 3).
         const seq = ++this._rawSeq;
+        const toByte = this.screen.ops.bytesFed;
+        // Stored as the delta rather than only as the screen, and read here as
+        // well: the runs are what say which rows this delivery *wrote*, as
+        // opposed to which ones a scroll moved (`noteWritten`).
+        const grid = gridDelta(beforeSnap, afterSnap, facts.scrolledRows);
+        this.noteWritten(grid, toByte);
         const delivery: Delivery = {
           seq,
           job: job ? this._seq + 1 : seq,
           at: Date.now(),
           fromByte: partFromByte,
-          toByte: this.screen.ops.bytesFed,
+          toByte,
           text: facts.text,
           scrolledRows: facts.scrolledRows,
-          grid: gridDelta(beforeSnap, afterSnap, facts.scrolledRows),
+          grid,
           screen: afterSnap,
         };
         for (const listener of this.deliveryListeners) listener(delivery);
@@ -634,6 +703,182 @@ export class TerminalSession {
   }
 
   /**
+   * Wait for a pattern to appear in what the session produced.
+   *
+   * The sibling of `waitForIdle`, and the difference is the shape of the
+   * observation. Idle is *negative* -- nothing arrived for a while -- so it
+   * needs a quiet period to elapse before it means anything. A match is
+   * *positive*: it is visible the moment it is on screen, so there is no
+   * interval to observe and no `idleMs` to ask for. Waiting for a prompt is
+   * then one call instead of wait-then-read-then-eyeball.
+   *
+   * What is matched, and against when:
+   *
+   *  - **Rows** (`surface: 'screen'`) this session *wrote* since the baseline.
+   *    Wrote, not differs: a row that scrolled is not a row that appeared, and
+   *    the two are told apart by the delivery's runs rather than by comparing
+   *    text, which a scroll of identical content would defeat. The baseline is
+   *    a byte watermark, so a prompt the caller already saw cannot match no
+   *    matter how long it sits on screen.
+   *  - **Completed lines** (`surface: 'text'`) each delivery emitted, stamped
+   *    with the byte they completed at. This is the only sink that can still
+   *    see a line that scrolled out of the viewport -- and the only one that
+   *    cannot see a prompt, which the cursor is still on and which is
+   *    therefore not a completed line (`text-log.ts`).
+   *
+   * Text has no catch-up, and the limit is worth naming: the session keeps no
+   * line history (`TextLog` drains as it goes) and retention is L3.4's
+   * problem, so a line is matched from the moment the wait begins. Rows do
+   * catch up, from the per-row watermark. Reading text that already went past
+   * is history's job, not a wait's.
+   *
+   * The result is an observation and not a verdict. The tty echoes what was
+   * typed, so an echo is new output and the row carrying it is new by every
+   * definition above; a pattern that matches the echo is reported as a match,
+   * with the text it matched. Whether that was the program answering or the
+   * terminal repeating is the caller's judgement, as everywhere else (L1.2).
+   */
+  async waitForOutput(options: WaitForOutputOptions): Promise<OutputWaitResult> {
+    const startedAt = this.clock.now();
+    const deadline = startedAt + options.timeoutMs;
+    const surface: MatchSurface = options.surface ?? 'both';
+    const sinceByte = options.sinceByte ?? this.pty.lastInputByte;
+    const pattern = options.pattern;
+
+    let hit: OutputMatch | null = null;
+
+    // Subscribed before the catch-up scan, so content cannot fall between the
+    // two. A delivery is the moment its part is fully parsed, which is why the
+    // screen is tested here rather than in the loop below: there, a feed being
+    // parsed has not decremented `pendings` yet, so `drained` still reads false
+    // and a condition on it would test nothing at all.
+    const off = this.onDelivery((delivery) => {
+      if (hit) return;
+      const found = this.matchDelivery(surface, pattern, sinceByte, delivery);
+      if (found) {
+        hit = found;
+        this.wake();
+      }
+    });
+
+    try {
+      // Read once, and only once: everything written after this point arrives
+      // as a delivery and is tested as it lands, so re-scanning the grid on
+      // every wake would only re-check rows that cannot have changed.
+      if (surface !== 'text') hit = hit ?? this.matchScreen(pattern, sinceByte);
+
+      for (;;) {
+        const now = this.clock.now();
+        const state = this.state(now);
+        if (hit) {
+          return { reason: 'matched', match: hit, state, waitedMs: now - startedAt, sinceByte };
+        }
+        // Nothing more can arrive and nothing matched, so waiting longer cannot
+        // change the answer -- the same early end as `waitForIdle`, for the
+        // same reason: the quiet period would no longer be evidence.
+        if (state.exit !== null && state.drained === true) {
+          return { reason: 'exited', match: null, state, waitedMs: now - startedAt, sinceByte };
+        }
+        if (now >= deadline) {
+          return { reason: 'timeout', match: null, state, waitedMs: now - startedAt, sinceByte };
+        }
+        // A bound, not a step: this resolves at the deadline or the moment the
+        // session changes, whichever comes first.
+        await this.nextChange(deadline);
+      }
+    } finally {
+      off();
+    }
+  }
+
+  /**
+   * Rows written since the baseline, against the screen as it is now.
+   *
+   * This is the catch-up the caller needs because the content it is waiting for
+   * may have arrived while it was doing something else: between a send and a
+   * wait there is a round trip, and for an agent that round trip is not
+   * milliseconds.
+   */
+  private matchScreen(pattern: RegExp, sinceByte: number): OutputMatch | null {
+    const snapshot = this.screen.snapshot();
+    for (let y = 0; y < snapshot.lines.length; y++) {
+      const writtenAt = this.rowWrittenAt[y] ?? 0;
+      if (writtenAt <= sinceByte) continue;
+      const hit = matchRow(pattern, y, snapshot.lines[y] ?? '', writtenAt, snapshot.buffer);
+      if (hit) return hit;
+    }
+    return null;
+  }
+
+  /**
+   * One delivery, tested as it lands.
+   *
+   * `toByte <= sinceByte` is content produced at or before the baseline, which
+   * the caller has already had -- the whole reason a baseline exists.
+   */
+  private matchDelivery(
+    surface: MatchSurface,
+    pattern: RegExp,
+    sinceByte: number,
+    delivery: Delivery,
+  ): OutputMatch | null {
+    if (delivery.toByte <= sinceByte) return null;
+
+    if (surface !== 'screen') {
+      for (const line of delivery.text) {
+        const hit = matchLine(pattern, line);
+        if (hit) return hit;
+      }
+    }
+
+    if (surface !== 'text') {
+      // The rows this delivery wrote. No delta means no delta could describe
+      // the change -- a full repaint, or a switch of buffer -- so every row of
+      // the screen it produced counts as new.
+      const rows = delivery.grid
+        ? new Set(delivery.grid.runs.map((run) => run.y))
+        : delivery.screen.lines.map((_, y) => y);
+      for (const y of rows) {
+        const hit = matchRow(
+          pattern,
+          y,
+          delivery.screen.lines[y] ?? '',
+          delivery.toByte,
+          delivery.screen.buffer,
+        );
+        if (hit) return hit;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Record which rows a delivery wrote, and at which byte.
+   *
+   * Called for every delivery, whether or not anything is waiting: the
+   * watermark is a fact about what the session did, and one computed only while
+   * a caller happens to be waiting would be missing exactly the content a
+   * catch-up exists to find.
+   */
+  private noteWritten(grid: GridDelta | null, toByte: number): void {
+    const rows = this.screen.rows;
+    if (this.rowWrittenAt.length !== rows) this.rowWrittenAt = new Array<number>(rows).fill(0);
+    if (!grid) {
+      this.rowWrittenAt.fill(toByte);
+      return;
+    }
+    for (const run of grid.runs) {
+      if (run.y >= 0 && run.y < rows) this.rowWrittenAt[run.y] = toByte;
+    }
+  }
+
+  /** The byte watermark at the last write into the pty. See `PtySession`. */
+  get lastInputByte(): number {
+    return this.pty.lastInputByte;
+  }
+
+  /**
    * Wake anything waiting on this session changing.
    *
    * Called wherever the facts a wait reads can change: a byte arriving, a feed
@@ -721,6 +966,11 @@ export class TerminalSession {
     this.jobs?.flush();
     this.pty.resize(cols, rows);
     this.screen.resize(cols, rows);
+    // The old stamps describe rows of a grid that no longer exists. Everything
+    // counts as written at the resize, so a baseline from before it sees the
+    // whole screen as new rather than as stale-but-unknown -- a resize re-presents
+    // content, and saying a row is old there would be a claim nothing supports.
+    this.rowWrittenAt = new Array<number>(rows).fill(this.screen.ops.bytesFed);
     this.enqueue(() => {
       for (const listener of this.resizeListeners) listener({ cols, rows });
     });

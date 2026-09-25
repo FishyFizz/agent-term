@@ -75,8 +75,9 @@ recorded, and every one reconstructs exactly through the timeline, keyframe plus
 Those run on the pty half too, which is the feed where things actually go wrong.
 
 A **first MCP surface** exists (`src/mcp.ts`, `npm run mcp:http`): open a session, send
-input, wait for it to stop changing, read the screen, close it. It is a spike — history
-paging, intermediate playback and interaction beyond plain text are not on it yet.
+input, wait for it to stop changing, wait for a pattern to appear, read the screen, close
+it. It is a spike — history paging, intermediate playback and interaction beyond plain text
+are not on it yet.
 
 It can **wait** (`wait_for_idle`), which is what makes a read taken after a send mean
 anything. The wait is bounded and reports which of `idle`, `exited` or `timeout` ended it.
@@ -84,6 +85,16 @@ It does not report *settled*: whether a live program will produce more output is
 at a byte interface, and a value claiming otherwise would be a judgement dressed as an
 observation. What a read carries instead is `state` — running, how long it has been idle,
 and whether what it produced has been read through (`GOAL.md` L1.2).
+
+It can also **wait for a pattern** (`wait_for_output`): resolve when a regular expression
+appears, or on `exited` / `timeout`. Unlike idle, a match is a positive observation and needs
+no quiet period, so there is no interval to guess — which is what collapses wait-then-read-
+then-eyeball into one call. A pattern is matched against screen rows the session *wrote*
+since a byte watermark (a row that merely scrolled is not a row that appeared, told apart by
+the delta's runs rather than by comparing text) and against completed lines it emitted. The
+watermark defaults to the last input, so a prompt already on screen cannot match the instant
+a wait starts. A match is still an observation, not a verdict: the terminal echoes what is
+typed, and an echo is new output too (`GOAL.md` L1.4).
 
 Not built: delivery and boundedness (L1.1), interaction (L1.4) and honest errors beyond the
 four coded ones (L1.5), and retention and durability (L3.4). Grouping is on by default
@@ -95,7 +106,7 @@ per raw pty read.
 ```bash
 npm install
 npm run typecheck     # src, test, scripts and corpus — one project
-npm run test          # 170 tests
+npm run test          # 192 tests
 npm run smoke         # end-to-end against a real shell
 npm run corpus        # score the classifier across replay granularities
 ```

@@ -1,11 +1,11 @@
 /**
  * The MCP surface — a spike of the core loop, not the whole thing.
  *
- * Five tools, because that is the smallest set an agent can drive a terminal
- * with: open one, type into it, wait for it to stop changing, read what
- * happened, close it. Everything else — history paging, intermediate playback,
- * interaction beyond plain text — goes on top of these rather than beside them,
- * and is deliberately not here yet.
+ * Six tools, because that is the smallest set an agent can drive a terminal
+ * with: open one, type into it, wait for it to stop changing, wait for it to
+ * show something, read what happened, close it. Everything else — history
+ * paging, intermediate playback, interaction beyond plain text — goes on top of
+ * these rather than beside them, and is deliberately not here yet.
  *
  * The shape of a result matters more than the number of tools. A read returns
  * what a human at the screen would say: the screen, what changed on it, and
@@ -17,9 +17,10 @@
  * how long it has been idle, whether what it produced has been read through.
  * It does not report "settled". Whether a live program will produce more
  * output is not provable at a byte interface, and a value claiming otherwise
- * would be a judgement dressed as an observation (GOAL.md L1.2). The wait is
- * the same: it says which of `idle`, `exited` or `timeout` stopped it, and
- * leaves what that means to the caller, who knows what it is driving.
+ * would be a judgement dressed as an observation (GOAL.md L1.2). The waits are
+ * the same: each says which of its own reasons stopped it — `idle`, `exited` or
+ * `timeout`; `matched`, `exited` or `timeout` — and leaves what that means to
+ * the caller, who knows what it is driving.
  *
  * Errors are typed and actionable rather than opaque (L1.5): a caller gets a
  * code it can branch on, not a stack trace.
@@ -31,7 +32,7 @@ import type { SessionUpdate } from './session.js';
 import type { SessionId } from './types.js';
 
 /** What went wrong, in a form a caller can branch on. */
-export type ErrorCode = 'no_session' | 'not_live' | 'bad_input';
+export type ErrorCode = 'no_session' | 'not_live' | 'bad_input' | 'bad_pattern';
 
 function fail(code: ErrorCode, message: string) {
   return {
@@ -184,6 +185,69 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
       const result = await target.waitForIdle({ idleMs, timeoutMs });
       return {
         content: [{ type: 'text', text: result.reason }],
+        structuredContent: { sessionId, ...result },
+      };
+    },
+  );
+
+  server.registerTool(
+    'wait_for_output',
+    {
+      title: 'Wait for a session to show something',
+      description:
+        'Block until a regular expression appears in what the session produced, or until ' +
+        '`timeoutMs` passes or the process exits. Returns which of those stopped it: ' +
+        '`matched`, `exited` or `timeout`, and what matched (the text, the screen row, the ' +
+        'byte it arrived at). A pattern is matched against screen rows the session wrote, ' +
+        'and against completed lines it emitted. Trailing blanks are removed before ' +
+        'matching, so a prompt printed as "$ " is a row whose content is "$" — anchor with ' +
+        '`^...$` to mean a whole line. Only output produced after ' +
+        'the byte the session was last typed into counts by default, so a prompt already on ' +
+        'screen does not match instantly; pass `sinceByte` to match from another watermark. ' +
+        'A match is an observation, not evidence the program has finished — the terminal ' +
+        'echoes what is typed, and an echo is new output too. Use this instead of waiting ' +
+        'for idle and then guessing from the screen that the program is ready.',
+      inputSchema: {
+        sessionId: z.string(),
+        pattern: z
+          .string()
+          .describe('A regular expression, matched against a screen row or a completed line.'),
+        surface: z
+          .enum(['screen', 'text', 'both'])
+          .optional()
+          .describe('What to match: screen rows, completed lines, or both. Default both.'),
+        sinceByte: z
+          .number()
+          .int()
+          .nonnegative()
+          .optional()
+          .describe('Match only output produced after this byte watermark. Default: the last input.'),
+        timeoutMs: z.number().int().positive().describe('Give up after this long.'),
+      },
+    },
+    async ({ sessionId, pattern, surface, sinceByte, timeoutMs }) => {
+      const target = session(sessionId);
+      if (!target) return fail('no_session', `no session ${sessionId}`);
+
+      let compiled: RegExp;
+      try {
+        compiled = new RegExp(pattern);
+      } catch (cause) {
+        const why = cause instanceof Error ? cause.message : String(cause);
+        return fail('bad_pattern', `not a usable regular expression: ${pattern} (${why})`);
+      }
+
+      const result = await target.waitForOutput({
+        pattern: compiled,
+        surface,
+        sinceByte,
+        timeoutMs,
+      });
+      const said = result.match
+        ? `matched ${result.match.surface} at byte ${result.match.atByte}: ${JSON.stringify(result.match.text)}`
+        : result.reason;
+      return {
+        content: [{ type: 'text', text: said }],
         structuredContent: { sessionId, ...result },
       };
     },
