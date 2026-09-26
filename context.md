@@ -60,7 +60,7 @@ README.md          user-facing status + dev commands
 context.md         THIS FILE
 
 src/               ~5,000 lines of implementation (see §4)
-test/              ~4,000 lines, 213 tests
+test/              ~4,300 lines, 223 tests
 scripts/           entry points: mcp-stdio, mcp-http, smoke, life, corpus-score
 corpus/            23 terminal programmes + 46 recorded traces (regression suite)
 fixtures/life/     "lifelike" interactive subject — a black-box driving exercise
@@ -311,12 +311,12 @@ from screen geometry. The identity question never arises.
 
 ---
 
-## 7. The MCP surface (7 tools) — `src/mcp.ts`
+## 7. The MCP surface (8 tools) — `src/mcp.ts`
 
-Seven tools, because that is the smallest set an agent can drive a terminal with. **Everything
-else — history paging, intermediate playback, the pending prompt, large pastes — goes on top of
-these rather than beside them, and is deliberately not here yet.** (L3.6: target ~20 tools, not
-100; every tool definition is context the agent pays for on every turn.)
+Eight tools, because that is the smallest set an agent can drive a terminal with. **The rest
+of interaction — the pending prompt, large pastes — goes on top of these rather than beside
+them, and is deliberately not here yet.** (L3.6: target ~20 tools, not 100; every tool
+definition is context the agent pays for on every turn.)
 
 | Tool | What it does |
 |---|---|
@@ -326,14 +326,44 @@ these rather than beside them, and is deliberately not here yet.** (L3.6: target
 | `wait_for_idle` | `{sessionId, idleMs, timeoutMs}` → reason: `idle` \| `exited` \| `timeout`. |
 | `wait_for_output` | `{sessionId, pattern, surface?, sinceByte?, timeoutMs}` → reason: `matched` \| `exited` \| `timeout`, plus `match` `{surface, text, atByte, row, buffer}`. |
 | `read_screen` | `{sessionId}` → `screen`, `segments`, `text`, `collapsed`, `io`, `state`. `update: null` when nothing has arrived yet. |
+| `history_read` | Address the timeline. `{sessionId, from?, to?, limit?, level?, screen?}` — see below. |
 | `close_session` | End the session, kill the process tree. **History stays readable afterwards** — closing is not forgetting. |
+
+### `history_read` — one tool over the timeline, not a pair
+
+Paging through what happened and replaying the frames a job swallowed were going to be two
+tools. They are **the same operation**: both address the timeline and ask what is there,
+differing only in how wide a span and whether the screen at each point is materialized. One
+tool, because two would be one timeline behind two doors.
+
+- **`from` / `to` take any address** — a token (including `next` from a previous read), `{seq}`,
+  `{at}` (ms) or `{byte}`. The two ends need not be the same kind. This is the fix for the
+  asymmetry that made them look like two problems: `read` accepted only tokens, `deliveries`
+  only seq numbers, while `screenAt`/`textSince`/`tokenAt` already accepted all four.
+- **`level`** picks the projection: `records` (default — the deliveries as recorded), `jobs`
+  (the units the agent was shown, with verdicts), or `text` (plain lines).
+- **`screen: true`** materializes the screen at each record. This is what separates a page from
+  a playback, and it is one boolean rather than a second tool.
+- **`to` reads a span and may cross a resize**; `from` alone pages and never does, stopping at
+  the epoch boundary. Every result reports `epoch` — the grid size its records were produced at.
+- Returns `next` (resume), `truncated` (the limit stopped the read), `stoppedAtEpochEnd`.
+
+This is what makes **`collapsed.intermediates`** actionable: `read_screen` reports that states
+existed and were not shown; read the job's span (`from: {seq: rawFrom}, to: {seq: rawTo}`) with
+`screen: true` and they come back. Before this, that field was a warning with no handle.
+
+An address means **"at or before"**, the resolution limit `locate` documents — seeking to a time
+or byte gives the last recorded state at or before it. Span *bounds* clamp into the recorded
+range instead (a span opened before the first record starts at the beginning), because there the
+nearest record inside is the answer and returning nothing would silently narrow the request.
 
 ### Typed errors (L1.5)
 
 `no_session`, `not_live` (process exited), `bad_input` (unknown key name, a step with two fields
-or none, empty batch, byte outside the range ConPTY carries), `bad_pattern` (regex did not
-compile). Failures carry `isError: true` and `structuredContent.error.code` — a caller branches
-on the code; the message is for a human.
+or none, empty batch, byte outside the range ConPTY carries, a malformed history token, a span
+asked for at the `jobs` level), `bad_pattern` (regex did not compile). Failures carry
+`isError: true` and `structuredContent.error.code` — a caller branches on the code; the message
+is for a human.
 
 ### `present()` — the shape of one update
 
@@ -612,7 +642,7 @@ without loss is not worth adding.
 ```bash
 npm install
 npm run typecheck     # src, test, scripts, corpus, fixtures — one project
-npm run test          # 213 tests (includes corpus/test/corpus.test.ts)
+npm run test          # 223 tests (includes corpus/test/corpus.test.ts)
 npm run smoke         # end-to-end against a real shell
 npm run corpus        # score the classifier across replay granularities
 
@@ -667,7 +697,7 @@ single verdict over a span the screen shows two kinds on.
 **Verified by real runs in this session:**
 
 - `npm run typecheck` — **clean, exit 0**.
-- `npm test` — **213 tests, 213 pass, 0 fail** (~167s).
+- `npm test` — **223 tests, 223 pass, 0 fail**.
 - Corpus subset alone (`corpus/test/corpus.test.ts`) — **39 tests, 39 pass**.
 - `npm run corpus` — see the table below.
 - Git: branch `main`, HEAD `94069d0` *"feat: a wait for a pattern, so a prompt is not read off
@@ -702,8 +732,8 @@ deltas. Those run on the pty half too — the feed where things actually go wron
   classification → session → registry. `host.ts` composes session + recording in one call.
 - **L1 partly built**: named keys + composed batches (`send_sequence`, `src/keys.ts`);
   `waitForIdle`; `waitForOutput`; real `bytesPending`; `SessionState`.
-- **A first MCP surface** (7 tools). A spike: **history paging, intermediate playback and large
-  pastes are not on it yet.**
+- **A first MCP surface** (8 tools). A spike: **the pending prompt and large pastes are not on
+  it yet.** History paging and intermediate playback *are* — as one `history_read`.
 
 ### What is NOT built
 

@@ -77,8 +77,17 @@ Those run on the pty half too, which is the feed where things actually go wrong.
 
 A **first MCP surface** exists (`src/mcp.ts`, `npm run mcp:http`): open a session, send
 input, send a batch of input as one write, wait for it to stop changing, wait for a pattern
-to appear, read the screen, close it. It is a spike — history paging, intermediate playback
-and large pastes are not on it yet.
+to appear, read the screen, address the timeline, close it. It is a spike — the pending
+prompt and large pastes are not on it yet.
+
+`history_read` is one tool over the timeline, not a pair. Paging through what happened and
+replaying the frames a job swallowed are the same operation at different settings: `from` and
+`to` take any address — a token, a seq, a timestamp, a byte offset, and the two ends need not
+match — `level` picks the projection (deliveries, jobs, text), and `screen: true` materializes
+the state at each point, which is what turns a page into a playback. A span (`to`) crosses a
+resize; a page (`from` alone) never does, and reports the grid size it was produced at. This
+is what makes `collapsed.intermediates` from `read_screen` reachable — read the job's span with
+`screen: true` and the states it merged come back.
 
 Input can be **named** rather than spelled (`send_sequence`, `src/keys.ts`). `{key: "down"}`
 sends the bytes an arrow sends; the caller never puts a raw escape sequence on the wire, which
@@ -117,7 +126,7 @@ per raw pty read.
 ```bash
 npm install
 npm run typecheck     # src, test, scripts and corpus — one project
-npm run test          # 213 tests
+npm run test          # 223 tests
 npm run smoke         # end-to-end against a real shell
 npm run corpus        # score the classifier across replay granularities
 ```
