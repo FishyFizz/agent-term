@@ -28,8 +28,33 @@ import { JobDetector, DEFAULT_JOB_POLICY, realClock, type JobClock, type JobClos
 /** One classified change to a session. */
 export interface SessionUpdate {
   sessionId: string;
-  /** Sequence number, per session, from 1. */
+  /**
+   * Sequence number, per session, from 1 — **the number of the state this
+   * update ends at**, not a count of updates.
+   *
+   * It is the raw stream counter (`Delivery.seq`), incremented once per raw
+   * delivery, which is the same number the timeline records with
+   * (`history.ts`). One number therefore addresses: what the agent was just
+   * shown, and any intermediate state inside it — the frames a job swallowed
+   * are simply the numbers between `collapsed.rawFrom` and `rawTo`, readable
+   * with `history_read({from:{seq:a}, to:{seq:b}})`.
+   *
+   * A job is a projection over a run of these and occupies no number of its
+   * own, so the sequence never skips: state N is always the Nth thing the
+   * session produced, whether or not it was shown as part of a job.
+   */
   seq: number;
+  /**
+   * Which job this update was shown as, or the same as `seq` when output is not
+   * being grouped.
+   *
+   * The job's number is what `history.jobs()` reports and what the agent was
+   * shown; `seq` above is the raw state this update ends at. They differ
+   * whenever a job swallowed more than one delivery — which is exactly the
+   * case where the extra states are addressable between `collapsed.rawFrom`
+   * and `rawTo` but were never shown as their own update.
+   */
+  job: number;
   at: number;
   /** Byte range of the pty output this update covers. */
   fromByte: number;
@@ -293,6 +318,20 @@ export interface OutputWaitResult {
   reason: OutputWaitReason;
   /** Where the pattern was seen, or `null` when it was not. */
   match: OutputMatch | null;
+  /**
+   * The screen as it was when the wait ended, or `null` on a match.
+   *
+   * Present exactly when `match` is not: on `timeout` and `exited` there is
+   * nothing else to show, and a caller that has to decide what to do next
+   * would otherwise read again to find out -- the round trip this field
+   * removes. On `matched` the match *is* the answer, and a screen would be a
+   * second, larger one.
+   *
+   * `null` rather than absent by design: a field that is sometimes missing is
+   * silently read as "nothing", which is the `bytesPending: null` vs `0` class
+   * of bug (GOAL.md L1.3).
+   */
+  screen: ReturnType<ScreenModel['snapshot']> | null;
   /** What was observed when the wait ended. */
   state: SessionState;
   /** Milliseconds the wait lasted, on the session's clock. */
@@ -571,7 +610,18 @@ export class TerminalSession {
 
       return {
         sessionId: this.id,
-        seq: this._seq,
+        // The state this update ends at, in the same numbering the timeline
+        // records with: `rawTo` is the last raw delivery it covers, so a job
+        // that swallowed 1..7 reports 7, and everything between is still
+        // addressable. The previous update counter (`_seq`) counted *updates*,
+        // which skipped the frames a job collapsed -- the one number an agent
+        // holds was not one it could address history with.
+        seq: rawTo === 0 ? this._rawSeq : rawTo,
+        // The job this update was shown as — the same number the deliveries it
+        // merged were stamped with (`delivery.job`), which was computed *before*
+        // the increment below and so is `this._seq` afterwards, not one more.
+        // Ungrouped, each delivery is its own job and the two numbers coincide.
+        job: job ? this._seq : rawTo === 0 ? this._rawSeq : rawTo,
         at: Date.now(),
         fromByte,
         toByte: classified.toByte,
@@ -771,16 +821,37 @@ export class TerminalSession {
         const now = this.clock.now();
         const state = this.state(now);
         if (hit) {
-          return { reason: 'matched', match: hit, state, waitedMs: now - startedAt, sinceByte };
+          return {
+            reason: 'matched',
+            match: hit,
+            screen: null,
+            state,
+            waitedMs: now - startedAt,
+            sinceByte,
+          };
         }
         // Nothing more can arrive and nothing matched, so waiting longer cannot
         // change the answer -- the same early end as `waitForIdle`, for the
         // same reason: the quiet period would no longer be evidence.
         if (state.exit !== null && state.drained === true) {
-          return { reason: 'exited', match: null, state, waitedMs: now - startedAt, sinceByte };
+          return {
+            reason: 'exited',
+            match: null,
+            screen: this.screen.snapshot(),
+            state,
+            waitedMs: now - startedAt,
+            sinceByte,
+          };
         }
         if (now >= deadline) {
-          return { reason: 'timeout', match: null, state, waitedMs: now - startedAt, sinceByte };
+          return {
+            reason: 'timeout',
+            match: null,
+            screen: this.screen.snapshot(),
+            state,
+            waitedMs: now - startedAt,
+            sinceByte,
+          };
         }
         // A bound, not a step: this resolves at the deadline or the moment the
         // session changes, whichever comes first.

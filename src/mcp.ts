@@ -232,7 +232,10 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
         'stands for. Returns the last classified update, or null when nothing has arrived ' +
         'yet — which is not the same as an empty screen. Also reports `state`: whether ' +
         'the session is running, how long it has been idle, and whether what it produced ' +
-        'has been read through.',
+        'has been read through. **`seq` is the number of the state being shown** — one ' +
+        'number for the whole timeline, incremented per raw delivery, and the same one ' +
+        '`history_read` addresses with. A job that swallowed states 3..9 reports 9, and ' +
+        '`history_read({from:{seq:3}, to:{seq:9}, screen:true})` plays 3..9 back.',
       inputSchema: { sessionId: z.string() },
     },
     async ({ sessionId }) => {
@@ -297,7 +300,10 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
         'Block until a regular expression appears in what the session produced, or until ' +
         '`timeoutMs` passes or the process exits. Returns which of those stopped it: ' +
         '`matched`, `exited` or `timeout`, and what matched (the text, the screen row, the ' +
-        'byte it arrived at). A pattern is matched against screen rows the session wrote, ' +
+        'byte it arrived at). When it does NOT match, `screen` carries the rows as they ' +
+        'were when the wait ended, so a timeout answers "what is it showing?" without a ' +
+        'second call; it is `null` on `matched`, where the match is the answer. A pattern ' +
+        'is matched against screen rows the session wrote, ' +
         'and against completed lines it emitted. Trailing blanks are removed before ' +
         'matching, so a prompt printed as "$ " is a row whose content is "$" — anchor with ' +
         '`^...$` to mean a whole line. Only output produced after ' +
@@ -345,9 +351,13 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
       const said = result.match
         ? `matched ${result.match.surface} at byte ${result.match.atByte}: ${JSON.stringify(result.match.text)}`
         : result.reason;
+      // Rows, not the snapshot: a wait that ended without a match is answered
+      // with what was on screen so the caller can decide without reading again.
+      // The snapshot carries styles and widths a branch on `reason` never uses.
+      const { screen, ...rest } = result;
       return {
         content: [{ type: 'text', text: said }],
-        structuredContent: { sessionId, ...result },
+        structuredContent: { sessionId, ...rest, screen: screen ? screen.lines : null },
       };
     },
   );

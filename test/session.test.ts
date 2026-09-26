@@ -482,10 +482,15 @@ test('history reconstructs every screen of a live session', async (t) => {
   // The **job** is the projection over it, and it is what the agent was shown.
   // Compared against the updates the session actually delivered, so this checks
   // the projection against the live path rather than against itself.
-  const bySeq = new Map(updates.map((u) => [u.seq, u]));
+  //
+  // Joined on `job`, not on `seq`: a job's number is the update it was shown
+  // as, while an update's `seq` is the raw state it ends at — the two differ
+  // whenever a job swallowed more than one delivery, which is the case being
+  // checked here.
+  const byJob = new Map(updates.map((u) => [u.job, u]));
   let checked = 0;
   for (const job of history.jobs({ limit: 1000 })) {
-    const update = bySeq.get(job.job);
+    const update = byJob.get(job.job);
     if (!update) continue;
     checked++;
     assert.deepEqual(
@@ -605,4 +610,47 @@ test('the text log keeps a line the shell terminated by positioning', async (t) 
   // may not be missing from the text.
   const onScreen = updates.some((u) => u.screen.lines.some((l) => l.trim() === OUT));
   assert.ok(onScreen, 'the same line is on the screen it was written to');
+});
+
+test('the update seq addresses the timeline: what was swallowed is reachable', async (t) => {
+  const { session, updates } = harness();
+  const history = new HistoryStore().open(session);
+  t.after(() => session.dispose());
+
+  session.pty.write('1..30 | % { "HIST-$_" }\r\n');
+  await waitFor(() => updates.some((u) => u.screen.lines.some((l) => l.includes('HIST-30'))), {
+    label: 'the last line',
+    timeoutMs: 15000,
+  });
+
+  // Find an update that swallowed more than one delivery: that is the case the
+  // old numbering could not express, because a job that collapsed states 3..9
+  // reported one number and the eight states between it were unreachable.
+  const merged = updates.filter((u) => u.collapsed && u.collapsed.chunks > 1);
+  assert.ok(merged.length > 0, 'a bulk write is grouped into jobs of several deliveries');
+
+  for (const update of merged) {
+    const from = update.collapsed!.rawFrom;
+    const to = update.collapsed!.rawTo;
+    assert.ok(to > from, 'and it spans more than one state');
+
+    // The number being handed to the agent is the state the update ends at --
+    // the last one swallowed, not a count of updates.
+    assert.equal(update.seq, to, 'the reported seq is the state it ends at');
+
+    // Which is what makes the swallowed ones addressable: these are states
+    // that existed, were recorded, and were never shown as an update.
+    const playback = history.deliveries({ seq: from }, { seq: to });
+    assert.equal(playback.length, update.collapsed!.chunks, 'every swallowed state comes back');
+    for (const state of playback) {
+      assert.ok(state.screen, 'with the screen it had');
+      assert.ok(state.seq >= from && state.seq <= to, 'inside the span');
+    }
+    // And the one the agent was shown is the last of them.
+    assert.deepEqual(
+      playback[playback.length - 1]!.screen.lines,
+      update.screen.lines,
+      'the state it ended at is the screen the update reported',
+    );
+  }
 });

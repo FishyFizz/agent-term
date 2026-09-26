@@ -150,7 +150,11 @@ test('a merged job can be played back: the states it swallowed are readable', as
   const seqs = playback.map((r) => r.seq);
   assert.deepEqual(seqs, [...seqs].sort((a, b) => a - b), 'in the order they arrived');
   for (const r of playback) {
-    assert.equal(r.job, job.seq, 'tied to the job it was grouped into');
+    // Joined on `job`, not `seq`: an update's `seq` is the raw state it ends
+    // at, and a job that swallowed 1..4 ends at 4 -- so comparing it against
+    // every record in the span would only ever match the last one. The job
+    // number is what all of them share.
+    assert.equal(r.job, job.job, 'tied to the job it was grouped into');
     assert.ok(r.screen, 'each one reconstructs to a screen');
   }
   assert.notDeepEqual(

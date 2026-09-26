@@ -162,3 +162,48 @@ test('the default baseline is the last input, so the echo is not the answer', as
   assert.equal(result.sinceByte, typedAt, 'no sinceByte given, so the last input is the baseline');
   assert.ok(result.match!.atByte > typedAt, 'and what matched was produced after it');
 });
+
+test('a wait that ends without a match reports the screen it ended on', async (t) => {
+  const session = probe(QUIET);
+  t.after(() => session.dispose());
+
+  assert.ok(await waitFor(() => session.pty.bytesRead > 0), 'the prompt arrived');
+  await session.waitForIdle({ idleMs: 60, timeoutMs: 5000 });
+
+  // The complaint this answers: a timeout used to return `reason` alone, so
+  // finding out what the program was actually showing cost a second call --
+  // and it was that second call which revealed the full-screen menu in the
+  // run that prompted it.
+  const result = await session.waitForOutput({
+    pattern: /^NEVER-PRINTED$/,
+    sinceByte: 0,
+    timeoutMs: 250,
+  });
+  assert.equal(result.reason, 'timeout');
+  assert.equal(result.match, null);
+  assert.ok(result.screen !== null, 'the screen comes back with it');
+  assert.deepEqual(
+    result.screen!.lines[0]!.trimEnd(),
+    'READY>',
+    'and it is the screen the wait ended on, not a stale one',
+  );
+  assert.equal(result.screen!.cols, 60, 'reported at the size it was produced at');
+});
+
+test('a match does not carry a screen: the match is the answer', async (t) => {
+  const session = probe(QUIET);
+  t.after(() => session.dispose());
+
+  assert.ok(await waitFor(() => session.pty.bytesRead > 0), 'the prompt arrived');
+  await session.waitForIdle({ idleMs: 60, timeoutMs: 5000 });
+
+  const result = await session.waitForOutput({
+    pattern: /^READY>$/,
+    sinceByte: 0,
+    timeoutMs: 2000,
+  });
+  assert.equal(result.reason, 'matched');
+  // Explicitly null, never absent: a field whose presence varies by reason
+  // gets read as "nothing" in the branch that does not expect it (L1.3).
+  assert.equal(result.screen, null, 'so the two are told apart by value, not by shape');
+});
