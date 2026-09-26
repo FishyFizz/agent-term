@@ -60,7 +60,7 @@ README.md          user-facing status + dev commands
 context.md         THIS FILE
 
 src/               ~5,000 lines of implementation (see §4)
-test/              ~4,500 lines, 226 tests
+test/              ~4,800 lines, 232 tests
 scripts/           entry points: mcp-stdio, mcp-http, smoke, life, corpus-score
 corpus/            23 terminal programmes + 46 recorded traces (regression suite)
 fixtures/life/     "lifelike" interactive subject — a black-box driving exercise
@@ -311,9 +311,9 @@ from screen geometry. The identity question never arises.
 
 ---
 
-## 7. The MCP surface (8 tools) — `src/mcp.ts`
+## 7. The MCP surface (9 tools) — `src/mcp.ts`
 
-Eight tools, because that is the smallest set an agent can drive a terminal with. **The rest
+Nine tools, because that is the smallest set an agent can drive a terminal with. **The rest
 of interaction — the pending prompt, large pastes — goes on top of these rather than beside
 them, and is deliberately not here yet.** (L3.6: target ~20 tools, not 100; every tool
 definition is context the agent pays for on every turn.)
@@ -324,10 +324,45 @@ definition is context the agent pays for on every turn.)
 | `send_input` | Write text as if typed. `{sessionId, text, submit?}` — `submit` appends a newline. Reports `written` (escaped bytes). |
 | `send_sequence` | Write several inputs in **one write**: steps of `{text}`, `{key}` or `{byte}`, in order. Reports `written` and per-step bytes. |
 | `wait_for_idle` | `{sessionId, idleMs, timeoutMs}` → reason: `idle` \| `exited` \| `timeout`. |
-| `wait_for_output` | `{sessionId, pattern, surface?, sinceByte?, timeoutMs}` → reason: `matched` \| `exited` \| `timeout`, plus `match` `{surface, text, atByte, row, buffer}`. |
+| `wait_for_output` | `{sessionId, pattern, surface?, sinceByte?, timeoutMs}` → reason: `matched` \| `exited` \| `timeout`, plus `match` `{surface, text, atByte, row, buffer}`. **On a non-match, `screen` carries the rows** it ended on. |
+| `wait_for_job` | `{sessionId, sinceSeq?, timeoutMs}` → reason: `job` \| `disposed` \| `exited` \| `timeout`. See below. |
 | `read_screen` | `{sessionId}` → `screen`, `segments`, `text`, `collapsed`, `io`, `state`. `update: null` when nothing has arrived yet. |
 | `history_read` | Address the timeline. `{sessionId, from?, to?, limit?, level?, screen?}` — see below. |
 | `close_session` | End the session, kill the process tree. **History stays readable afterwards** — closing is not forgetting. |
+
+### `wait_for_job` — the wait a TUI needs
+
+The third wait, and the one a full-screen program needs. `wait_for_idle` is **negative** —
+nothing arrived for a while — so it returns whether or not anything actually happened, and it
+cannot tell a program that is thinking from one waiting for you. `wait_for_output` is
+positive but needs a pattern to anchor on, and a repainting menu has no stable text. A job
+is positive and content-agnostic: it ends when the program's own act ends.
+
+**A job boundary is inferred from silence, not declared** — `jobs.ts` calls silence "a
+fallback, not the truth". So this is not *more* correct than idle; it is better aimed, ending
+on the unit the classifier already computes.
+
+- **Hangs on `onUpdate`, not on the job's close.** At close time nothing exists yet: the
+  detector's callback is `feed(job.bytes, job).then(deliver)`, and `feed` is async and
+  queued. A waiter woken there would have to read again to see what the job was — the round
+  trip that makes a wait useless.
+- **`sinceSeq` is in the unified numbering**, so it composes with `history_read`. Without a
+  baseline, a fast program can close a job before the wait begins and the waiter would return
+  the *previous* job — output from before the input was sent.
+- **Every close reason is reported**, because `bytes`/`chunks` are caps cutting a job open
+  **while the program is still writing**, `flush` is a resize or exit forcing it, and only
+  `gap` means the program went quiet on its own.
+- **`timeout` is the bound that always holds.** `maxBytes`/`maxChunks` are optional in
+  `JobPolicy`, so a policy without them never closes a firehose job at all.
+- **`disposed`** — `dispose()` used to clear its listener lists before waking anyone, so a
+  waiter was silently unsubscribed and sat out its deadline, indistinguishable from a
+  timeout. `onDispose` now fires before anything is cleared.
+- **A session opened without grouping still ends the wait**: with no detector there is no
+  boundary to group to, so each update is a job of one and `collapsed` is `null`.
+
+**`collapsed.grid` being `null` does not mean nothing changed.** `gridDelta` returns `null`
+across a resize or a buffer switch (`delta.ts:100-101`), and `resize()` flushes the job
+first — so the resize job is `reason:'flush'` with `grid:null`, the largest change there is.
 
 ### `history_read` — one tool over the timeline, not a pair
 
@@ -653,7 +688,7 @@ without loss is not worth adding.
 ```bash
 npm install
 npm run typecheck     # src, test, scripts, corpus, fixtures — one project
-npm run test          # 226 tests (includes corpus/test/corpus.test.ts)
+npm run test          # 232 tests (includes corpus/test/corpus.test.ts)
 npm run smoke         # end-to-end against a real shell
 npm run corpus        # score the classifier across replay granularities
 
@@ -708,7 +743,8 @@ single verdict over a span the screen shows two kinds on.
 **Verified by real runs in this session:**
 
 - `npm run typecheck` — **clean, exit 0**.
-- `npm test` — **226 tests, 226 pass, 0 fail**.
+- `npm test` — **232 tests**, pinned to `--test-concurrency=2` (a real pty per test
+  file; running them all at once corrupts the heap under node-pty).
 - Corpus subset alone (`corpus/test/corpus.test.ts`) — **39 tests, 39 pass**.
 - `npm run corpus` — see the table below.
 - Git: branch `main`, HEAD `94069d0` *"feat: a wait for a pattern, so a prompt is not read off
@@ -743,7 +779,7 @@ deltas. Those run on the pty half too — the feed where things actually go wron
   classification → session → registry. `host.ts` composes session + recording in one call.
 - **L1 partly built**: named keys + composed batches (`send_sequence`, `src/keys.ts`);
   `waitForIdle`; `waitForOutput`; real `bytesPending`; `SessionState`.
-- **A first MCP surface** (8 tools). A spike: **the pending prompt and large pastes are not on
+- **A first MCP surface** (9 tools). A spike: **the pending prompt and large pastes are not on
   it yet.** History paging and intermediate playback *are* — as one `history_read`.
 
 ### What is NOT built

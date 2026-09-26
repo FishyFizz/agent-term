@@ -99,7 +99,17 @@ whether the getter should stay public.
 
 ---
 
-## 3. `wait_for_job` — wait for the next job
+## 3. `wait_for_job` — wait for the next job — **DONE** (`2f0b9d3`)
+
+Implemented as described, with one deviation: a session opened without grouping
+returns a job per update rather than `bad_input` — rejecting it would make the
+tool unusable on a session that legitimately opted out, and there is no
+boundary to group to, so "each update is one act" is the honest answer.
+
+Also fixed while implementing: `dispose()` cleared its listener lists before
+waking anyone, so a waiter was silently unsubscribed and sat out its deadline,
+indistinguishable from a timeout. `onDispose` now fires first and the wait
+returns `disposed`.
 
 ### Why this and not a "screen changed" wait
 

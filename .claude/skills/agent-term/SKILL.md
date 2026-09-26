@@ -106,9 +106,29 @@ wait-then-eyeball whenever the program has a readiness signal you can name.
 - A match is an observation, not a verdict: it says the text appeared, not that the
   program is done.
 
-For example, a REPL that prints `>>> ` when it is ready: after sending a line, wait
-for `{pattern: "^>>>$", timeoutMs: 20000}`. That resolves on the *next* prompt, not
-the one you were already looking at.
+**`wait_for_job {sinceSeq?, timeoutMs}`** — blocks until the program finishes **one act of
+output**. This is the wait a full-screen TUI needs. Returns `reason` (`job`, `disposed`,
+`exited`, `timeout`) and, on a job, `seq`, `job`, `collapsed` and `screen` together.
+
+- A repainting menu has no stable text to anchor a pattern on, and idle answers "it went
+  quiet" without saying whether a repaint happened at all. A job ends on the act itself.
+- **`collapsed.reason` says how it ended, and the four do not mean the same thing**: `gap`
+  is the program going quiet on its own; `bytes`/`chunks` are caps cutting a job open
+  **while it is still writing**, so more output is coming; `flush` is a resize or exit.
+- **`collapsed.chunks > 1` means states existed that you were not shown.** Read them with
+  `history_read({from:{seq:collapsed.rawFrom}, to:{seq}, screen:true})`.
+- `sinceSeq` defaults to the state you last typed at, so a job that closed *before* your
+  input cannot satisfy the wait. Pass the `seq` you last saw to continue from there — a
+  firehose produces a stream of jobs, so loop on it.
+- **`collapsed.grid` is `null` on a resize or an alt-screen switch**, which are the largest
+  changes there are, not the smallest. Do not read `grid: null` as "nothing happened".
+
+For example, a menu that repaints on every keypress: send `down`, then
+`wait_for_job {timeoutMs: 5000}`. That resolves on the repaint, not on a guess about time.
+
+Or a REPL that prints `>>> ` when it is ready: after sending a line, wait for
+`{pattern: "^>>>$", timeoutMs: 20000}`. That resolves on the *next* prompt, not the one
+you were already looking at.
 
 ## Reading
 
