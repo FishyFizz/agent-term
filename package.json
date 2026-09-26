@@ -17,7 +17,7 @@
     "mcp:http": "tsx scripts/mcp-http.ts",
     "mcp:dev": "tsx watch scripts/mcp-http.ts",
     "test": "tsx --test test/*.test.ts corpus/test/*.test.ts",
-    "test:unit": "tsx --test test/classify.test.ts test/screen.test.ts test/edit-record.test.ts test/text-log.test.ts test/delta.test.ts test/history.test.ts test/history-corpus.test.ts test/corpus.test.ts",
+    "test:unit": "tsx --test test/classify.test.ts test/screen.test.ts test/keys.test.ts test/edit-record.test.ts test/text-log.test.ts test/delta.test.ts test/history.test.ts test/history-corpus.test.ts test/corpus.test.ts",
     "record": "tsx corpus/scripts/record.ts",
     "record:all": "tsx corpus/scripts/record.ts --feed both",
     "corpus": "tsx scripts/corpus-score.ts"

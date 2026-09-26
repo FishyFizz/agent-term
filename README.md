@@ -15,6 +15,7 @@ CLASSIFIER.md    how a change is classified as writing or drawing,
                  and what a test may assert (§11)
 HISTORY.md       the timeline: resize epochs, deltas, and what was verified
 src/jobs.ts      job boundaries — where one delivery ends and the next begins
+src/keys.ts      named keys, and the batch a caller composes out of them
 src/             implementation
 corpus/          test programmes and recorded traces — the classifier's
                  regression suite; see corpus/README.md
@@ -75,9 +76,18 @@ recorded, and every one reconstructs exactly through the timeline, keyframe plus
 Those run on the pty half too, which is the feed where things actually go wrong.
 
 A **first MCP surface** exists (`src/mcp.ts`, `npm run mcp:http`): open a session, send
-input, wait for it to stop changing, wait for a pattern to appear, read the screen, close
-it. It is a spike — history paging, intermediate playback and interaction beyond plain text
-are not on it yet.
+input, send a batch of input as one write, wait for it to stop changing, wait for a pattern
+to appear, read the screen, close it. It is a spike — history paging, intermediate playback
+and large pastes are not on it yet.
+
+Input can be **named** rather than spelled (`send_sequence`, `src/keys.ts`). `{key: "down"}`
+sends the bytes an arrow sends; the caller never puts a raw escape sequence on the wire, which
+is what a transport between an agent and this server silently drops — one driving run sent
+`\x1b[B`, the ESC did not survive, and the program received the inert text `[B`. A key is
+encoded from the mode the program has set, read off the screen, so `down` is `CSI B` in a shell
+and `SS3 B` in a program that has turned on application cursor keys. Several steps — text, keys,
+or a raw byte — compose into one write, and the result reports the bytes actually written so
+the round trip can be checked without reading the screen.
 
 It can **wait** (`wait_for_idle`), which is what makes a read taken after a send mean
 anything. The wait is bounded and reports which of `idle`, `exited` or `timeout` ended it.
@@ -96,8 +106,9 @@ watermark defaults to the last input, so a prompt already on screen cannot match
 a wait starts. A match is still an observation, not a verdict: the terminal echoes what is
 typed, and an echo is new output too (`GOAL.md` L1.4).
 
-Not built: delivery and boundedness (L1.1), interaction (L1.4) and honest errors beyond the
-four coded ones (L1.5), and retention and durability (L3.4). Grouping is on by default
+Not built: delivery and boundedness (L1.1), the pending prompt, large pastes and a composed
+write-wait-respond call (L1.4), honest errors beyond the four coded ones (L1.5), and
+retention and durability (L3.4). Grouping is on by default
 (`DEFAULT_JOB_POLICY`); `SessionOptions.jobPolicy: false` opts out, and gives one update
 per raw pty read.
 

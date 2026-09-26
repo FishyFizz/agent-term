@@ -43,6 +43,7 @@ import { createTerminal, type IBufferCell, type XtermTerminal } from './xterm.js
 import { EditRecord, type Op } from './edit-record.js';
 import { TextLog, type TextLine } from './text-log.js';
 import { frameOf, rowDiff, type Frame } from './classify.js';
+import type { KeyModes } from './keys.js';
 import { assertGridSize } from './types.js';
 
 /** One row of the screen, as text. Glyph-indexed; see `ScreenSnapshot.wide`. */
@@ -243,6 +244,24 @@ export class ScreenModel {
 
   get rows(): number {
     return this._rows;
+  }
+
+  /**
+   * What the program has asked this terminal to do.
+   *
+   * Read from the emulator rather than tracked here, because the emulator is
+   * the authority for every other fact about this screen and a second tally
+   * could drift from it. Note it reports only what has been *parsed*: a mode
+   * the program set and this session has not fed yet is not reflected, so a
+   * caller encoding input on it should have waited for some output first.
+   *
+   * There is no per-buffer subtlety to look for -- DECCKM is a global terminal
+   * mode, not an alternate-screen one -- and no unreadable case, since the
+   * emulator is always built with `allowProposedApi` and `modes` is a plain
+   * getter.
+   */
+  get modes(): KeyModes {
+    return { applicationCursorKeys: this.terminal.modes.applicationCursorKeysMode };
   }
 
   /**

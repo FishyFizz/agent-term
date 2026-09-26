@@ -43,6 +43,7 @@ test('the surface exposes the core loop', async (t) => {
     'open_session',
     'read_screen',
     'send_input',
+    'send_sequence',
     'wait_for_idle',
     'wait_for_output',
   ]);
@@ -265,4 +266,201 @@ test('closing ends the session and the tool says so', async (t) => {
 
   const after = await call(client, 'read_screen', { sessionId });
   assert.equal(after.isError, true, 'the session is gone afterwards');
+});
+
+/**
+ * A subject that reports the exact bytes it receives, so a claim about what a
+ * key encoded to can be checked against the program rather than against our own
+ * return value. `setRawMode` is a measured requirement: without it the child is
+ * line-buffered and receives nothing until a line ending arrives.
+ *
+ * The escape sequences are written `\x1b` in the child's *source*, which the
+ * child then parses as ESC -- see the same note in `jobs-live.test.ts`.
+ */
+function byteReporter(withDecckm: boolean): string {
+  return (
+    'try{process.stdin.setRawMode(true)}catch(e){};' +
+    (withDecckm ? "process.stdout.write('\\x1b[?1h');" : '') +
+    "process.stdout.write('PROMPT> ');" +
+    "process.stdin.on('data',b=>{process.stdout.write('\\r\\nGOT '+" +
+    "Buffer.from(b).toString('hex')+'\\r\\nPROMPT> ')});"
+  );
+}
+
+/** The bytes the subject reported receiving, in the order it reported them. */
+function reported(lines: readonly string[]): string {
+  return lines
+    .map((line) => /^GOT ([0-9a-f]+)$/.exec(line.trimEnd())?.[1])
+    .filter((hex): hex is string => hex !== undefined)
+    .join('');
+}
+
+test('a key is encoded for the mode the program set, not from a fixed table', async (t) => {
+  const { client, host, close } = await connected();
+  t.after(() => {
+    host.disposeAll();
+    return close();
+  });
+
+  async function drive(withDecckm: boolean) {
+    const opened = await call(client, 'open_session', {
+      command: process.execPath,
+      args: ['-e', byteReporter(withDecckm)],
+    });
+    const sessionId = (opened.structuredContent as { sessionId: string }).sessionId;
+
+    // The prompt is written *after* the mode bytes, so a match is evidence the
+    // mode has been parsed -- which is what `modes` reports.
+    const ready = await call(client, 'wait_for_output', {
+      sessionId,
+      pattern: '^PROMPT>$',
+      timeoutMs: 10000,
+    });
+    assert.equal((ready.structuredContent as { reason: string }).reason, 'matched', 'ready');
+
+    const sent = await call(client, 'send_sequence', { sessionId, steps: [{ key: 'down' }] });
+    const result = sent.structuredContent as {
+      written: string;
+      bytesWritten: number;
+      modes: { applicationCursorKeys: boolean } | null;
+    };
+
+    await call(client, 'wait_for_output', {
+      sessionId,
+      pattern: '^GOT [0-9a-f]+$',
+      timeoutMs: 10000,
+    });
+    const read = await call(client, 'read_screen', { sessionId });
+    const lines = (read.structuredContent as { screen: string[] }).screen;
+    return { result, seen: reported(lines) };
+  }
+
+  // DECCKM set: the program asked for application cursor keys, so Down is SS3.
+  const application = await drive(true);
+  assert.equal(application.result.modes?.applicationCursorKeys, true, 'the mode was read');
+  assert.equal(application.result.written, '\\x1bOB', 'and reported as what was written');
+  assert.equal(application.result.bytesWritten, 3, 'three bytes, not three characters');
+  assert.equal(application.seen, '1b4f42', 'the program received SS3 B');
+
+  // The negative control. Without it the assertion above is satisfied by any
+  // hardcoded byte string and proves nothing about the mode being consulted.
+  const plain = await drive(false);
+  assert.equal(plain.result.modes?.applicationCursorKeys, false, 'the mode was read, and was off');
+  assert.equal(plain.result.written, '\\x1b[B', 'so Down is CSI B');
+  assert.equal(plain.seen, '1b5b42', 'and that is what the program received');
+});
+
+test('a batch is one write, and says what each step became', async (t) => {
+  const { client, host, close } = await connected();
+  t.after(() => {
+    host.disposeAll();
+    return close();
+  });
+
+  const opened = await call(client, 'open_session', {
+    command: process.execPath,
+    args: ['-e', byteReporter(false)],
+  });
+  const sessionId = (opened.structuredContent as { sessionId: string }).sessionId;
+  await call(client, 'wait_for_output', { sessionId, pattern: '^PROMPT>$', timeoutMs: 10000 });
+
+  // "type this, then press Enter" -- the case the batched form exists for.
+  const sent = await call(client, 'send_sequence', {
+    sessionId,
+    steps: [{ text: 'go' }, { key: 'down' }, { key: 'enter' }],
+  });
+  assert.notEqual(sent.isError, true, 'the batch is accepted');
+
+  const result = sent.structuredContent as {
+    written: string;
+    bytesWritten: number;
+    steps: Array<{ kind: string; key?: string; written: string }>;
+    modes: { applicationCursorKeys: boolean } | null;
+  };
+  assert.equal(result.written, 'go\\x1b[B\\x0d', 'the batch as one string, in order');
+  assert.equal(result.bytesWritten, 6, 'and counted in bytes');
+  assert.deepEqual(
+    result.steps.map((step) => [step.kind, step.key ?? null, step.written]),
+    [['text', null, 'go'], ['key', 'down', '\\x1b[B'], ['key', 'enter', '\\x0d']],
+    'each step reports its kind, its canonical key name and its bytes',
+  );
+  assert.equal(result.modes?.applicationCursorKeys, false, 'an arrow consulted the mode');
+
+  await call(client, 'wait_for_output', { sessionId, pattern: '^GOT [0-9a-f]+$', timeoutMs: 10000 });
+  const read = await call(client, 'read_screen', { sessionId });
+  const lines = (read.structuredContent as { screen: string[] }).screen;
+  // The concatenation, not a count of reports: that a whole batch arrives in a
+  // single read is the terminal's chunking, not something this server promises.
+  assert.equal(reported(lines), '676f1b5b420d', 'the program received the batch, in order');
+});
+
+test('a batch that cannot be composed is a typed error, not a silent no-op', async (t) => {
+  const { client, host, close } = await connected();
+  t.after(() => {
+    host.disposeAll();
+    return close();
+  });
+
+  const opened = await call(client, 'open_session', {});
+  const sessionId = (opened.structuredContent as { sessionId: string }).sessionId;
+
+  const cases: Array<[string, unknown[], RegExp]> = [
+    ['an unknown key', [{ key: 'dwn' }], /did you mean "down"/],
+    ['two fields in one step', [{ key: 'down', byte: 27 }], /found key and byte/],
+    ['a field it does not know', [{ keys: 'down' }], /unknown field "keys"/],
+    ['no fields at all', [{}], /found none/],
+  ];
+
+  for (const [label, steps, expected] of cases) {
+    const result = await call(client, 'send_sequence', { sessionId, steps });
+    assert.equal(result.isError, true, `${label} is refused`);
+    const error = (result.structuredContent as { error: { code: string; message: string } }).error;
+    assert.equal(error.code, 'bad_input', `${label} carries a code a caller can branch on`);
+    assert.match(error.message, expected, `${label} says what to fix`);
+  }
+
+  const empty = await call(client, 'send_sequence', { sessionId, steps: [] });
+  assert.equal(empty.isError, true, 'an empty batch is refused');
+  assert.match(
+    (empty.structuredContent as { error: { message: string } }).error.message,
+    /nothing would be written/,
+    'and says why: an empty write still moves the watermark a wait measures against',
+  );
+
+  // A refused batch writes nothing, so the session is still usable.
+  const after = await call(client, 'send_sequence', { sessionId, steps: [{ key: 'enter' }] });
+  assert.notEqual(after.isError, true, 'the session was not disturbed by the refusals');
+});
+
+test('send_input reports the bytes it wrote, including the newline it appended', async (t) => {
+  const { client, host, close } = await connected();
+  t.after(() => {
+    host.disposeAll();
+    return close();
+  });
+
+  const opened = await call(client, 'open_session', {});
+  const sessionId = (opened.structuredContent as { sessionId: string }).sessionId;
+
+  const shape = (result: ToolResult) => ({
+    bytesWritten: (result.structuredContent as { bytesWritten: number }).bytesWritten,
+    written: (result.structuredContent as { written: string }).written,
+    submitted: (result.structuredContent as { submitted: boolean }).submitted,
+  });
+
+  const typed = await call(client, 'send_input', { sessionId, text: 'hi' });
+  assert.deepEqual(
+    shape(typed),
+    { bytesWritten: 2, written: 'hi', submitted: false },
+    'what was typed, and nothing appended',
+  );
+
+  // The count includes the line ending, so it counts what was actually written
+  // rather than only the caller's payload.
+  const submitted = await call(client, 'send_input', { sessionId, text: 'hi', submit: true });
+  assert.deepEqual(
+    shape(submitted),
+    { bytesWritten: 4, written: 'hi\\x0d\\x0a', submitted: true },
+    'what was typed, plus the line ending that was actually sent',
+  );
 });

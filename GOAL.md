@@ -194,6 +194,20 @@ whether output has finished.
 An interaction can be composed — write, wait for a specific change, respond — without a
 turn-shaped round trip per keystroke.
 
+Built: `send_sequence` and `src/keys.ts` — individual keystrokes, control and function keys,
+sent by name, and several of them in one write. A key is encoded from the mode the program has
+set (`applicationCursorKeysMode`, read off the screen) rather than from a fixed table, so an
+arrow is right in a shell and in a full-screen editor alike, and the result reports the bytes
+actually written so the round trip can be checked without a read. Interrupts are covered only
+insofar as Ctrl-C is the `0x03` byte, which is how a human reaches for it — the tty line
+discipline raises the signal, and in a raw-mode program it is a byte, exactly as at a keyboard.
+
+Not built: the pending prompt (`SessionState` reports `idle`, which a program waiting and a
+program thinking both are), large pastes, and a composed write-wait-respond call. That last one
+is the one to be careful with — a batch that waits between steps is the scripted-recipes
+non-goal wearing a different hat, so a batch is a sequence of writes at one instant and
+reactions stay in the caller's loop.
+
 ### L1.5 — Honest errors
 
 "No such session", "process exited with status N", "session is waiting for input" — actionable

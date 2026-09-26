@@ -1,17 +1,25 @@
 /**
  * The MCP surface — a spike of the core loop, not the whole thing.
  *
- * Six tools, because that is the smallest set an agent can drive a terminal
- * with: open one, type into it, wait for it to stop changing, wait for it to
- * show something, read what happened, close it. Everything else — history
- * paging, intermediate playback, interaction beyond plain text — goes on top of
- * these rather than beside them, and is deliberately not here yet.
+ * Seven tools, because that is the smallest set an agent can drive a terminal
+ * with: open one, type into it, send a batch of input as one write, wait for it
+ * to stop changing, wait for it to show something, read what happened, close it.
+ * Everything else — history paging, intermediate playback, and the rest of
+ * interaction (the pending prompt, large pastes) — goes on top of these rather
+ * than beside them, and is deliberately not here yet.
  *
  * The shape of a result matters more than the number of tools. A read returns
  * what a human at the screen would say: the screen, what changed on it, and
  * how much output the change stands for. It does not return escape sequences
  * and it does not ask the agent to guess a mode (L0.1). Where a value is not
  * knowable it is `null`, never 0 (L1.3).
+ *
+ * A write reports `written`: the bytes as they were handed to the terminal, in
+ * a form that can be compared with what was meant. A transport between an agent
+ * and this server can silently drop a control character, and one driving run
+ * spent three inputs discovering that its `ESC` had become inert text
+ * (`feedbacks/1.txt`). Naming a key removes the byte from the wire; reporting
+ * the bytes makes the round trip visible when it does not.
  *
  * A read also reports the session's state as facts — whether it is running,
  * how long it has been idle, whether what it produced has been read through.
@@ -28,6 +36,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { SessionHost } from './host.js';
+import { composeSteps, escapeBytes, KeyInputError, KEY_SUMMARY, type Composed } from './keys.js';
 import type { SessionUpdate } from './session.js';
 import type { SessionId } from './types.js';
 
@@ -105,7 +114,9 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
       title: 'Send input to a session',
       description:
         'Write text into a session, as if typed. `submit` appends a newline, so a command ' +
-        'that needs Enter pressed should set it.',
+        'that needs Enter pressed should set it. To press a key rather than type characters — ' +
+        'arrows, Tab, Escape, Ctrl-C — use `send_sequence`. The result reports `written`, the ' +
+        'bytes as they were actually handed to the terminal.',
       inputSchema: {
         sessionId: z.string(),
         text: z.string().describe('What to type.'),
@@ -116,10 +127,97 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
       const target = session(sessionId);
       if (!target) return fail('no_session', `no session ${sessionId}`);
       if (!target.pty.alive) return fail('not_live', `session ${sessionId} has exited`);
-      target.pty.write(submit ? `${text}\r\n` : text);
+      const bytes = submit ? `${text}\r\n` : text;
+      target.pty.write(bytes);
       return {
         content: [{ type: 'text', text: 'sent' }],
-        structuredContent: { sessionId, bytesWritten: Buffer.byteLength(text, 'utf8'), submitted: submit ?? false },
+        structuredContent: {
+          sessionId,
+          bytesWritten: Buffer.byteLength(bytes, 'utf8'),
+          written: escapeBytes(bytes),
+          submitted: submit ?? false,
+        },
+      };
+    },
+  );
+
+  server.registerTool(
+    'send_sequence',
+    {
+      title: 'Send a batch of input as one write',
+      description:
+        'Write several inputs at one instant: each step is `{text}`, `{key}` or `{byte}`, and ' +
+        'the whole batch goes in a single write, in order. This is how a keystroke a program ' +
+        'needs but has no character for gets sent -- "type this, then press Enter" is one call ' +
+        'rather than two, and no raw escape bytes cross the wire.\n\n' +
+        'Keys are named, not spelled: ' +
+        KEY_SUMMARY +
+        '. A key is encoded using the mode the program has set, read from the screen -- ' +
+        '`down` is `CSI B`, or `SS3 B` when the program has turned on application cursor ' +
+        'keys -- so the same call is right in a shell and in a full-screen editor.\n\n' +
+        'Nothing waits inside a batch. It is a sequence of writes at one instant, not a ' +
+        'script with reactions; send, then wait, then read, and keep that loop in your own ' +
+        'control. The result reports `written`, the bytes as they were actually handed to the ' +
+        'terminal, so what the program received can be checked without reading the screen.',
+      inputSchema: {
+        sessionId: z.string(),
+        steps: z
+          .array(
+            z.looseObject({
+              text: z.string().optional().describe('Literal text to type.'),
+              key: z
+                .string()
+                .optional()
+                .describe(`A key by name. Known keys: ${KEY_SUMMARY}`),
+              byte: z
+                .union([z.number(), z.string()])
+                .optional()
+                .describe(
+                  'A raw byte, 0x01-0x7f, as a number or as hex ("1b" or "0x1b"). The ' +
+                    'escape hatch for a byte no key names.',
+                ),
+            }),
+          )
+          .describe('The steps, in order. Each step is exactly one of text, key or byte.'),
+      },
+    },
+    async ({ sessionId, steps }) => {
+      const target = session(sessionId);
+      if (!target) return fail('no_session', `no session ${sessionId}`);
+      if (!target.pty.alive) return fail('not_live', `session ${sessionId} has exited`);
+
+      // The mode is read once, before composing: a step's bytes go *to* the
+      // program, and the mode only ever changes from the program's output,
+      // which this does not parse before returning.
+      let composed: Composed;
+      try {
+        composed = composeSteps(steps, target.screen.modes);
+      } catch (cause) {
+        if (cause instanceof KeyInputError) return fail('bad_input', cause.message);
+        throw cause;
+      }
+
+      target.pty.write(composed.bytes);
+      return {
+        content: [{ type: 'text', text: `sent ${composed.steps.length} steps` }],
+        structuredContent: {
+          sessionId,
+          bytesWritten: Buffer.byteLength(composed.bytes, 'utf8'),
+          written: escapeBytes(composed.bytes),
+          steps: composed.steps.map((step) => ({
+            kind: step.kind,
+            ...(step.key === undefined ? {} : { key: step.key }),
+            ...(step.byte === undefined ? {} : { byte: step.byte }),
+            written: step.written,
+          })),
+          // `null` when no step consulted it -- a text-only batch made no
+          // decision that depended on the mode, and `false` would answer a
+          // question that was never asked (L1.3).
+          modes:
+            composed.applicationCursorKeys === null
+              ? null
+              : { applicationCursorKeys: composed.applicationCursorKeys },
+        },
       };
     },
   );

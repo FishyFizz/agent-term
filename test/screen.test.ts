@@ -211,3 +211,29 @@ test('the cursor is a column number, which is what a wide row needs', async () =
   assert.equal(s.snapshot().cursorX, 8);
   assert.equal(s.snapshot().lines[0]!.length, 8, 'even though there are only 8 glyphs');
 });
+
+test('application cursor keys is read from the program, not assumed', async () => {
+  // A key's bytes depend on this mode -- an arrow is CSI normally and SS3 when
+  // the program has set DECCKM -- so the model has to report what the program
+  // asked for rather than a default. `keys.ts` never guesses it.
+  const s = new ScreenModel(20, 5);
+  assert.equal(s.modes.applicationCursorKeys, false, 'off until the program says otherwise');
+
+  await s.feed('\x1b[?1h');
+  assert.equal(s.modes.applicationCursorKeys, true, 'CSI ? 1 h turns it on');
+
+  await s.feed('\x1b[?1l');
+  assert.equal(s.modes.applicationCursorKeys, false, 'and CSI ? 1 l turns it off again');
+});
+
+test('a mode set in the middle of output is reflected once it is parsed', async () => {
+  // The honest caveat on `modes`: it reports what has been parsed, so a mode
+  // that has been written but not yet fed is not in it. That is why the mode is
+  // read after waiting for output rather than concurrently with it.
+  const s = new ScreenModel(20, 5);
+  const pending = s.feed('setting up\x1b[?1hmore');
+  assert.equal(s.modes.applicationCursorKeys, false, 'not reflected before the feed resolves');
+
+  await pending;
+  assert.equal(s.modes.applicationCursorKeys, true, 'reflected after it');
+});
