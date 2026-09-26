@@ -129,7 +129,7 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
       if (!target) return fail('no_session', `no session ${sessionId}`);
       if (!target.pty.alive) return fail('not_live', `session ${sessionId} has exited`);
       const bytes = submit ? `${text}\r\n` : text;
-      target.pty.write(bytes);
+      target.send(bytes);
       return {
         content: [{ type: 'text', text: 'sent' }],
         structuredContent: {
@@ -198,7 +198,7 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
         throw cause;
       }
 
-      target.pty.write(composed.bytes);
+      target.send(composed.bytes);
       return {
         content: [{ type: 'text', text: `sent ${composed.steps.length} steps` }],
         structuredContent: {
@@ -358,6 +358,64 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
       return {
         content: [{ type: 'text', text: said }],
         structuredContent: { sessionId, ...rest, screen: screen ? screen.lines : null },
+      };
+    },
+  );
+
+  server.registerTool(
+    'wait_for_job',
+    {
+      title: 'Wait for the next job',
+      description:
+        'Block until the program finishes one act of output, or until `timeoutMs` passes. ' +
+        'The third wait, and the one a full-screen TUI needs: `wait_for_idle` is negative ' +
+        '(nothing arrived for a while) so it returns whether or not anything happened, and ' +
+        '`wait_for_output` needs a pattern to anchor on, which a repainting menu does not ' +
+        'have. A job is positive and content-agnostic. ' +
+        'Returns `reason`: `job` (with `seq`, `job`, `collapsed`, `screen`), `exited`, ' +
+        '`disposed` (the session was closed), or `timeout`. ' +
+        '**`collapsed.reason` says how the job ended, and the four do not mean the same ' +
+        'thing**: `gap` is the program going quiet on its own; `bytes` and `chunks` are ' +
+        'caps cutting a job open *while the program is still writing*, so more output is ' +
+        'coming; `flush` is a resize or an exit forcing it closed. ' +
+        '**`collapsed.grid` being `null` does not mean nothing changed** — a resize or an ' +
+        'alt-screen switch is exactly when no delta exists, and those are the largest ' +
+        'changes there are. ' +
+        'When `collapsed.chunks > 1`, states existed that were not shown: read them with ' +
+        '`history_read({from:{seq:collapsed.rawFrom}, to:{seq}, screen:true})`. ' +
+        '`sinceSeq` defaults to the state the session was last typed at, so a job that ' +
+        'closed *before* your input cannot satisfy the wait; pass the `seq` you last saw ' +
+        'to continue from there. A firehose produces a sequence of jobs — loop with ' +
+        '`sinceSeq`. A session opened without grouping still ends on a job: with no ' +
+        'detector there is no boundary to group to, so each update is one, and ' +
+        '`collapsed` is null.',
+      inputSchema: {
+        sessionId: z.string(),
+        sinceSeq: z
+          .number()
+          .int()
+          .nonnegative()
+          .optional()
+          .describe('Only a job ending after this state counts. Default: the last input.'),
+        timeoutMs: z.number().int().positive().describe('Give up after this long.'),
+      },
+    },
+    async ({ sessionId, sinceSeq, timeoutMs }) => {
+      const target = session(sessionId);
+      if (!target) return fail('no_session', `no session ${sessionId}`);
+      const result = await target.waitForJob({ sinceSeq, timeoutMs });
+      const { screen, ...rest } = result;
+      const said =
+        result.reason === 'job'
+          ? `job ${result.job} at state ${result.seq} (${result.collapsed?.reason ?? 'none'})`
+          : result.reason;
+      return {
+        content: [{ type: 'text', text: said }],
+        structuredContent: {
+          sessionId,
+          ...rest,
+          screen: screen ? screen.lines : null,
+        },
       };
     },
   );

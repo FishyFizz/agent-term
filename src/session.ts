@@ -276,6 +276,60 @@ export interface WaitOptions {
   timeoutMs: number;
 }
 
+/** What `waitForJob` is asked for. */
+export interface WaitForJobOptions {
+  /**
+   * Only a job ending at a state *after* this one counts.
+   *
+   * The same numbering `seq` reports: a state in the timeline, not a count of
+   * updates (see `SessionUpdate.seq`). Defaults to the last state the session
+   * was typed at, so a job that closed before the input was sent cannot
+   * satisfy the wait.
+   */
+  sinceSeq?: number;
+  /**
+   * Stop waiting after this long, in milliseconds.
+   *
+   * The only bound that always holds. A policy without caps never closes a
+   * firehose job, so the caps cannot be relied on to end this on their own.
+   */
+  timeoutMs: number;
+}
+
+/**
+ * Why a job wait ended.
+ *
+ * `job` carries the reason the job closed in `collapsed.reason`, and the four
+ * do not mean the same thing: `bytes`/`chunks` are caps cutting a job open
+ * while the program is still writing, `flush` is a resize or an exit forcing
+ * it, and only `gap` means the program went quiet on its own.
+ */
+export type JobWaitReason = 'job' | 'disposed' | 'exited' | 'timeout';
+
+export interface JobWaitResult {
+  reason: JobWaitReason;
+  /**
+   * The state the wait reached, or `sinceSeq` when nothing new arrived.
+   *
+   * Always present, and never a guess: on a job this is the last state it
+   * covered, so a caller that wants the frames it swallowed reads
+   * `history_read({from:{seq:collapsed.rawFrom}, to:{seq}})`.
+   */
+  seq: number;
+  /** Which job, or `null` when no job arrived. */
+  job: number | null;
+  /** What the job merged, or `null`. `chunks > 1` means states were swallowed. */
+  collapsed: CollapsedInfo | null;
+  /** The screen as it was when the wait ended, or `null` on `disposed`. */
+  screen: ReturnType<ScreenModel['snapshot']> | null;
+  /** What was observed when the wait ended. */
+  state: SessionState;
+  /** Milliseconds the wait lasted, on the session's clock. */
+  waitedMs: number;
+  /** The baseline used, so the caller can see what "new" meant. */
+  sinceSeq: number;
+}
+
 /** What `waitForOutput` is asked for. */
 export interface WaitForOutputOptions {
   /**
@@ -371,6 +425,7 @@ export class TerminalSession {
   private readonly listeners: ((update: SessionUpdate) => void)[] = [];
   private readonly resizeListeners: ((size: SessionSize) => void)[] = [];
   private readonly exitListeners: ((info: PtyExitInfo) => void)[] = [];
+  private readonly disposeListeners: (() => void)[] = [];
   /** Present unless the session was opened with `jobPolicy: false`. */
   private readonly jobs?: JobDetector;
   private readonly deliveryListeners: ((delivery: Delivery) => void)[] = [];
@@ -402,6 +457,8 @@ export class TerminalSession {
   private readonly waiters: (() => void)[] = [];
   private _seq = 0;
   private _rawSeq = 0;
+  /** The state the session was last typed at. See `send`. */
+  private _lastInputSeq = 0;
   private queue: Promise<void> = Promise.resolve();
   private pendings = 0;
   /**
@@ -486,6 +543,48 @@ export class TerminalSession {
   /** Subscribe to the process exiting. Returns an unsubscribe function. */
   onExit(listener: (info: PtyExitInfo) => void): () => void {
     return subscribe(this.exitListeners, listener);
+  }
+
+  /**
+   * Subscribe to the session ending. Returns an unsubscribe function.
+   *
+   * `dispose()` clears the other listener lists before it wakes anyone, so a
+   * waiter subscribed to those would be silently unsubscribed and would only
+   * return when its own deadline ran out -- which looks like a timeout. This
+   * exists so a wait can report that the session is gone instead.
+   */
+  onDispose(listener: () => void): () => void {
+    return subscribe(this.disposeListeners, listener);
+  }
+
+  /**
+   * Send input, and remember the state it was typed at.
+   *
+   * The seq watermark belongs here rather than on the pty, because `_rawSeq`
+   * is incremented in `feed` and only the session knows it. `waitForJob`
+   * defaults its baseline to it, exactly as `waitForOutput` defaults to the
+   * pty's byte watermark: without a baseline, a job that closed *before* this
+   * input was sent would satisfy the wait.
+   */
+  send(input: string): void {
+    this._lastInputSeq = this._rawSeq;
+    this.pty.write(input);
+  }
+
+  /**
+   * Whether this session groups output into jobs.
+   *
+   * `wait_for_job` has nothing to wait for without one, and it says so rather
+   * than hanging: a session opened with `jobPolicy: false` produces no job
+   * boundary at all, so the wait would always run to its deadline.
+   */
+  get grouping(): boolean {
+    return this.jobs !== undefined;
+  }
+
+  /** The state input was last typed at. See `send`. */
+  get lastInputSeq(): number {
+    return this._lastInputSeq;
   }
 
   /** Hand one update to every listener. */
@@ -863,6 +962,133 @@ export class TerminalSession {
   }
 
   /**
+   * Wait for the next job — the next unit of output the program produced as
+   * one act.
+   *
+   * The third wait, and the one a TUI needs. `waitForIdle` is *negative* --
+   * nothing arrived for a while -- so it cannot tell a program that is
+   * thinking from one that is waiting for you, and it returns whether or not
+   * anything actually happened. `waitForOutput` is *positive* but needs a
+   * pattern, and a repainting menu has no stable text to anchor on. A job is
+   * positive and content-agnostic: it ends when the program's own act ends.
+   *
+   * **A job boundary is inferred from silence, not declared** (`jobs.ts` calls
+   * it "a fallback, not the truth"). So this is not *more* correct than idle,
+   * it is better aimed: it ends on the unit the classifier already computes.
+   *
+   * Subscribed to updates rather than to the job's close, because at close
+   * time nothing exists yet: the detector's callback is
+   * `feed(job.bytes, job).then(deliver)`, and feed is async and queued. A
+   * waiter woken at close would have to read again to see what the job was --
+   * the round trip that makes a wait useless. `onUpdate` delivers the whole
+   * object atomically, so one call returns job, screen and reason together.
+   *
+   * `sinceSeq` is the same number `seq` reports: a state in the timeline, not
+   * a count of updates. Without it a fast program can close a job before the
+   * wait begins, and the waiter would return the *previous* job -- output from
+   * before the input was sent, which is the bug `waitForOutput`'s `sinceByte`
+   * exists to prevent.
+   *
+   * Every close reason is reported, because they do not mean the same thing:
+   * `bytes` and `chunks` are caps cutting a job open **while the program is
+   * still writing**, and `gap` is the only one that means the program went
+   * quiet on its own. `timeout` is the bound that always holds, since a
+   * policy without caps never closes a firehose job at all.
+   */
+  async waitForJob(options: WaitForJobOptions): Promise<JobWaitResult> {
+    const startedAt = this.clock.now();
+    const deadline = startedAt + options.timeoutMs;
+    // The state the caller has already seen. Anything at or before it is
+    // content it has had, whatever produced it.
+    const sinceSeq = options.sinceSeq ?? this._lastInputSeq;
+
+    // Held in a box, not a bare `let`: TypeScript narrows a variable assigned
+    // only inside a closure to `never` at the point it is read.
+    const box: { found: SessionUpdate | null } = { found: null };
+    let disposed = false;
+
+    // Caught up before subscribing is wrong in the other direction -- a job
+    // could land between the scan and the subscription -- so subscribe first,
+    // then scan, exactly as `waitForOutput` does.
+    const off = this.onUpdate((update) => {
+      if (box.found) return;
+      if (update.seq <= sinceSeq) return;
+      // A job's update is the one that closed it. Without grouping every
+      // update is its own job, so each one ends the wait -- which is correct:
+      // there is nothing to group, and the caller gets output as it arrives.
+      box.found = update;
+      this.wake();
+    });
+    const offDispose = this.onDispose(() => {
+      disposed = true;
+      this.wake();
+    });
+
+    try {
+      for (;;) {
+        const now = this.clock.now();
+        const state = this.state(now);
+        const found = box.found;
+        if (found) {
+          return {
+            reason: 'job',
+            seq: found.seq,
+            job: found.job,
+            collapsed: found.collapsed,
+            screen: found.screen,
+            state,
+            waitedMs: now - startedAt,
+            sinceSeq,
+          };
+        }
+        // Disposed: the listeners were cleared, so nothing will ever arrive.
+        // Ending here with a reason rather than letting the deadline run out,
+        // which would look like a timeout the caller has to interpret.
+        if (disposed) {
+          return {
+            reason: 'disposed',
+            seq: sinceSeq,
+            job: null,
+            collapsed: null,
+            screen: null,
+            state,
+            waitedMs: now - startedAt,
+            sinceSeq,
+          };
+        }
+        if (state.exit !== null && state.drained === true) {
+          return {
+            reason: 'exited',
+            seq: sinceSeq,
+            job: null,
+            collapsed: null,
+            screen: this.screen.snapshot(),
+            state,
+            waitedMs: now - startedAt,
+            sinceSeq,
+          };
+        }
+        if (now >= deadline) {
+          return {
+            reason: 'timeout',
+            seq: sinceSeq,
+            job: null,
+            collapsed: null,
+            screen: this.screen.snapshot(),
+            state,
+            waitedMs: now - startedAt,
+            sinceSeq,
+          };
+        }
+        await this.nextChange(deadline);
+      }
+    } finally {
+      off();
+      offDispose();
+    }
+  }
+
+  /**
    * Rows written since the baseline, against the screen as it is now.
    *
    * This is the catch-up the caller needs because the content it is waiting for
@@ -1054,9 +1280,13 @@ export class TerminalSession {
    * kill to remember here.
    */
   dispose(): void {
+    // Before anything is cleared, so a waiter can be told the session is gone
+    // rather than sitting out its deadline and looking like a timeout.
+    for (const listener of this.disposeListeners.splice(0)) listener();
     this.listeners.length = 0;
     this.resizeListeners.length = 0;
     this.exitListeners.length = 0;
+    this.disposeListeners.length = 0;
     this.jobs?.dispose();
     this.screen.dispose();
     this.pty.dispose();

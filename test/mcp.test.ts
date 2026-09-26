@@ -46,6 +46,7 @@ test('the surface exposes the core loop', async (t) => {
     'send_input',
     'send_sequence',
     'wait_for_idle',
+    'wait_for_job',
     'wait_for_output',
   ]);
   for (const tool of tools.tools) {
@@ -579,4 +580,48 @@ test('a bad address is a typed error a caller can branch on', async (t) => {
 
   const none = await call(client, 'history_read', { sessionId: 'no-such-session' });
   assert.equal((none.structuredContent as { error: { code: string } }).error.code, 'no_session');
+});
+
+test('a job wait returns the act whole, and its swallowed states are reachable', async (t) => {
+  const { client, host, close } = await connected();
+  t.after(() => {
+    host.disposeAll();
+    return close();
+  });
+
+  const opened = await call(client, 'open_session', {});
+  const sessionId = (opened.structuredContent as { sessionId: string }).sessionId;
+
+  await call(client, 'send_input', { sessionId, text: 'echo JOB-ONE', submit: true });
+  const waited = await call(client, 'wait_for_job', { sessionId, timeoutMs: 20000 });
+  const job = waited.structuredContent as {
+    reason: string;
+    seq: number;
+    job: number | null;
+    collapsed: { chunks: number; rawFrom: number; reason: string } | null;
+    screen: string[] | null;
+  };
+
+  assert.equal(job.reason, 'job', 'the wait ended on a job');
+  assert.ok(job.screen, 'and carried the screen, so no second read is needed');
+  assert.ok(job.seq > 0, 'ending at a state');
+
+  // The number it reports is one the timeline addresses, so a job that
+  // swallowed states hands back a span that can be played.
+  if (job.collapsed && job.collapsed.chunks > 1) {
+    const played = (await call(client, 'history_read', {
+      sessionId,
+      from: { seq: job.collapsed.rawFrom },
+      to: { seq: job.seq },
+      screen: true,
+    })).structuredContent as { records: Array<{ seq: number; screen?: { lines: string[] } }> };
+    assert.equal(
+      played.records.length,
+      job.collapsed.chunks,
+      'every swallowed state comes back',
+    );
+    for (const record of played.records) {
+      assert.ok(record.screen, 'with the screen it had');
+    }
+  }
 });
