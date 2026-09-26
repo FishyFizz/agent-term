@@ -1,12 +1,12 @@
 /**
  * The MCP surface — a spike of the core loop, not the whole thing.
  *
- * Seven tools, because that is the smallest set an agent can drive a terminal
+ * Eight tools, because that is the smallest set an agent can drive a terminal
  * with: open one, type into it, send a batch of input as one write, wait for it
- * to stop changing, wait for it to show something, read what happened, close it.
- * Everything else — history paging, intermediate playback, and the rest of
- * interaction (the pending prompt, large pastes) — goes on top of these rather
- * than beside them, and is deliberately not here yet.
+ * to stop changing, wait for it to show something, read what happened, address
+ * the timeline it happened on, close it. The rest of interaction (the pending
+ * prompt, large pastes) goes on top of these rather than beside them, and is
+ * deliberately not here yet.
  *
  * The shape of a result matters more than the number of tools. A read returns
  * what a human at the screen would say: the screen, what changed on it, and
@@ -37,6 +37,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { SessionHost } from './host.js';
 import { composeSteps, escapeBytes, KeyInputError, KEY_SUMMARY, type Composed } from './keys.js';
+import type { HistoryPoint, HistoryReadOptions } from './history.js';
 import type { SessionUpdate } from './session.js';
 import type { SessionId } from './types.js';
 
@@ -348,6 +349,185 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
         content: [{ type: 'text', text: said }],
         structuredContent: { sessionId, ...result },
       };
+    },
+  );
+
+  server.registerTool(
+    'history_read',
+    {
+      title: 'Read a session\'s history',
+      description:
+        'Address a session\'s timeline and read it back. This is one surface over one ' +
+        'timeline: paging through what happened and replaying the frames a job swallowed ' +
+        'are the same operation here, at different settings. `from` and `to` take any ' +
+        'address — a token from a previous read (`next`), a sequence number, a timestamp ' +
+        'in ms, or a byte offset — and the two ends need not be the same kind. `level` ' +
+        'chooses the projection: `records` (default, the deliveries as recorded), `jobs` ' +
+        '(the units the agent was shown, with verdicts), or `text` (plain lines). ' +
+        '`screen: true` materializes the screen at each point, which is what turns a page ' +
+        'into a playback — leave it off for cheap paging. Passing `to` reads a span and ' +
+        'may cross a resize; paging with only `from` never does, and every result reports ' +
+        'the grid size its records were produced at. This is how `collapsed.intermediates` ' +
+        'from `read_screen` is followed up: read the job\'s span with `screen: true` to see ' +
+        'the states it merged. History stays readable after `close_session` (L0.3). ' +
+        'Returns `next` to resume, `truncated` when the limit stopped the read, and ' +
+        '`stoppedAtEpochEnd` when the grid changed.',
+      inputSchema: {
+        sessionId: z.string(),
+        from: z
+          .union([
+            z.string(),
+            z.object({ token: z.string() }),
+            z.object({ seq: z.number().int().nonnegative() }),
+            z.object({ at: z.number().int().nonnegative() }),
+            z.object({ byte: z.number().int().nonnegative() }),
+          ])
+          .optional()
+          .describe('Where to start: a token, or {seq}, {at} (ms) or {byte}. Default: the beginning.'),
+        to: z
+          .union([
+            z.string(),
+            z.object({ token: z.string() }),
+            z.object({ seq: z.number().int().nonnegative() }),
+            z.object({ at: z.number().int().nonnegative() }),
+            z.object({ byte: z.number().int().nonnegative() }),
+          ])
+          .optional()
+          .describe('Where to stop, same address space. Default: read on from `from`.'),
+        limit: z.number().int().positive().optional().describe('Cap on records, jobs or lines. Default 50.'),
+        level: z
+          .enum(['records', 'jobs', 'text'])
+          .optional()
+          .describe('The projection: deliveries as recorded (default), the jobs shown, or plain text.'),
+        screen: z
+          .boolean()
+          .optional()
+          .describe('Materialize the screen at each record — playback. Off by default.'),
+      },
+    },
+    async ({ sessionId, from, to, limit, level, screen }) => {
+      const history = host.historyFor(sessionId as SessionId);
+      if (!history) return fail('no_session', `no session ${sessionId}`);
+
+      const options: HistoryReadOptions = {
+        from: from as HistoryPoint | undefined,
+        to: to as HistoryPoint | undefined,
+        limit,
+        level,
+        screen,
+      };
+
+      try {
+        // A span is a replay: `deliveries` is what crosses a resize, because
+        // what one job did is not less true for the grid having changed.
+        if (options.to !== undefined && options.to !== null) {
+          if ((options.level ?? 'records') === 'jobs') {
+            return fail('bad_input', 'a span (`to`) is read at the `records` or `text` level');
+          }
+          const records = history.deliveries(options.from, options.to);
+          const capped = limit === undefined ? records : records.slice(0, limit);
+          const lines = capped.flatMap((r) => r.text);
+          const shaped = (options.level ?? 'records') === 'text'
+            ? { level: 'text' as const, lines: lines.map((l) => ({ text: l.text })) }
+            : {
+                level: 'records' as const,
+                records: capped.map((r) => ({
+                  seq: r.seq,
+                  job: r.job,
+                  at: r.at,
+                  fromByte: r.fromByte,
+                  toByte: r.toByte,
+                  text: r.text.map((l) => l.text),
+                  epoch: r.epoch,
+                  screen: r.screen.lines,
+                  cursor: r.cursor,
+                  buffer: r.buffer,
+                })),
+              };
+          return {
+            content: [
+              {
+                type: 'text',
+                text:
+                  (options.level ?? 'records') === 'text'
+                    ? `${lines.length} lines across ${capped.length} deliveries`
+                    : `${capped.length} deliveries`,
+              },
+            ],
+            structuredContent: {
+              sessionId,
+              span: true,
+              truncated: capped.length < records.length,
+              ...shaped,
+            },
+          };
+        }
+
+        const page = history.readBack(options);
+        const said = page.level === 'text'
+          ? `${page.lines.length} lines`
+          : page.level === 'jobs'
+            ? `${page.jobs.length} jobs`
+            : `${page.records.length} deliveries${page.screens ? ' with screens' : ''}`;
+
+        const shaped =
+          page.level === 'text'
+            ? { level: page.level, lines: page.lines.map((l) => l.text) }
+            : page.level === 'jobs'
+              ? {
+                  level: page.level,
+                  jobs: page.jobs.map((j) => ({
+                    job: j.job,
+                    at: j.at,
+                    fromByte: j.fromByte,
+                    toByte: j.toByte,
+                    text: j.text.map((l) => l.text),
+                    screen: j.screen.lines,
+                    segments: j.segments.map((s) => ({
+                      kind: s.kind,
+                      fromByte: s.fromByte,
+                      toByte: s.toByte,
+                      erased: s.evidence.erased,
+                      overwrote: s.evidence.overwrote,
+                      reachedBack: s.evidence.reachedBack,
+                      scrolledBy: s.evidence.scrolledBy,
+                      altScreen: s.evidence.altScreen,
+                    })),
+                    chunks: j.chunks,
+                  })),
+                }
+              : {
+                  level: page.level,
+                  records: page.records.map((r) => ({
+                    seq: r.seq,
+                    job: r.job,
+                    at: r.at,
+                    fromByte: r.fromByte,
+                    toByte: r.toByte,
+                    text: r.text.map((l) => l.text),
+                    cursor: r.cursor,
+                    buffer: r.buffer,
+                    ...(r.screen ? { screen: r.screen.lines } : {}),
+                  })),
+                };
+
+        return {
+          content: [{ type: 'text', text: said }],
+          structuredContent: {
+            sessionId,
+            span: false,
+            epoch: page.epoch,
+            from: page.from,
+            next: page.next,
+            truncated: page.truncated,
+            stoppedAtEpochEnd: page.stoppedAtEpochEnd,
+            ...shaped,
+          },
+        };
+      } catch (cause) {
+        if (cause instanceof RangeError) return fail('bad_input', cause.message);
+        throw cause;
+      }
     },
   );
 

@@ -470,7 +470,7 @@ test('history reconstructs every screen of a live session', async (t) => {
   // The **stream** is what is stored: one record per delivery, encoded as a
   // delta against the last keyframe. Reading a delivery back must give the
   // screen that delivery produced.
-  const deliveries = history.deliveries(0, Number.MAX_SAFE_INTEGER);
+  const deliveries = history.deliveries({ seq: 0 }, { seq: Number.MAX_SAFE_INTEGER });
   assert.ok(deliveries.length > 0, 'the stream recorded deliveries');
   for (let i = 1; i < deliveries.length; i++) {
     const previous = deliveries[i - 1]!;

@@ -143,7 +143,7 @@ test('a merged job can be played back: the states it swallowed are readable', as
   const job = updates.find((u) => u.collapsed && u.collapsed.chunks > 1)!;
   const { rawFrom, rawTo, chunks } = job.collapsed!;
 
-  const playback = history.deliveries(rawFrom, rawTo);
+  const playback = history.deliveries({ seq: rawFrom }, { seq: rawTo });
   assert.equal(playback.length, chunks, 'one record per raw delivery the job swallowed');
   assert.ok(playback.length > 1, 'the job really did merge');
 

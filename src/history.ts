@@ -212,6 +212,62 @@ export interface TextPage {
   stoppedAtEpochEnd: boolean;
 }
 
+/**
+ * What a record stands for when the timeline is read.
+ *
+ * The stream is the record; these are projections over it, chosen per read
+ * rather than fixed per method, because "what happened" and "what the agent
+ * was shown" are two accounts of one stream and a caller wants one of them at
+ * a time.
+ */
+export type HistoryLevel = 'records' | 'jobs' | 'text';
+
+/** What a read of the timeline is asking for. */
+export interface HistoryReadOptions {
+  /** Where to start. Any address — token, seq, time or byte. Default: the beginning. */
+  from?: HistoryPoint | null;
+  /** Where to stop, same address space. Default: read on from `from`. */
+  to?: HistoryPoint | null;
+  /** Cap on what comes back. Default 50. */
+  limit?: number;
+  /** The projection: `records` (default), `jobs`, or `text`. */
+  level?: HistoryLevel;
+  /** Materialize the screen at each record. Off by default — it is the expensive part. */
+  screen?: boolean;
+}
+
+/** What a read of the timeline returned, at the projection asked for. */
+export type HistoryReadResult =
+  | {
+      level: 'records';
+      epoch: EpochInfo;
+      from: HistoryToken;
+      next: HistoryToken | null;
+      truncated: boolean;
+      stoppedAtEpochEnd: boolean;
+      records: Array<HistoryRecord & { screen?: ScreenSnapshot }>;
+      /** Whether `screen` was asked for, so an absent screen is never read as a missing one. */
+      screens: boolean;
+    }
+  | {
+      level: 'jobs';
+      epoch: EpochInfo;
+      from: HistoryToken;
+      next: HistoryToken | null;
+      truncated: boolean;
+      stoppedAtEpochEnd: boolean;
+      jobs: readonly JobRecord[];
+    }
+  | {
+      level: 'text';
+      epoch: EpochInfo;
+      from: HistoryToken;
+      next: HistoryToken | null;
+      truncated: boolean;
+      stoppedAtEpochEnd: boolean;
+      lines: readonly TextLine[];
+    };
+
 interface Epoch {
   info: EpochInfo;
   records: HistoryRecord[];
@@ -414,24 +470,164 @@ export class SessionHistory {
   }
 
   /**
-   * The deliveries in a sequence range, each with the screen it produced.
+   * The deliveries in a span, each with the screen it produced.
    *
-   * The stream read straight: every delivery the session emitted, in order,
-   * with its state reconstructed. This is what `collapsed.intermediates`
-   * promises — the states a job swallowed, playable back — and it lives here
-   * because the stream is this timeline's, not the session's.
+   * Addresses, not sequence numbers: a span is opened by whatever the caller
+   * already holds -- a token from a page, a byte watermark from a send, a time
+   * -- and the two ends need not be the same kind. `locate` resolves each to a
+   * record before the comparison, so this is asking about the timeline, not
+   * about a counter the caller has to have kept.
+   *
+   * The stream read straight: every delivery in the span, in order, with its
+   * state reconstructed. This is what `collapsed.intermediates` promises — the
+   * states a job swallowed, playable back — and it lives here because the
+   * stream is this timeline's, not the session's.
+   *
+   * Crosses epochs where `read` will not, because a replay of what one job did
+   * is not less true for the grid having changed under it. Each screen comes
+   * back at the size it was produced at, so the caller can tell; `epoch` says
+   * which. A page is a window into one grid, a replay is a span of what
+   * happened.
    */
-  deliveries(from: number, to: number): Array<HistoryRecord & { screen: ScreenSnapshot }> {
-    const out: Array<HistoryRecord & { screen: ScreenSnapshot }> = [];
-    for (const epoch of this.list) {
-      for (let i = 0; i < epoch.records.length; i++) {
-        const record = epoch.records[i]!;
-        if (record.seq < from || record.seq > to) continue;
+  deliveries(
+    from?: HistoryPoint | null,
+    to?: HistoryPoint | null,
+  ): Array<HistoryRecord & { screen: ScreenSnapshot; epoch: number }> {
+    // Both ends clamp into the recorded range rather than vanishing: a span
+    // opened before the first record starts at the beginning, one closed past
+    // the last ends at it. `locate` answers "at or before", which is right for
+    // seeking to a state and wrong for bounding a span -- there, the nearest
+    // record *inside* is the answer, and returning nothing would silently
+    // narrow what the caller asked to see.
+    const start = (from === undefined || from === null ? null : this.locate(from)) ?? this.firstRecord();
+    const end = (to === undefined || to === null ? null : this.locate(to)) ?? this.lastRecord();
+    if (!start || !end) return [];
+    if (this.orderOf(end) < this.orderOf(start)) return [];
+
+    const out: Array<HistoryRecord & { screen: ScreenSnapshot; epoch: number }> = [];
+    for (let e = start.epoch.info.index; e <= end.epoch.info.index; e++) {
+      const epoch = this.list[e];
+      if (!epoch) continue;
+      const fromIndex = e === start.epoch.info.index ? start.index : 0;
+      const toIndex = e === end.epoch.info.index ? end.index : epoch.records.length - 1;
+      for (let i = fromIndex; i <= toIndex; i++) {
+        const record = epoch.records[i];
+        if (!record) continue;
         const screen = this.screenInEpoch(epoch, i);
-        if (screen) out.push({ ...record, screen });
+        if (screen) out.push({ ...record, screen, epoch: e });
       }
     }
-    return out.sort((a, b) => a.seq - b.seq);
+    return out;
+  }
+
+  /**
+   * Read a bounded window of the timeline, at the projection asked for.
+   *
+   * One read over one timeline. `level` chooses what a record stands for --
+   * the deliveries as recorded, the jobs the agent was shown, or the plain
+   * lines -- and `screen` asks for the state at each point. Paging and
+   * playback are the same operation at two settings of these, which is why
+   * they are one call: a page is a window you move, a replay is a span you
+   * materialize, and both are "address this timeline and tell me what is
+   * there".
+   *
+   * Bounded to one epoch when `from` is given, because the records a page
+   * returns were produced at one grid size and mixing sizes would leave the
+   * caller unable to say what a row's shape means. A span (`to`) crosses
+   * instead -- see `deliveries`, which is what a span is read through.
+   */
+  readBack(options: HistoryReadOptions = {}): HistoryReadResult {
+    const level = options.level ?? 'records';
+    const limit = options.limit ?? DEFAULT_LIMIT;
+    const epoch0 = this.list[0];
+    const located =
+      options.from === undefined || options.from === null ? null : this.locate(options.from);
+    const start = located ?? (epoch0 ? { epoch: epoch0, index: 0 } : null);
+    if (!start) throw new RangeError('history has no epoch');
+    const epoch = this.list[start.epoch.info.index];
+    if (!epoch) throw new RangeError('history has no epoch');
+
+    const records: HistoryRecord[] = [];
+    let index = start.index;
+    let truncated = false;
+    for (; index < epoch.records.length; index++) {
+      const record = epoch.records[index];
+      if (!record) break;
+      if (records.length === limit) {
+        truncated = true;
+        break;
+      }
+      records.push(record);
+    }
+
+    const stoppedAtEpochEnd = index >= epoch.records.length;
+    const from = this.encode(start.epoch.info.index, start.index);
+    const next = this.resumeAt(start.epoch.info.index, index);
+
+    if (level === 'text') {
+      const lines = records.flatMap((r) => r.text);
+      return { level: 'text', epoch: epoch.info, from, next, truncated, stoppedAtEpochEnd, lines };
+    }
+
+    if (level === 'jobs') {
+      const jobs = this.jobs({ limit: Number.MAX_SAFE_INTEGER }).filter(
+        (job) => job.fromByte <= (records[records.length - 1]?.toByte ?? -1),
+      );
+      const bounded = jobs.slice(-limit);
+      return {
+        level: 'jobs',
+        epoch: epoch.info,
+        from,
+        next,
+        truncated: truncated || jobs.length > limit,
+        stoppedAtEpochEnd,
+        jobs: bounded,
+      };
+    }
+
+    const screen = options.screen === true;
+    const out = screen
+      ? records.map((record, i) => {
+          const at = this.screenInEpoch(epoch, start.index + i);
+          return at ? { ...record, screen: at } : null;
+        }).filter((r): r is HistoryRecord & { screen: ScreenSnapshot } => r !== null)
+      : records.map((record) => ({ ...record, screen: undefined }));
+
+    return {
+      level: 'records',
+      epoch: epoch.info,
+      from,
+      next,
+      truncated,
+      stoppedAtEpochEnd,
+      records: out,
+      screens: screen,
+    };
+  }
+
+  /** The first record in the timeline, whatever epoch it is in. */
+  private firstRecord(): { epoch: Epoch; index: number } | null {
+    for (let e = 0; e < this.list.length; e++) {
+      const epoch = this.list[e];
+      if (epoch && epoch.records.length > 0) return { epoch, index: 0 };
+    }
+    return null;
+  }
+
+  /** The last record in the timeline, whatever epoch it is in. */
+  private lastRecord(): { epoch: Epoch; index: number } | null {
+    for (let e = this.list.length - 1; e >= 0; e--) {
+      const epoch = this.list[e];
+      if (epoch && epoch.records.length > 0) return { epoch, index: epoch.records.length - 1 };
+    }
+    return null;
+  }
+
+  /** Where a position sits on the timeline, comparable across epochs. */
+  private orderOf(at: { epoch: Epoch; index: number }): number {
+    let base = 0;
+    for (let e = 0; e < at.epoch.info.index; e++) base += this.list[e]?.records.length ?? 0;
+    return base + at.index;
   }
 
   /**

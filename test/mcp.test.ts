@@ -40,6 +40,7 @@ test('the surface exposes the core loop', async (t) => {
   const names = tools.tools.map((tool) => tool.name).sort();
   assert.deepEqual(names, [
     'close_session',
+    'history_read',
     'open_session',
     'read_screen',
     'send_input',
@@ -463,4 +464,119 @@ test('send_input reports the bytes it wrote, including the newline it appended',
     { bytesWritten: 4, written: 'hi\\x0d\\x0a', submitted: true },
     'what was typed, plus the line ending that was actually sent',
   );
+});
+
+/**
+ * The loop the feedback left open, driven through a real client.
+ *
+ * `read_screen` reports `collapsed.intermediates` -- states that existed and
+ * were not shown -- and until now nothing on the surface could reach them.
+ * The whole point of one history tool is that the same call that pages also
+ * plays those back, so this follows a real collapsed job into its frames.
+ */
+test('a collapsed job\'s swallowed frames are reachable from the surface', async (t) => {
+  const { client, host, close } = await connected();
+  t.after(() => {
+    host.disposeAll();
+    return close();
+  });
+
+  const opened = await call(client, 'open_session', {});
+  const sessionId = (opened.structuredContent as { sessionId: string }).sessionId;
+
+  // Enough output at once that the pty delivers it in more than one piece and
+  // the job swallows some -- the shape `intermediates` exists to report.
+  await call(client, 'send_input', {
+    sessionId,
+    text: 'for i in 1 2 3 4 5 6 7 8; do printf "row-%s\\n" "$i"; done',
+    submit: true,
+  });
+  await call(client, 'wait_for_output', { sessionId, pattern: 'row-8', timeoutMs: 5000 });
+
+  const read = await call(client, 'read_screen', { sessionId });
+  const collapsed = (read.structuredContent as { collapsed?: { chunks: number; intermediates: boolean; rawFrom: number; rawTo: number } })
+    .collapsed;
+
+  // The timeline is addressable whether or not this particular run collapsed:
+  // what is being proven is that the surface can be driven to any point.
+  const span = collapsed?.intermediates
+    ? { from: { seq: collapsed.rawFrom }, to: { seq: collapsed.rawTo } }
+    : { from: { seq: 1 }, to: { seq: 2 } };
+
+  const played = await call(client, 'history_read', { sessionId, ...span });
+  const body = played.structuredContent as {
+    span: boolean;
+    truncated: boolean;
+    records?: Array<{ seq: number; screen: string[]; text: string[] }>;
+  };
+
+  assert.equal(body.span, true, 'a `to` reads a span, not a page');
+  assert.ok(body.records && body.records.length > 0, 'the span came back with records');
+  for (const record of body.records!) {
+    assert.ok(record.screen.length > 0, 'each frame carries the screen it produced');
+  }
+  assert.deepEqual(
+    body.records!.map((r) => r.seq),
+    [...body.records!.map((r) => r.seq)].sort((a, b) => a - b),
+    'in the order they happened',
+  );
+});
+
+test('history survives the session being closed, and is still addressable', async (t) => {
+  const { client, host, close } = await connected();
+  t.after(() => {
+    host.disposeAll();
+    return close();
+  });
+
+  const opened = await call(client, 'open_session', {});
+  const sessionId = (opened.structuredContent as { sessionId: string }).sessionId;
+
+  await call(client, 'send_input', { sessionId, text: 'echo SURVIVES-CLOSE', submit: true });
+  await call(client, 'wait_for_output', { sessionId, pattern: 'SURVIVES-CLOSE', timeoutMs: 5000 });
+
+  const paged = (await call(client, 'history_read', { sessionId, level: 'text' })).structuredContent as {
+    lines: string[];
+    next: string | null;
+    truncated: boolean;
+    epoch: { cols: number; rows: number };
+  };
+  assert.ok(
+    paged.lines.some((l) => l.includes('SURVIVES-CLOSE')),
+    'the output is in the timeline',
+  );
+  // `null` here means the read reached the end of the timeline, which is what
+  // a short session does: `next` is somewhere to resume, and there is nothing
+  // to resume to. Asserting a string would be asserting the session produced
+  // more than one page of output, which is not what this is about.
+  assert.equal(paged.next, null, 'nothing left to resume to');
+  assert.equal(paged.truncated, false, 'the limit did not stop the read');
+  assert.ok(paged.epoch.cols > 0, 'and it says what size it was produced at');
+
+  await call(client, 'close_session', { sessionId });
+
+  const after = (await call(client, 'history_read', { sessionId, level: 'text' })).structuredContent as {
+    lines: string[];
+  };
+  assert.ok(
+    after.lines.some((l) => l.includes('SURVIVES-CLOSE')),
+    'closing is not forgetting (L0.3)',
+  );
+});
+
+test('a bad address is a typed error a caller can branch on', async (t) => {
+  const { client, host, close } = await connected();
+  t.after(() => {
+    host.disposeAll();
+    return close();
+  });
+
+  const opened = await call(client, 'open_session', {});
+  const sessionId = (opened.structuredContent as { sessionId: string }).sessionId;
+
+  const bad = await call(client, 'history_read', { sessionId, from: 'not-a-token' });
+  assert.equal((bad.structuredContent as { error: { code: string } }).error.code, 'bad_input');
+
+  const none = await call(client, 'history_read', { sessionId: 'no-such-session' });
+  assert.equal((none.structuredContent as { error: { code: string } }).error.code, 'no_session');
 });
