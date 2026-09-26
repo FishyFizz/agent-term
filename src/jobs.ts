@@ -2,7 +2,7 @@
  * Job boundaries — where one unit of program intent ends and the next begins.
  *
  * CLASSIFIER.md §9.3 measured that the verdict depends on where deliveries
- * begin: the same corpus scores 21/23 replayed per drawing op and 15/23
+ * begin: the same corpus scores 20/23 replayed per drawing op and 17/23
  * replayed in 64-byte chunks. A chunk boundary lands wherever the pty buffer
  * filled, which has nothing to do with what the program meant, so the
  * classifier is being asked its question at boundaries the program never drew.

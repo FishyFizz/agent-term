@@ -347,8 +347,8 @@ not about one of them.
    | one job, from arrival gaps | **23/23** |
    | one delivery per drawing op (synthetic) | 20/23 |
    | 64-byte chunks (synthetic) | 17/23 |
-   | 256-byte chunks (synthetic) | 7/23 |
-   | the whole trace as one delivery | 7/23 |
+   | 256-byte chunks (synthetic) | 12/23 |
+   | the whole trace as one delivery | 11/23 |
 
    `npm run corpus` prints these; the pins live in `test/corpus.test.ts`, where
    they are labelled measurements rather than a specification (§11).
