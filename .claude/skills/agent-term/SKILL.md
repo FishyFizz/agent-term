@@ -86,7 +86,10 @@ program with slow startup looks idle while it is merely quiet.
 
 **`wait_for_output {pattern, surface?, sinceByte?, timeoutMs}`** — blocks until a
 regular expression appears. Returns `reason` (`matched`, `exited`, `timeout`) and,
-when it matched, `match` = `{surface, text, atByte, row, buffer}`. Prefer this over
+when it matched, `match` = `{surface, text, atByte, row, buffer}`. **When it does not
+match, `screen` carries the rows as they were when the wait ended** — so a timeout
+already answers "what is it showing?" and you do not read again to find out; it is
+`null` on `matched`, where the match is the answer. Prefer this over
 wait-then-eyeball whenever the program has a readiness signal you can name.
 
 - Matched against **screen rows the session wrote** and **completed lines it
@@ -119,8 +122,25 @@ has arrived — the last classified update:
   *written*, including lines that have already scrolled off the screen.
 - `collapsed` — present when output was grouped. `intermediates: true` means the
   screen you are looking at is the net effect of several deliveries, and **states
-  existed that you were not shown**. Nothing on the surface pages back to them yet;
-  read it as a warning that a redraw may have hidden something, not as a handle.
+  existed that you were not shown**. Those states are not lost: take
+  `collapsed.rawFrom`/`rawTo` and read them with
+  `history_read({from:{seq:rawFrom}, to:{seq:rawTo}, screen:true})`.
+
+### `seq` — one number for the whole timeline
+
+Every result carries `seq`, and it is **the number of the state you are being shown**,
+not a count of updates. It is incremented once per raw delivery, and it is the same
+number `history_read` addresses, so the number in your hand is one you can read
+history with:
+
+- A job that swallowed states 3..9 reports `seq: 9`. States 3..9 all exist and are
+  readable; 9 is just where the update landed.
+- `seq` never skips. A job is a projection over a run of states and takes no number of
+  its own.
+
+**`seq` and `job` are not the same number**, and mixing them silently narrows what you
+see: a job spanning 1..4 has `seq: 4`, so looking its records up by `seq` finds only
+the last one. `job` is what every record in the span shares.
 - `io` — `bytesRead`, a monotonic watermark you can compare against a later read, and
   `bytesPending`.
 
@@ -178,3 +198,16 @@ is for a human and says what to fix.
   guess, a pattern is an observation.
 - Keep the `bytesRead` watermark from a read when you expect to compare it with a
   later one.
+
+## Pitfalls
+
+- **`npx` will not spawn.** On Windows the `npx` on `PATH` is often a shim shell
+  script, not an executable, and the session is spawned as given — there is no `PATH`
+  or `PATHEXT` resolution. It fails with `Cannot create process, error code: 2`. Give
+  the absolute path to `npx.cmd` (under wherever node is installed, e.g.
+  `C:/Program Files/nodejs/npx.cmd`), or resolve it once with `which`/`where` before
+  opening the session. The same applies to any wrapper script, not just `npx`.
+- **A timeout is not a blank screen.** `wait_for_output` returns the rows it ended on
+  when it does not match, so read them before concluding nothing happened.
+- **Do not join on `seq` when you mean the job.** See §Reading: a job spanning 1..4
+  has `seq: 4`, and matching its records against `seq` matches only the last one.

@@ -60,7 +60,7 @@ README.md          user-facing status + dev commands
 context.md         THIS FILE
 
 src/               ~5,000 lines of implementation (see §4)
-test/              ~4,300 lines, 223 tests
+test/              ~4,500 lines, 226 tests
 scripts/           entry points: mcp-stdio, mcp-http, smoke, life, corpus-score
 corpus/            23 terminal programmes + 46 recorded traces (regression suite)
 fixtures/life/     "lifelike" interactive subject — a black-box driving exercise
@@ -368,9 +368,20 @@ is for a human.
 ### `present()` — the shape of one update
 
 ```
-{ seq, screen: string[], segments: [{kind, fromByte, toByte, erased, overwrote,
+{ seq, job, screen: string[], segments: [{kind, fromByte, toByte, erased, overwrote,
     reachedBack, scrolledBy, altScreen}], text: string[], collapsed, io }
 ```
+
+**`seq` is the number of the state being shown** — one number for the whole timeline,
+incremented once per raw delivery, and the same one `history_read` addresses with. A job
+that swallowed states 3..9 reports `seq: 9`, and 3..9 come back with
+`history_read({from:{seq:3}, to:{seq:9}, screen:true})`. A job is a projection over a run
+of these and occupies no number of its own, so the sequence never skips.
+
+**`job` is different, and the difference is the point.** A job's number is what
+`history.jobs()` reports and what every record in its span shares; `seq` is the single
+state the update ended at. Joining the two is the mistake to avoid: a job spanning 1..4
+has `seq: 4`, so matching its records against `seq` matches only the last one.
 
 ### Transports — how to run it
 
@@ -642,7 +653,7 @@ without loss is not worth adding.
 ```bash
 npm install
 npm run typecheck     # src, test, scripts, corpus, fixtures — one project
-npm run test          # 223 tests (includes corpus/test/corpus.test.ts)
+npm run test          # 226 tests (includes corpus/test/corpus.test.ts)
 npm run smoke         # end-to-end against a real shell
 npm run corpus        # score the classifier across replay granularities
 
@@ -697,7 +708,7 @@ single verdict over a span the screen shows two kinds on.
 **Verified by real runs in this session:**
 
 - `npm run typecheck` — **clean, exit 0**.
-- `npm test` — **223 tests, 223 pass, 0 fail**.
+- `npm test` — **226 tests, 226 pass, 0 fail**.
 - Corpus subset alone (`corpus/test/corpus.test.ts`) — **39 tests, 39 pass**.
 - `npm run corpus` — see the table below.
 - Git: branch `main`, HEAD `94069d0` *"feat: a wait for a pattern, so a prompt is not read off
@@ -877,6 +888,10 @@ this repo is English throughout.
     deliberate cost). Restart is the reload mechanism.
 13. **`send_input` to a program that has not called `setRawMode`** goes into the line discipline
     unseen until a line ending arrives. That is a fact about the program, not a bug to retry.
+14. **`npx` — and any shim script — will not spawn.** The executable is spawned as given,
+    with no `PATH`/`PATHEXT` resolution, and the `npx` on `PATH` is a 197-byte shell script
+    on this machine. It fails with `Cannot create process, error code: 2`. Give the absolute
+    path to `npx.cmd` (wherever node is installed).
 
 ---
 

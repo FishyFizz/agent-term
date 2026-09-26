@@ -126,7 +126,7 @@ per raw pty read.
 ```bash
 npm install
 npm run typecheck     # src, test, scripts and corpus — one project
-npm run test          # 223 tests
+npm run test          # 226 tests
 npm run smoke         # end-to-end against a real shell
 npm run corpus        # score the classifier across replay granularities
 ```
