@@ -60,7 +60,7 @@ README.md          user-facing status + dev commands
 context.md         THIS FILE
 
 src/               ~5,000 lines of implementation (see §4)
-test/              ~4,800 lines, 232 tests
+test/              ~4,800 lines, 242 tests
 scripts/           entry points: mcp-stdio, mcp-http, smoke, life, corpus-score
 corpus/            23 terminal programmes + 46 recorded traces (regression suite)
 fixtures/life/     "lifelike" interactive subject — a black-box driving exercise
@@ -127,15 +127,15 @@ module exists and the failure it prevents.
 | `text-log.ts` | 178 | The second sink. Append-only `TextLine[]`, each carrying `{byte, buffer, text, row}`. |
 | `classify.ts` | 357 | **The classifier.** `classify({before, after, fromByte, toByte, scrolledBy})` → segments. `frameOf`, `rowDiff`, `coalesce`. Must read like CLASSIFIER.md §3.1: four observations, one walk, **no thresholds**. |
 | `delta.ts` | 293 | `gridDelta(before, after, hint)` / `applyDelta`. Encodes a screen change as `{scrollBy, runs, rows}`. Searches the shift and **verifies** it rather than trusting the emulator. |
-| `groups.ts` | 318 | **Group boundaries** — where one run of output ends. Inferred from silence, so it is a
+| `groups.ts` | 356 | **Group boundaries** — where one run of output ends. Inferred from silence, so it is a
    measured boundary, not a declared one; it is also a classification input (§9.3). `DEFAULT_GROUP_POLICY = {gapMs: 50, maxBytes: 64KB, maxChunks: 256}`. `GroupDetector`, `groupByGap`, `FakeClock`. |
-| `history.ts` | 670 | **The timeline.** `SessionHistory` (epochs, records, `read`, `screenAt`, `deliveries`, `groups`, `textSince`, `tokenAt`) and `HistoryStore`. |
-| `session.ts` | 995 | **The L0.4 session**: pty + screen + classifier as one object. `TerminalSession`: `feed`, `waitForIdle`, `waitForOutput`, `state`, `resize`, `onUpdate`/`onDelivery`/`onExit`/`onResize`, `dispose`. |
+| `history.ts` | 982 | **The timeline.** `SessionHistory` (epochs, records, `read`, `screenAt`, `deliveries`, `groups`, `textSince`, `tokenAt`) and `HistoryStore`. |
+| `session.ts` | 1427 | **The L0.4 session**: pty + screen + classifier as one object. `TerminalSession`: `feed`, `waitForIdle`, `waitForOutput`, `waitForGroup` (all three over one private `wait` skeleton), `state`, `resize`, `onUpdate`/`onDelivery`/`onExit`/`onResize`/`onDispose`, `dispose`. |
 | `registry.ts` | 53 | `SessionRegistry` — live sessions by id. Deliberately **history-agnostic**: dropping a live session must not discard what it did. |
 | `host.ts` | 89 | **The composition root.** `SessionHost.open()` creates a session *and starts recording it* in one call, because two calls would let a caller forget the second and get a working terminal with silently empty history. |
 | `keys.ts` | 480 | Named keys + `composeSteps`. The key table, mode-dependent encoding (`CSI B` vs `SS3 B`), `escapeBytes`, `KeyInputError`. |
 | `match.ts` | 84 | `wait_for_output` matching: `matchRow`, `matchLine`, `trimRow`. |
-| `mcp.ts` | 371 | **The MCP surface** — 7 tools. See §7. |
+| `mcp.ts` | 656 | **The MCP surface** — 9 tools. See §7. |
 | `types.ts` | 90 | `SessionId`, `GroupPolicy`, `SessionOptions`, `DEFAULT_COLS/ROWS` (80/24), `assertGridSize` (shared so a pty and an emulator can never disagree about a size). |
 | `env.ts` | 25 | `sanitizeEnv`, `defaultShell`. |
 
@@ -706,7 +706,7 @@ without loss is not worth adding.
 ```bash
 npm install
 npm run typecheck     # src, test, scripts, corpus, fixtures — one project
-npm run test          # 232 tests (includes corpus/test/corpus.test.ts)
+npm run test          # 242 tests (includes corpus/test/corpus.test.ts)
 npm run smoke         # end-to-end against a real shell
 npm run corpus        # score the classifier across replay granularities
 
@@ -761,14 +761,22 @@ single verdict over a span the screen shows two kinds on.
 **Verified by real runs in this session:**
 
 - `npm run typecheck` — **clean, exit 0**.
-- `npm test` — **232 tests**, pinned to `--test-concurrency=2` (a real pty per test
+- `npm test` — **242 tests**, pinned to `--test-concurrency=2` (a real pty per test
   file; running them all at once corrupts the heap under node-pty).
 - Corpus subset alone (`corpus/test/corpus.test.ts`) — **39 tests, 39 pass**.
 - `npm run corpus` — see the table below.
-- Git: branch `main`, HEAD `e7828f9` *"docs: close the cursor question, and consolidate the
-  backlog"*. Working tree **clean**; no stashes.
+- Git: branch `main`, HEAD `f874c49` *"feat: the pending prompt is not observable, so ship the
+  two facts that are"*. Working tree **clean** at the start of the maintenance pass; the pass
+  itself is uncommitted (see below).
 - The last four commits added `send_sequence` + named keys, `history_read` (one tool over the
   timeline), the unified sequence number, `wait_for_group`, and a screen on failed waits.
+
+**Maintenance pass (this session, no new behaviour):** the `job` -> `group` rename was finished
+in the code — the primitive is `Group`, not `Job`, and `jobChunks` is `groupChunks` — and the
+three waits were collapsed onto one `wait()` skeleton in `session.ts`. Two things to know about
+the latter: `found` is asked *before* the exit check because a session can exit having already
+produced what was waited for, and the waits `await` inside their `try` rather than returning the
+promise, because a `return` would run the `finally` and unsubscribe before the wait ever ran.
 - Environment: Node v22.23.2, Windows 11.
 
 ### Verified classifier scores (`npm run corpus`, `direct` traces)
@@ -877,6 +885,16 @@ and screen.
 - **Node's test runner on Windows prints `AttachConsole failed`** from
   `node-pty/src/conpty_console_list_agent.ts` during `npm test`. **This is noise, not a
   failure** — the run still reports `pass 213 / fail 0`.
+- **The full suite intermittently fails exactly one pty test.** Distinct from the
+  `AttachConsole` noise above: this is a real `not ok` line, a *different* test each
+  time, and it vanishes when the owning file is run alone. Observed three ways in one
+  session: full run 241/242 (`the screen model tracks what the shell actually shows`,
+  `test/session.test.ts`), full run 241/242 (`menu mode takes the alt screen and gives
+  the shell back`, `test/life.test.ts`), and `npm test` 242/242 immediately after — with
+  `test/session.test.ts` 21/21 twice and `test/life.test.ts` 7/7 twice in isolation.
+  **Before blaming a change for a single failure, `git stash` and re-run the suite at
+  HEAD**: a green HEAD plus a varying test name means contention between the real ptys
+  at `--test-concurrency=2`, not a regression.
 
 ---
 
