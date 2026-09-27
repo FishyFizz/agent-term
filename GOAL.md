@@ -66,7 +66,7 @@ in. **Misclassification is a bug in the server, not a puzzle for the agent.**
 A change may be **both** — a program can emit a line of text and repaint a status bar in the
 same update. The model admits mixtures rather than forcing a binary choice.
 
-The unit of classification is the **delivery** — one job of the program's output, one segment. A
+The unit of classification is the **delivery** — one group of the program's output, one segment. A
 segment cannot claim a finer range than the thing it was measured over, and the measurement is a
 frame diff across the whole delivery. "Mixed" is therefore a fact about a *sequence* of
 deliveries, not something one delivery contains. See `CLASSIFIER.md` §2.

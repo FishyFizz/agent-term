@@ -14,7 +14,7 @@ PRIOR-ART.md     survey of tui-mcp, tmux-mcp, SmartCLI, terminal-bench
 CLASSIFIER.md    how a change is classified as writing or drawing,
                  and what a test may assert (§11)
 HISTORY.md       the timeline: resize epochs, deltas, and what was verified
-src/jobs.ts      job boundaries — where one delivery ends and the next begins
+src/groups.ts      group boundaries — where one delivery ends and the next begins
 src/keys.ts      named keys, and the batch a caller composes out of them
 src/             implementation
 corpus/          test programmes and recorded traces — the classifier's
@@ -40,11 +40,11 @@ keyframe — or as a keyframe, where a delta would not have been smaller. That i
 `history.ts` stores. Measured on a scrolling log, a checkpoint plus deltas is 2% of a
 grid per delivery at 120x40.
 
-Output is grouped into **jobs** (`jobs.ts`): a job closes on a quiet period, on a cap,
+Output is grouped into **groups** (`groups.ts`): a group closes on a quiet period, on a cap,
 or on a forced flush at a resize, an exit or a dispose. Where a delivery begins decides
 what the classifier can see, so the boundary is the program's rather than the pty
-buffer's. But a job is a **projection** over the stream, computed on read
-(`history.jobs()`) — never stored — so it cannot disagree with the deliveries it came
+buffer's. But a group is a **projection** over the stream, computed on read
+(`history.groups()`) — never stored — so it cannot disagree with the deliveries it came
 from, and it can be recomputed at a different granularity later.
 
 Waiting is not guessing whether output has finished (`session.ts`). `waitForIdle` resolves on
@@ -60,14 +60,14 @@ confidence value: the observations are a closed set. See `CLASSIFIER.md` §1 and
 
 L0.3 is built on top: one append-only timeline per session, split into **epochs** at each
 resize — a resize freezes what came before it, and frozen history is reported at the size
-it was produced at. A job swallowed many deliveries is not a gap: each reports what it
+it was produced at. A group covering many deliveries is not a gap: each reports what it
 stands for, and `history.deliveries(from, to)` plays the states back in order. `host.ts`
 is the composition root: it starts a session and its recording in one call.
 
 It is measured against `corpus/` — 23 programmes, each recorded twice, `direct` and
 through a real ConPTY. The **scored** numbers below use the `direct` traces only, because
 the expectations are byte ranges from the programme's own marks and ConPTY rewrites the
-bytes: 23/23 under job-aligned replay, 20/23 op-aligned, 17/23 under 64-byte chunks. Those
+bytes: 23/23 under group-aligned replay, 20/23 op-aligned, 17/23 under 64-byte chunks. Those
 are measurements of a hand-written label set, not a specification — a rise is not
 automatically progress (`CLASSIFIER.md` §11).
 
@@ -81,12 +81,12 @@ to appear, read the screen, address the timeline, close it. It is a spike — th
 prompt and large pastes are not on it yet.
 
 `history_read` is one tool over the timeline, not a pair. Paging through what happened and
-replaying the frames a job swallowed are the same operation at different settings: `from` and
+replaying the frames a group swallowed are the same operation at different settings: `from` and
 `to` take any address — a token, a seq, a timestamp, a byte offset, and the two ends need not
-match — `level` picks the projection (deliveries, jobs, text), and `screen: true` materializes
+match — `level` picks the projection (deliveries, groups, text), and `screen: true` materializes
 the state at each point, which is what turns a page into a playback. A span (`to`) crosses a
 resize; a page (`from` alone) never does, and reports the grid size it was produced at. This
-is what makes `collapsed.intermediates` from `read_screen` reachable — read the job's span with
+is what makes `collapsed.intermediates` from `read_screen` reachable — read the group's span with
 `screen: true` and the states it merged come back.
 
 Input can be **named** rather than spelled (`send_sequence`, `src/keys.ts`). `{key: "down"}`
@@ -118,7 +118,7 @@ typed, and an echo is new output too (`GOAL.md` L1.4).
 Not built: delivery and boundedness (L1.1), the pending prompt, large pastes and a composed
 write-wait-respond call (L1.4), honest errors beyond the four coded ones (L1.5), and
 retention and durability (L3.4). Grouping is on by default
-(`DEFAULT_JOB_POLICY`); `SessionOptions.jobPolicy: false` opts out, and gives one update
+(`DEFAULT_GROUP_POLICY`); `SessionOptions.groupPolicy: false` opts out, and gives one update
 per raw pty read.
 
 ## Development

@@ -19,7 +19,7 @@ changed. Each epoch holds an ordered, append-only list of **records**, and a rec
 
 | Field | What it is |
 |---|---|
-| `seq`, `job`, `at`, `fromByte`, `toByte` | where the delivery sits in the session, and which job it was grouped into |
+| `seq`, `group`, `at`, `fromByte`, `toByte` | where the delivery sits in the session, and which group it was grouped into |
 | `text` | the completed lines this delivery produced |
 | `scrolledRows` | how far the emulator reports the content moved |
 | `cursor`, `buffer` | where the terminal was left |
@@ -30,23 +30,23 @@ changed. Each epoch holds an ordered, append-only list of **records**, and a rec
 rather than stored beside the frames it was taken from. Storing it would be a second opinion
 that could drift.
 
-The job the agent is shown is therefore a **projection** over a run of these, computed on
-read (`SessionHistory.jobs()`): group by `job`, classify from the screen before the first
+The group the agent is shown is therefore a **projection** over a run of these, computed on
+read (`SessionHistory.groups()`): group by `group`, classify from the screen before the first
 delivery to the screen after the last, and report how many deliveries it stands for. Nothing
-is stored per job, so a projection cannot disagree with the stream it came from — and it can
+is stored per group, so a projection cannot disagree with the stream it came from — and it can
 be recomputed at a different granularity without re-recording anything. Verified: the
 projection reproduces both the screen *and* the verdicts the live session reached
 (`test/session.test.ts`).
 
-What was stored instead of a projection used to be the job records themselves, at the
+What was stored instead of a projection used to be the group records themselves, at the
 granularity the session happened to deliver at. That made the delivery policy part of the
 record: changing how output was grouped changed what history said had happened.
 
 Seeking is by **opaque token** (`h1.<epoch>.<record>`), never an integer index, so retention can
 change what a position means underneath without breaking a caller that holds one (`GOAL.md`
 L3.2). A token is itself a valid address, so `page.next` is passed straight back in. A
-delivery that a job swallowed is addressable the same way — `deliveries(from, to)` takes the
-`seq` range the job reports — which is what makes intermediate playback a read rather than a
+delivery that a group covered is addressable the same way — `deliveries(from, to)` takes the
+`seq` range the group reports — which is what makes intermediate playback a read rather than a
 separate store.
 
 ## 2. A resize is a boundary
@@ -160,7 +160,7 @@ wrong**: it was stable across chunkings and it lost every line ConPTY terminated
 positioning the cursor. The choice was between a record that is complete for the feed
 that actually ran and one that is consistent across feeds that never did.
 
-A live session is self-consistent: it has one chunking, the job policy's, and its
+A live session is self-consistent: it has one chunking, the group policy's, and its
 history stores what that produced. The sensitivity appears when recorded bytes are
 replayed at a granularity the session never used, which nothing in production does —
 the corpus does, and that is where it was measured.
@@ -206,7 +206,7 @@ resolution limit (`CLASSIFIER.md` §9.3) and nothing here invents precision beyo
 ## 7. Waiting is a measurement, not a verdict
 
 L1.2 was written as *settle detection*, at a point where nothing else in the design owned
-silence. Job detection then grew out of the classifier's need for boundaries and took
+silence. Group detection then grew out of the classifier's need for boundaries and took
 silence as its own signal, so the goal had to be justified again rather than inherited.
 What survived is narrower than the section used to claim.
 
@@ -220,7 +220,7 @@ who is the one that knows what it is driving.
 
 **Idle is measured from the byte, not from the delivery.** The obvious place to stamp it is
 the last completed delivery, which would make drained fall out of idle for free. A firehose
-says otherwise: a program that never pauses never opens a gap, so a job stays open until a
+says otherwise: a program that never pauses never opens a gap, so a group stays open until a
 cap closes it and no delivery completes for seconds at a time. Measured from a delivery that
 reads "idle for 2560ms" about a program flooding output.
 

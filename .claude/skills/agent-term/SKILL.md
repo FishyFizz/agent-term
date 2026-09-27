@@ -1,6 +1,6 @@
 ---
 name: agent-term
-description: Usage guide for the agent-term MCP server — how to drive an interactive terminal program through its tools (open_session, send_input, send_sequence, wait_for_idle, wait_for_output, read_screen, close_session). Use whenever you are operating a terminal session through agent-term, including black-box driving exercises where you are handed an interactive program to operate and are not told how it behaves.
+description: Usage guide for the agent-term MCP server — how to drive an interactive terminal program through its tools (open_session, send_input, send_sequence, wait_for_idle, wait_for_group, wait_for_output, read_screen, history_read, close_session). Use whenever you are operating a terminal session through agent-term, including black-box driving exercises where you are handed an interactive program to operate and are not told how it behaves.
 ---
 
 # Driving a terminal through agent-term
@@ -106,25 +106,26 @@ wait-then-eyeball whenever the program has a readiness signal you can name.
 - A match is an observation, not a verdict: it says the text appeared, not that the
   program is done.
 
-**`wait_for_job {sinceSeq?, timeoutMs}`** — blocks until the program finishes **one act of
-output**. This is the wait a full-screen TUI needs. Returns `reason` (`job`, `disposed`,
-`exited`, `timeout`) and, on a job, `seq`, `job`, `collapsed` and `screen` together.
+**`wait_for_group {sinceSeq?, timeoutMs}`** — blocks until the program finishes **one act of
+output**. This is the wait a full-screen TUI needs. Returns `reason` (`group`, `disposed`,
+`exited`, `timeout`) and, on a group, `seq`, `group`, `collapsed` and `screen` together.
 
 - A repainting menu has no stable text to anchor a pattern on, and idle answers "it went
-  quiet" without saying whether a repaint happened at all. A job ends on the act itself.
+  quiet" without saying whether a repaint happened at all. A group ends where the run
+  of output did — which is measured, not interpreted (see §From facts to a use case).
 - **`collapsed.reason` says how it ended, and the four do not mean the same thing**: `gap`
-  is the program going quiet on its own; `bytes`/`chunks` are caps cutting a job open
+  no bytes arrived for `gapMs`; `bytes`/`chunks` are the caps being reached, cutting a group open
   **while it is still writing**, so more output is coming; `flush` is a resize or exit.
 - **`collapsed.chunks > 1` means states existed that you were not shown.** Read them with
   `history_read({from:{seq:collapsed.rawFrom}, to:{seq}, screen:true})`.
-- `sinceSeq` defaults to the state you last typed at, so a job that closed *before* your
+- `sinceSeq` defaults to the state you last typed at, so a group that closed *before* your
   input cannot satisfy the wait. Pass the `seq` you last saw to continue from there — a
-  firehose produces a stream of jobs, so loop on it.
+  firehose produces a stream of groups, so loop on it.
 - **`collapsed.grid` is `null` on a resize or an alt-screen switch**, which are the largest
   changes there are, not the smallest. Do not read `grid: null` as "nothing happened".
 
 For example, a menu that repaints on every keypress: send `down`, then
-`wait_for_job {timeoutMs: 5000}`. That resolves on the repaint, not on a guess about time.
+`wait_for_group {timeoutMs: 5000}`. That resolves on the repaint, not on a guess about time.
 
 Or a REPL that prints `>>> ` when it is ready: after sending a line, wait for
 `{pattern: "^>>>$", timeoutMs: 20000}`. That resolves on the *next* prompt, not the one
@@ -153,14 +154,14 @@ not a count of updates. It is incremented once per raw delivery, and it is the s
 number `history_read` addresses, so the number in your hand is one you can read
 history with:
 
-- A job that swallowed states 3..9 reports `seq: 9`. States 3..9 all exist and are
+- A group covering states 3..9 reports `seq: 9`. States 3..9 all exist and are
   readable; 9 is just where the update landed.
-- `seq` never skips. A job is a projection over a run of states and takes no number of
+- `seq` never skips. A group is a projection over a run of states and takes no number of
   its own.
 
-**`seq` and `job` are not the same number**, and mixing them silently narrows what you
-see: a job spanning 1..4 has `seq: 4`, so looking its records up by `seq` finds only
-the last one. `job` is what every record in the span shares.
+**`seq` and `group` are not the same number**, and mixing them silently narrows what you
+see: a group spanning 1..4 has `seq: 4`, so looking its records up by `seq` finds only
+the last one. `group` is what every record in the span shares.
 - `io` — `bytesRead`, a monotonic watermark you can compare against a later read, and
   `bytesPending`.
 
@@ -171,6 +172,52 @@ its tail. `null` means not knowable; it never means zero.
 
 An update of `null` means nothing has arrived yet. That is not an empty screen — look
 at `screen`.
+
+## From facts to a use case
+
+The server reports what it measured. Turning that into "the program is ready" / "this
+selection took effect" / "it finished" is **your** job, and this is the section that says
+how. The pattern is always the same: **a fact is something the server observed; a use case
+is a claim about the program.** Cross that line only with evidence you assembled yourself.
+
+### The three questions you actually have
+
+| You want to know | What the server gives you | What you must add |
+|---|---|---|
+| Did my input do anything? | `written` (the bytes), then `wait_for_group` / a pattern | Compare the screen before and after. `written` proves what was sent, never that the program read it. |
+| Is it done? | `reason: idle/exited/timeout`, `state.drained` | Nothing proves "done" while it runs (L1.2). `exited` + `drained` is the only closed set. Otherwise: name a signal the program prints, or accept a confidence interval. |
+| Did this repaint mean anything? | `collapsed.chunks`, `seq`, the screen | Read the span with `history_read`; a highlight that moved and moved back nets to no visible change, and only the count says anything happened. |
+
+### Working rules
+
+1. **State the observation, then the inference, separately.** "The wait returned
+   `gap` after 40ms and the screen shows `beta` selected" is two sentences for a reason.
+   Collapsing them into "it selected beta" hides the one thing you could be wrong about.
+2. **A null is not a zero.** `grid: null` means *no grid delta exists* — which includes a
+   resize and an alt-screen switch, some of the largest changes there are, and a change
+   that touched only the cursor. `collapsed: null` means nothing was merged. Neither means
+   "nothing happened".
+3. **`reason` describes the wait, not the program.** `gap` = no bytes for `gapMs`;
+   `bytes`/`chunks` = a cap was reached; `flush` = resize/exit/dispose forced it. None of
+   them says the program is still working, is idle, or will produce more.
+4. **Anchor on text when the program gives you any.** A pattern is an observation; a guess
+   about time is a guess. Use `wait_for_group` when there is no stable text, and say so.
+5. **When you cannot tell, say you cannot tell.** "The menu returned to its root with
+   `((unset))` still showing; I could not confirm the selection took effect" is a correct
+   report. Inventing a conclusion is the one failure mode this whole design exists to
+   prevent.
+
+### Example: a full-screen menu
+
+```
+send_sequence {key: down}             → written: the bytes
+wait_for_group {timeoutMs: 5000}      → reason: group, collapsed.reason: gap, seq: 12, screen
+read the screen                       → the highlight moved to row 2
+```
+
+Facts: bytes written; a group closed after a gap at state 12; the screen shows row 2
+highlighted. **Inference (yours):** the arrow key moved the selection. The server never
+claimed that, and could not — it saw bytes out and a repaint back.
 
 ## Errors
 
@@ -229,5 +276,5 @@ is for a human and says what to fix.
   opening the session. The same applies to any wrapper script, not just `npx`.
 - **A timeout is not a blank screen.** `wait_for_output` returns the rows it ended on
   when it does not match, so read them before concluding nothing happened.
-- **Do not join on `seq` when you mean the job.** See §Reading: a job spanning 1..4
+- **Do not join on `seq` when you mean the group.** See §Reading: a group spanning 1..4
   has `seq: 4`, and matching its records against `seq` matches only the last one.

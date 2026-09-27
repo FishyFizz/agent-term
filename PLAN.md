@@ -36,7 +36,7 @@ common location but is machine-dependent and must not be hard-coded into the rep
 ### The idea
 
 Expose **one** sequence number. Every result sent to the agent carries it; every
-historical request addresses with it. The "intermediate states" a job swallowed then
+historical request addresses with it. The "intermediate states" a group covered then
 become nothing special — just the numbers between two deliveries.
 
 ### It already exists

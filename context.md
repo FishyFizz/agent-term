@@ -95,7 +95,7 @@ an outer layer would force an inner layer to change, the boundary is drawn wrong
 **Practical consequence for a working agent:** before adding anything, ask which layer it is in.
 If a change would put a policy number (a timeout, a byte cap, a transport detail) into L0, the
 change is wrong — the number goes in L1/L3 and arrives by injection or as a policy object. This
-is why `src/jobs.ts` takes a clock and a scheduler by injection, and why `DEFAULT_JOB_POLICY`
+is why `src/groups.ts` takes a clock and a scheduler by injection, and why `DEFAULT_GROUP_POLICY`
 lives in exactly one place.
 
 ### Non-goals (do not build these)
@@ -127,15 +127,16 @@ module exists and the failure it prevents.
 | `text-log.ts` | 178 | The second sink. Append-only `TextLine[]`, each carrying `{byte, buffer, text, row}`. |
 | `classify.ts` | 357 | **The classifier.** `classify({before, after, fromByte, toByte, scrolledBy})` → segments. `frameOf`, `rowDiff`, `coalesce`. Must read like CLASSIFIER.md §3.1: four observations, one walk, **no thresholds**. |
 | `delta.ts` | 293 | `gridDelta(before, after, hint)` / `applyDelta`. Encodes a screen change as `{scrollBy, runs, rows}`. Searches the shift and **verifies** it rather than trusting the emulator. |
-| `jobs.ts` | 318 | **Job boundaries** — where one unit of program intent ends. `DEFAULT_JOB_POLICY = {gapMs: 50, maxBytes: 64KB, maxChunks: 256}`. `JobDetector`, `groupByGap`, `FakeClock`. |
-| `history.ts` | 670 | **The timeline.** `SessionHistory` (epochs, records, `read`, `screenAt`, `deliveries`, `jobs`, `textSince`, `tokenAt`) and `HistoryStore`. |
+| `groups.ts` | 318 | **Group boundaries** — where one run of output ends. Inferred from silence, so it is a
+   measured boundary, not a declared one; it is also a classification input (§9.3). `DEFAULT_GROUP_POLICY = {gapMs: 50, maxBytes: 64KB, maxChunks: 256}`. `GroupDetector`, `groupByGap`, `FakeClock`. |
+| `history.ts` | 670 | **The timeline.** `SessionHistory` (epochs, records, `read`, `screenAt`, `deliveries`, `groups`, `textSince`, `tokenAt`) and `HistoryStore`. |
 | `session.ts` | 995 | **The L0.4 session**: pty + screen + classifier as one object. `TerminalSession`: `feed`, `waitForIdle`, `waitForOutput`, `state`, `resize`, `onUpdate`/`onDelivery`/`onExit`/`onResize`, `dispose`. |
 | `registry.ts` | 53 | `SessionRegistry` — live sessions by id. Deliberately **history-agnostic**: dropping a live session must not discard what it did. |
 | `host.ts` | 89 | **The composition root.** `SessionHost.open()` creates a session *and starts recording it* in one call, because two calls would let a caller forget the second and get a working terminal with silently empty history. |
 | `keys.ts` | 480 | Named keys + `composeSteps`. The key table, mode-dependent encoding (`CSI B` vs `SS3 B`), `escapeBytes`, `KeyInputError`. |
 | `match.ts` | 84 | `wait_for_output` matching: `matchRow`, `matchLine`, `trimRow`. |
 | `mcp.ts` | 371 | **The MCP surface** — 7 tools. See §7. |
-| `types.ts` | 90 | `SessionId`, `JobPolicy`, `SessionOptions`, `DEFAULT_COLS/ROWS` (80/24), `assertGridSize` (shared so a pty and an emulator can never disagree about a size). |
+| `types.ts` | 90 | `SessionId`, `GroupPolicy`, `SessionOptions`, `DEFAULT_COLS/ROWS` (80/24), `assertGridSize` (shared so a pty and an emulator can never disagree about a size). |
 | `env.ts` | 25 | `sanitizeEnv`, `defaultShell`. |
 
 ### The data flow (the pipeline, end to end)
@@ -143,10 +144,10 @@ module exists and the failure it prevents.
 ```
 pty bytes
   │
-  ├─► job detector (src/jobs.ts)      close on a quiet period, a cap,
+  ├─► group detector (src/groups.ts)      close on a quiet period, a cap,
   │                                   or a forced flush at resize/exit/dispose
   ▼
-delivery            one job of raw bytes
+delivery            one group of raw bytes
   ├─► emulator.write()                (ASYNC — awaited; a same-tick read sees a stale grid)
   │     ├─► op stream                 replay, boundaries, raw escape hatch
   │     └─► screen model  ──► text log (per-line signal, judged by the row diff)
@@ -209,7 +210,7 @@ test is wrong.**
 ### The unit is the delivery, not the frame
 
 The first design classified each update as `writing | drawing | mixed`. That is wrong. **The
-unit of classification is the delivery** — one job, one segment. A segment cannot claim a finer
+unit of classification is the delivery** — one group, one segment. A segment cannot claim a finer
 range than the thing it was measured over, and the measurement is a frame diff across the whole
 delivery. "Mixed" is a fact about a **sequence** of updates, not about one of them.
 
@@ -254,7 +255,7 @@ The case that used to be abstention — "the program appears to have done someth
 will not confirm" — is reported as **volume**: an update carries how many raw deliveries it
 collapsed (`collapsed.chunks`), so *many deliveries behind little visible change* is legible to
 the agent as exactly that. The intermediates are **not merely counted but kept**, and playable
-back via `history.deliveries(from, to)`. A job is fed one raw delivery at a time for precisely
+back via `history.deliveries(from, to)`. A group is fed one raw delivery at a time for precisely
 this reason: **merged bytes cannot be un-merged afterwards.**
 
 That is a better signal than a confidence flag: it is a fact rather than a judgement, it does
@@ -325,48 +326,65 @@ definition is context the agent pays for on every turn.)
 | `send_sequence` | Write several inputs in **one write**: steps of `{text}`, `{key}` or `{byte}`, in order. Reports `written` and per-step bytes. |
 | `wait_for_idle` | `{sessionId, idleMs, timeoutMs}` → reason: `idle` \| `exited` \| `timeout`. |
 | `wait_for_output` | `{sessionId, pattern, surface?, sinceByte?, timeoutMs}` → reason: `matched` \| `exited` \| `timeout`, plus `match` `{surface, text, atByte, row, buffer}`. **On a non-match, `screen` carries the rows** it ended on. |
-| `wait_for_job` | `{sessionId, sinceSeq?, timeoutMs}` → reason: `job` \| `disposed` \| `exited` \| `timeout`. See below. |
+| `wait_for_group` | `{sessionId, sinceSeq?, timeoutMs}` → reason: `group` \| `disposed` \| `exited` \| `timeout`. See below. |
 | `read_screen` | `{sessionId}` → `screen`, `segments`, `text`, `collapsed`, `io`, `state`. `update: null` when nothing has arrived yet. |
 | `history_read` | Address the timeline. `{sessionId, from?, to?, limit?, level?, screen?}` — see below. |
 | `close_session` | End the session, kill the process tree. **History stays readable afterwards** — closing is not forgetting. |
 
-### `wait_for_job` — the wait a TUI needs
+### `wait_for_group` — the wait a TUI needs
 
 The third wait, and the one a full-screen program needs. `wait_for_idle` is **negative** —
 nothing arrived for a while — so it returns whether or not anything actually happened, and it
 cannot tell a program that is thinking from one waiting for you. `wait_for_output` is
-positive but needs a pattern to anchor on, and a repainting menu has no stable text. A job
+positive but needs a pattern to anchor on, and a repainting menu has no stable text. A group
 is positive and content-agnostic: it ends when the program's own act ends.
 
-**A job boundary is inferred from silence, not declared** — `jobs.ts` calls silence "a
+**A group boundary is inferred from silence, not declared** — `groups.ts` calls silence "a
 fallback, not the truth". So this is not *more* correct than idle; it is better aimed, ending
 on the unit the classifier already computes.
 
-- **Hangs on `onUpdate`, not on the job's close.** At close time nothing exists yet: the
-  detector's callback is `feed(job.bytes, job).then(deliver)`, and `feed` is async and
-  queued. A waiter woken there would have to read again to see what the job was — the round
+- **Hangs on `onUpdate`, not on the group's close.** At close time nothing exists yet: the
+  detector's callback is `feed(group.bytes, group).then(deliver)`, and `feed` is async and
+  queued. A waiter woken there would have to read again to see what the group was — the round
   trip that makes a wait useless.
 - **`sinceSeq` is in the unified numbering**, so it composes with `history_read`. Without a
-  baseline, a fast program can close a job before the wait begins and the waiter would return
-  the *previous* job — output from before the input was sent.
-- **Every close reason is reported**, because `bytes`/`chunks` are caps cutting a job open
-  **while the program is still writing**, `flush` is a resize or exit forcing it, and only
-  `gap` means the program went quiet on its own.
+  baseline, a fast program can close a group before the wait begins and the waiter would return
+  the *previous* group — output from before the input was sent.
+- **Every close reason is reported, and each is a measurement of the detector**, not a claim
+  about the program: `gap` = no bytes arrived for `gapMs`; `bytes` = the merged bytes reached
+  `maxBytes`; `chunks` = the merged deliveries reached `maxChunks`; `flush` = a resize, an
+  exit or a dispose closed it. **None of them says the program is still working or that more
+  output is coming** — that is L1.2's question and has no answer at a byte interface.
 - **`timeout` is the bound that always holds.** `maxBytes`/`maxChunks` are optional in
-  `JobPolicy`, so a policy without them never closes a firehose job at all.
+  `GroupPolicy`, so a policy without them never closes a firehose group at all.
 - **`disposed`** — `dispose()` used to clear its listener lists before waking anyone, so a
   waiter was silently unsubscribed and sat out its deadline, indistinguishable from a
   timeout. `onDispose` now fires before anything is cleared.
 - **A session opened without grouping still ends the wait**: with no detector there is no
-  boundary to group to, so each update is a job of one and `collapsed` is `null`.
+  boundary to group to, so each update is a group of one and `collapsed` is `null`.
 
 **`collapsed.grid` being `null` does not mean nothing changed.** `gridDelta` returns `null`
-across a resize or a buffer switch (`delta.ts:100-101`), and `resize()` flushes the job
-first — so the resize job is `reason:'flush'` with `grid:null`, the largest change there is.
+across a resize or a buffer switch (`delta.ts:100-101`), and `resize()` flushes the group
+first — so the resize group is `reason:'flush'` with `grid:null`, the largest change there is.
+It is also `null` when the only change was the cursor, which is not part of a delta at all
+(`HistoryRecord.cursor`). **Three distinct meanings, one value**: no delta exists, and whether
+anything happened is decided by comparing screens or reading `seq`, never by reading `grid`.
+
+### Why `group` and not `job`
+
+A job is a unit of *intent*, and intent is not observable here — the boundary is inferred from
+silence, which `groups.ts` calls "a fallback, not the truth". Naming it a job stated as fact
+what only the caller can judge.
+
+The name is **not** neutral about packing either, and that is deliberate. A group is also a
+**classification input**: `feed` classifies the whole span, and CLASSIFIER.md §9.3 measured
+that where the boundary lands changes the verdict (20/23 per drawing op vs 17/23 in 64-byte
+chunks). A caller who reads "group" as "just batching" will misread what the classifier was
+asked. What the term stops claiming is intent, not significance.
 
 ### `history_read` — one tool over the timeline, not a pair
 
-Paging through what happened and replaying the frames a job swallowed were going to be two
+Paging through what happened and replaying the frames a group swallowed were going to be two
 tools. They are **the same operation**: both address the timeline and ask what is there,
 differing only in how wide a span and whether the screen at each point is materialized. One
 tool, because two would be one timeline behind two doors.
@@ -375,7 +393,7 @@ tool, because two would be one timeline behind two doors.
   `{at}` (ms) or `{byte}`. The two ends need not be the same kind. This is the fix for the
   asymmetry that made them look like two problems: `read` accepted only tokens, `deliveries`
   only seq numbers, while `screenAt`/`textSince`/`tokenAt` already accepted all four.
-- **`level`** picks the projection: `records` (default — the deliveries as recorded), `jobs`
+- **`level`** picks the projection: `records` (default — the deliveries as recorded), `groups`
   (the units the agent was shown, with verdicts), or `text` (plain lines).
 - **`screen: true`** materializes the screen at each record. This is what separates a page from
   a playback, and it is one boolean rather than a second tool.
@@ -384,7 +402,7 @@ tool, because two would be one timeline behind two doors.
 - Returns `next` (resume), `truncated` (the limit stopped the read), `stoppedAtEpochEnd`.
 
 This is what makes **`collapsed.intermediates`** actionable: `read_screen` reports that states
-existed and were not shown; read the job's span (`from: {seq: rawFrom}, to: {seq: rawTo}`) with
+existed and were not shown; read the group's span (`from: {seq: rawFrom}, to: {seq: rawTo}`) with
 `screen: true` and they come back. Before this, that field was a warning with no handle.
 
 An address means **"at or before"**, the resolution limit `locate` documents — seeking to a time
@@ -396,26 +414,26 @@ nearest record inside is the answer and returning nothing would silently narrow 
 
 `no_session`, `not_live` (process exited), `bad_input` (unknown key name, a step with two fields
 or none, empty batch, byte outside the range ConPTY carries, a malformed history token, a span
-asked for at the `jobs` level), `bad_pattern` (regex did not compile). Failures carry
+asked for at the `groups` level), `bad_pattern` (regex did not compile). Failures carry
 `isError: true` and `structuredContent.error.code` — a caller branches on the code; the message
 is for a human.
 
 ### `present()` — the shape of one update
 
 ```
-{ seq, job, screen: string[], segments: [{kind, fromByte, toByte, erased, overwrote,
+{ seq, group, screen: string[], segments: [{kind, fromByte, toByte, erased, overwrote,
     reachedBack, scrolledBy, altScreen}], text: string[], collapsed, io }
 ```
 
 **`seq` is the number of the state being shown** — one number for the whole timeline,
-incremented once per raw delivery, and the same one `history_read` addresses with. A job
+incremented once per raw delivery, and the same one `history_read` addresses with. A group
 that swallowed states 3..9 reports `seq: 9`, and 3..9 come back with
-`history_read({from:{seq:3}, to:{seq:9}, screen:true})`. A job is a projection over a run
+`history_read({from:{seq:3}, to:{seq:9}, screen:true})`. A group is a projection over a run
 of these and occupies no number of its own, so the sequence never skips.
 
-**`job` is different, and the difference is the point.** A job's number is what
-`history.jobs()` reports and what every record in its span shares; `seq` is the single
-state the update ended at. Joining the two is the mistake to avoid: a job spanning 1..4
+**`group` is different, and the difference is the point.** A group's number is what
+`history.groups()` reports and what every record in its span shares; `seq` is the single
+state the update ended at. Joining the two is the mistake to avoid: a group spanning 1..4
 has `seq: 4`, so matching its records against `seq` matches only the last one.
 
 ### Transports — how to run it
@@ -555,7 +573,7 @@ ordered list of **records**, and a record is one **delivery**:
 
 | Field | What it is |
 |---|---|
-| `seq`, `job`, `at`, `fromByte`, `toByte` | where the delivery sits, and which job it was in |
+| `seq`, `group`, `at`, `fromByte`, `toByte` | where the delivery sits, and which group it was in |
 | `text` | the completed lines this delivery produced |
 | `scrolledRows` | how far the emulator reports content moved |
 | `cursor`, `buffer` | where the terminal was left |
@@ -566,15 +584,15 @@ writing/drawing distinction is read off the screen, so it is computed where it i
 than stored beside the frames it was taken from — **storing it would be a second opinion that
 could drift.**
 
-### A job is a projection, never stored
+### A group is a projection, never stored
 
-`SessionHistory.jobs()` groups deliveries by `job`, classifies from the screen before the first
+`SessionHistory.groups()` groups deliveries by `group`, classifies from the screen before the first
 to the screen after the last, and reports how many deliveries it stands for. **Nothing is stored
-per job**, so a projection cannot disagree with the stream it came from, and it can be recomputed
+per group**, so a projection cannot disagree with the stream it came from, and it can be recomputed
 at a different granularity without re-recording anything. Verified: the projection reproduces
 both the screen *and* the verdicts the live session reached.
 
-What was stored instead used to be the job records themselves, at whatever granularity the
+What was stored instead used to be the group records themselves, at whatever granularity the
 session happened to deliver at — which made the delivery policy part of the record.
 
 ### A resize is a boundary
@@ -640,8 +658,8 @@ loses exactly the repetition that says how far the build got.
 
 By **opaque token** (`h1.<epoch>.<record>`), never an integer index, so retention can change
 what a position means underneath without breaking a caller holding one. A token is itself a
-valid address, so `page.next` is passed straight back in. A delivery swallowed by a job is
-addressable the same way — `deliveries(from, to)` takes the `seq` range the job reports.
+valid address, so `page.next` is passed straight back in. A delivery swallowed by a group is
+addressable the same way — `deliveries(from, to)` takes the `seq` range the group reports.
 **A seek resolves to the record at or before the point asked for** — delivery granularity is the
 resolution limit and nothing invents precision beyond it.
 
@@ -710,7 +728,7 @@ written by hand, alongside the code, mostly after it. An expectation saying "thi
 intent*, not about anything visible. Optimising against such a label makes the classifier worse
 in a way that looks like progress, **because the number goes up.** It did go up, repeatedly, and
 every increase was fitted: a second verdict field added so a mixed burst could pass, a `CUP`
-suppressed because it measured better, a job boundary adopted because it netted +1. None were
+suppressed because it measured better, a group boundary adopted because it netted +1. None were
 asked for. All are gone now.
 
 **2. The code reflects the model.** When code and model disagree, the code is wrong — including
@@ -725,7 +743,7 @@ leaves:
   repo, and it does not mention verdicts at all.**
 - **Completeness and order** — every byte accounted for, segments in time order.
 - **Observation checked against the frames** — "replaced in place" really was a replacement.
-- **Structural invariants** — a job does not straddle a resize or an alt-screen switch; a
+- **Structural invariants** — a group does not straddle a resize or an alt-screen switch; a
   segment's range is well-formed; the collapsed count is honest.
 
 **The pinned scores are measurements, not a specification.** They are printed because a drop
@@ -750,20 +768,20 @@ single verdict over a span the screen shows two kinds on.
 - Git: branch `main`, HEAD `e7828f9` *"docs: close the cursor question, and consolidate the
   backlog"*. Working tree **clean**; no stashes.
 - The last four commits added `send_sequence` + named keys, `history_read` (one tool over the
-  timeline), the unified sequence number, `wait_for_job`, and a screen on failed waits.
+  timeline), the unified sequence number, `wait_for_group`, and a screen on failed waits.
 - Environment: Node v22.23.2, Windows 11.
 
 ### Verified classifier scores (`npm run corpus`, `direct` traces)
 
 | Replay granularity | Score | Failing |
 |---|---|---|
-| **job-aligned (gap 50ms)** — *the mode the server actually delivers in; the number to watch* | **23/23** | — |
+| **group-aligned (gap 50ms)** — *the mode the server actually delivers in; the number to watch* | **23/23** | — |
 | op-aligned (one delivery per drawing op) | 20/23 | `cli.menu-selector`, `complex.interleaved`, `complex.resize-during-tui` |
 | fixed 64-byte chunks | 17/23 | `basic.clear-redraw`, `basic.cr-overwrite`, `basic.in-place-repaint`, `complex.alt-write-then-draw`, `complex.interleaved`, `complex.resize-during-tui` |
 | fixed 256-byte chunks | 12/23 | `basic.clear-redraw`, `basic.cr-overwrite`, `basic.in-place-repaint`, `basic.spinner`, `cli.dashboard`, `cli.menu-selector`, `cli.pager`, `complex.alt-write-then-draw`, `complex.resize-during-tui`, `complex.shell-tui-shell`, `complex.synchronized-output` |
 | whole trace as one delivery | 11/23 | the above plus `complex.resize-epochs` |
 
-Pins live in `test/corpus.test.ts` `EXPECTED = { drawOps: 20, pty64: 17, jobs: 23 }`. The scored
+Pins live in `test/corpus.test.ts` `EXPECTED = { drawOps: 20, pty64: 17, groups: 23 }`. The scored
 numbers use **`direct` traces only**, because expectations are byte ranges from the programme's
 own marks and ConPTY rewrites the bytes.
 
@@ -800,9 +818,9 @@ deltas. Those run on the pty half too — the feed where things actually go wron
 
 **Remaining open item that is NOT L3 (the biggest one):** delivery granularity. Where a window
 opens decides whether an overwrite is visible at all, so **coalescing is a classification input,
-not merely a delivery policy** — which is why `jobs.ts` lives in `src/` and why grouping is on by
+not merely a delivery policy** — which is why `groups.ts` lives in `src/` and why grouping is on by
 default. Unresolved: whether a session should feed per-op, per-chunk, or adaptively (adaptively
-has a concrete form: what `jobs.ts` does). The gap threshold is a **policy with a principled
+has a concrete form: what `groups.ts` does). The gap threshold is a **policy with a principled
 range, not a tuned number**: anything from 20ms to 70ms separates the corpus's two pauses (6ms
 within an act, 80–120ms between acts) and scores identically across that range; 50ms sits in the
 middle. What sets the range is human legibility — faster and no one could read the intermediate
@@ -868,7 +886,7 @@ The history reads as a series of *reasons*, not changelog entries. Format:
 ```
 feat: a wait for a pattern, so a prompt is not read off the screen by eye
 fix: bytesPending was a hardcoded zero, which nothing could falsify
-refactor: the stream is the record, and a job is a projection over it
+refactor: the stream is the record, and a group is a projection over it
 perf: intermediates are a checkpoint plus deltas, not a grid each
 fix: the last corpus expectation a single verdict could not express
 docs: the docs described a classifier that no longer exists

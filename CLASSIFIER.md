@@ -46,7 +46,7 @@ a closed set, so every change lands in one of them. What replaces doubt is *volu
 The first design classified each update as `writing | drawing | mixed`. That is wrong, and the
 reason is the subject of §4.
 
-**The unit of classification is the delivery** — one job, one segment. A segment cannot claim a
+**The unit of classification is the delivery** — one group, one segment. A segment cannot claim a
 finer range than the thing it was measured over, and the measurement is a frame diff across the
 whole delivery.
 
@@ -94,10 +94,10 @@ Captured per delivery, and enough for every test in §3.3:
 ```
 pty bytes
   │
-  ├─► job detector (src/jobs.ts)      close on a quiet period, a cap, or a
+  ├─► group detector (src/groups.ts)      close on a quiet period, a cap, or a
   │                                   forced flush at a resize / exit / dispose
   ▼
-delivery            one job of raw bytes
+delivery            one group of raw bytes
   ├─► emulator.write()                (async — see §7)
   │     ├─► op stream                 replay, boundaries, and the raw escape hatch
   │     └─► screen model
@@ -177,7 +177,7 @@ will not confirm" — is not reported as uncertainty. It is reported as **volume
 carries how many raw deliveries it collapsed (`collapsed`, `GOAL.md` L1.1), so *many deliveries
 behind little visible change* is visible to the agent as exactly that, and the intermediates
 remain readable — not merely counted but kept, and playable back with
-`history.deliveries(from, to)`. A job is fed one raw delivery at a time for precisely
+`history.deliveries(from, to)`. A group is fed one raw delivery at a time for precisely
 this reason: merged bytes cannot be un-merged afterwards. That is a better signal than a confidence flag: it is a fact rather than a
 judgement, it does not require the classifier to know what it does not know, and it points at
 the remedy — go and read the intermediates — instead of merely warning.
@@ -250,7 +250,7 @@ So the emulator feeds two sinks:
 Linefeeds fire during drawing too, so the text log always accumulates — but each line carries the
 byte stamp of the delivery that completed it and the buffer it was written on, so a caller can
 attribute every line. Promoting only the lines inside writing-classified segments into the feed is
-delivery's job (L1.1); the log keeps all of them, marked. That is the L2 raw-stream escape hatch,
+delivery's group (L1.1); the log keeps all of them, marked. That is the L2 raw-stream escape hatch,
 for free.
 
 ---
@@ -338,13 +338,13 @@ not about one of them.
    an *after*, so what it can detect depends on where deliveries begin.
 
    **Partly closed.** Deliveries now begin where the programme drew them:
-   `src/jobs.ts` groups output by the gaps between arrivals, and the corpus
+   `src/groups.ts` groups output by the gaps between arrivals, and the corpus
    records those arrival times so the grouping can be replayed. That removed the
    arbitrary boundary — a pty buffer filling — from the picture.
 
    | Replay | Score |
    |---|---|
-   | one job, from arrival gaps | **23/23** |
+   | one group, from arrival gaps | **23/23** |
    | one delivery per drawing op (synthetic) | 20/23 |
    | 64-byte chunks (synthetic) | 17/23 |
    | 256-byte chunks (synthetic) | 12/23 |
@@ -358,7 +358,7 @@ not about one of them.
    - **Coalescing is a classification input, not merely a delivery policy.**
      Where a window opens decides whether an overwrite is visible at all. This
      is L1.1's territory, but L0 cannot pretend to be neutral about it — which
-     is why `jobs.ts` lives in `src/` and not above it, and why grouping is on
+     is why `groups.ts` lives in `src/` and not above it, and why grouping is on
      for every session unless `jobPolicy: false` says otherwise.
    - **History inherits the same resolution.** A timeline entry is a delivery, so
      a seek resolves to the entry at or before the point asked for and does not
@@ -370,17 +370,17 @@ not about one of them.
      faster than that and no one could read the intermediate state anyway.
 
    Unresolved: whether a session should feed per-op, per-chunk, or adaptively —
-   though "adaptively" now has a concrete form, which is what `jobs.ts` does.
+   though "adaptively" now has a concrete form, which is what `groups.ts` does.
 4. **Coalescing window ownership.** — **built, with the ownership split.**
-   `src/jobs.ts` closes a job on a quiet period, on a cap, or on a forced flush
+   `src/groups.ts` closes a group on a quiet period, on a cap, or on a forced flush
    at a resize, an exit or a dispose. L0 owns *that boundaries exist*, because
    where one falls decides what the classifier can see (item 3); L1/L3 owns the
-   numbers, which arrive as a `JobPolicy` and are never baked in. The quiet
-   period is measured from the last byte, not from when the job opened, so a
+   numbers, which arrive as a `GroupPolicy` and are never baked in. The quiet
+   period is measured from the last byte, not from when the group opened, so a
    slow but continuous program is not chopped at arbitrary intervals.
-   Timing policy does not leak into L0: `jobs.ts` takes a clock and a scheduler
+   Timing policy does not leak into L0: `groups.ts` takes a clock and a scheduler
    by injection, and its tests advance time rather than sleeping. The default
-   numbers live in one place, `DEFAULT_JOB_POLICY`, so the policy can change
+   numbers live in one place, `DEFAULT_GROUP_POLICY`, so the policy can change
    without touching the mechanism.
 5. **Whether the text log is L0 or L1.** — **closed: L0.** It is built
    (`src/text-log.ts`), and the argument above is the reason: the screen grid
@@ -443,7 +443,7 @@ intent*, not about anything visible. Optimising against such a label makes the c
 in a way that looks like progress, because the number goes up.
 
 It did go up, repeatedly, and every increase was fitted: a second verdict field added so a mixed
-burst could pass, a `CUP` suppressed because it measured better, a job boundary adopted because
+burst could pass, a `CUP` suppressed because it measured better, a group boundary adopted because
 it netted +1. None of those were asked for. All of them are gone now.
 
 ### 2. The code reflects the model
@@ -469,7 +469,7 @@ What that leaves, and it is not nothing:
 - **Observation, checked against the frames** — "replaced in place" really was a replacement;
   "content arrived" really was blank before. Derivable from the before/after frames, so a test
   can check it without anyone's judgement.
-- **Structural invariants** — a job does not straddle a resize or an alt-screen switch; a
+- **Structural invariants** — a group does not straddle a resize or an alt-screen switch; a
   segment's range is well-formed; the collapsed count is honest.
 
 And what it does not leave: **the pinned scores are measurements, not a specification.** They
