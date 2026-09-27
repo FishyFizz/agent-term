@@ -1,5 +1,5 @@
 /**
- * Job detection against a real program, not a replay.
+ * Group detection against a real program, not a replay.
  *
  * The corpus cannot validate this: `corpus/traces` records op timestamps that
  * are a uniform ~15ms apart, because the recorder awaits each 32-byte write

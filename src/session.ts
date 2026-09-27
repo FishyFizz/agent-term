@@ -23,7 +23,7 @@ import type { TextLine } from './text-log.js';
 import type { ScreenSnapshot } from './screen.js';
 import type { SessionOptions } from './types.js';
 import { assertGridSize } from './types.js';
-import { GroupDetector, DEFAULT_GROUP_POLICY, realClock, type GroupClock, type GroupCloseReason, type Job } from './groups.js';
+import { GroupDetector, DEFAULT_GROUP_POLICY, realClock, type GroupClock, type GroupCloseReason, type Group } from './groups.js';
 
 /** One classified change to a session. */
 export interface SessionUpdate {
@@ -669,7 +669,7 @@ export class TerminalSession {
    * `collapsed: null`, which is correct: nothing was merged, and claiming `1`
    * would say otherwise (GOAL.md L1.3).
    */
-  feed(chunk: Buffer, group?: Job): Promise<SessionUpdate> {
+  feed(chunk: Buffer, group?: Group): Promise<SessionUpdate> {
     this.pendings++;
     const run = this.queue.then(async () => {
       const fromByte = this.screen.ops.bytesFed;

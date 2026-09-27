@@ -9,7 +9,8 @@ import type { GroupClock } from './groups.js';
 export type SessionId = string;
 
 /**
- * How raw pty output is grouped into groups — the program's units of intent.
+ * How raw pty output is grouped into groups — the units the classifier is
+ * asked about. Not units of intent: the boundary is inferred from silence.
  *
  * The numbers are policy and belong to L1/L3; the fact that output *has*
  * boundaries belongs to L0, because where a boundary falls decides what the

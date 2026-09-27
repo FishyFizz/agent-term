@@ -93,7 +93,7 @@ export interface RunResult {
  * later, and a pty-like delivery is a thing the *harness* should simulate
  * (`fixedChunks`), not a thing the recording should bake in. What the
  * recording must keep instead is when each write happened — `ArrivalAt` —
- * because that is the only place a job boundary survives.
+ * because that is the only place a group boundary survives.
  *
  * A trace has to be replayed at the size the programme was running at, or the
  * frames, the ops and the classifier all describe a terminal that never

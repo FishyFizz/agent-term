@@ -208,10 +208,10 @@ test('a read at the `text` level returns lines, and at `groups` level verdicts',
   assert.equal(asText.level, 'text');
   assert.deepEqual(asText.lines.map((l) => l.text), ['one', 'two', 'three']);
 
-  const asJobs = history.readBack({ level: 'groups' });
-  assert.equal(asJobs.level, 'groups');
-  assert.deepEqual(asJobs.groups.map((j) => j.group), [1, 2], 'one entry per group, not per delivery');
-  assert.equal(asJobs.groups[0]!.chunks, 2, 'and it remembers it swallowed two');
+  const asGroups = history.readBack({ level: 'groups' });
+  assert.equal(asGroups.level, 'groups');
+  assert.deepEqual(asGroups.groups.map((g) => g.group), [1, 2], 'one entry per group, not per delivery');
+  assert.equal(asGroups.groups[0]!.chunks, 2, 'and it remembers it swallowed two');
 });
 
 test('paging on `next` walks the whole timeline without repeating or skipping', () => {

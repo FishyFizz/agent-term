@@ -8,7 +8,7 @@
  * classifier is being asked its question at boundaries the program never drew.
  * A **group** is the missing unit: a run of output delivered together.
  *
- * **Why "group" and not "group".** A group is a unit of *intent*, and intent is
+ * **Why "group" and not "job".** A job would be a unit of *intent*, and intent is
  * not observable here. The boundary is inferred from silence: a program
  * painting a menu writes its rows back to back and then waits, and the gap
  * between those runs is the boundary (measured on `cli.menu-selector`: 0ms
@@ -96,8 +96,14 @@ export interface Arrival {
   at: number;
 }
 
-/** A run of raw deliveries grouped into one unit of intent. */
-export interface Job {
+/**
+ * A run of raw deliveries grouped into one unit of output.
+ *
+ * Not a unit of *intent*: the boundary is inferred from silence, which is a
+ * fallback and not the truth, so nothing here may claim what the program
+ * meant. See the header.
+ */
+export interface Group {
   /** The merged bytes, in arrival order. */
   bytes: Buffer;
   /**
@@ -119,7 +125,7 @@ export interface Job {
 }
 
 /**
- * Group recorded arrivals into groups by gap.
+ * Record arrivals into groups by gap.
  *
  * The pure form, used to replay a trace at group granularity: a trace records
  * when each op ran, so the gaps are recoverable even though the raw bytes
@@ -130,8 +136,8 @@ export interface Job {
  * group of its own instead of being split — splitting a delivery would invent a
  * boundary the program never drew.
  */
-export function groupByGap(arrivals: readonly Arrival[], policy: GroupPolicy): Job[] {
-  const groups: Job[] = [];
+export function groupByGap(arrivals: readonly Arrival[], policy: GroupPolicy): Group[] {
+  const groups: Group[] = [];
   let parts: Buffer[] = [];
   let chunks = 0;
   let bytes = 0;
@@ -248,7 +254,7 @@ export class FakeClock implements GroupClock {
  */
 export class GroupDetector {
   private readonly policy: GroupPolicy;
-  private readonly emit: (group: Job) => void;
+  private readonly emit: (group: Group) => void;
   private readonly clock: GroupClock;
 
   private parts: Buffer[] = [];
@@ -259,7 +265,7 @@ export class GroupDetector {
   private handle: unknown;
   private closed = false;
 
-  constructor(policy: GroupPolicy, emit: (group: Job) => void, clock: GroupClock = realClock) {
+  constructor(policy: GroupPolicy, emit: (group: Group) => void, clock: GroupClock = realClock) {
     this.policy = policy;
     this.emit = emit;
     this.clock = clock;
@@ -322,7 +328,7 @@ export class GroupDetector {
   /** Stop the timer. A pending group is *not* emitted — see `dispose`. */
   private close(reason: GroupCloseReason): void {
     if (this.chunks === 0) return;
-    const group: Job = {
+    const group: Group = {
       bytes: Buffer.concat(this.parts),
       parts: this.parts,
       chunks: this.chunks,

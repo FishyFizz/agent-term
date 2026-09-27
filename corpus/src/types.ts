@@ -65,7 +65,7 @@ export function takeResizeMarkers(text: string): { sizes: Array<{ cols: number; 
  * the emulator: in a direct run the programme finishes before any feeding
  * starts, so a feed-time timestamp records the feeder's cadence and erases the
  * programme's. That mistake is why a trace used to show every delivery 15ms
- * apart whatever the programme did, and why no job boundary could be recovered
+ * apart whatever the programme did, and why no group boundary could be recovered
  * from one.
  */
 export interface ArrivalAt {
@@ -184,7 +184,7 @@ export interface Programme {
  *
  * These are not decoration. The classifier's verdict depends on where
  * deliveries begin (CLASSIFIER.md §9.3), so a pause is what makes two acts
- * two acts. Recorded with the bytes, a pause is the only signal a job
+ * two acts. Recorded with the bytes, a pause is the only signal a group
  * boundary can be recovered from — and a corpus whose pauses are all 15ms
  * long, or all absent, cannot distinguish a burst from a sequence at all.
  *

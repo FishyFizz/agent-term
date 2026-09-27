@@ -95,7 +95,7 @@ export const interleaved: Programme = {
       {
         from: m['start'] ?? 0,
         to: m['end'] ?? 0,
-        // What is observable, and only that. Coalesced to one job, eight rows
+        // What is observable, and only that. Coalesced to one group, eight rows
         // go from blank to content and nothing is replaced in place, so the
         // screen reports content arriving. The six status repaints happened
         // below the resolution of what survives the coalescing; they are in
@@ -105,7 +105,7 @@ export const interleaved: Programme = {
         // program's intent rather than about the screen -- the same mistake as
         // `progress-bar-scroll` below.
         kind: 'writing',
-        why: 'a burst of log lines with a status row that is repainted each time: at job granularity what survives is content arriving, and the repetition is reported as collapsed deliveries rather than as a verdict',
+        why: 'a burst of log lines with a status row that is repainted each time: at group granularity what survives is content arriving, and the repetition is reported as collapsed deliveries rather than as a verdict',
       },
     ];
   },

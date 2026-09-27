@@ -487,10 +487,10 @@ test('history reconstructs every screen of a live session', async (t) => {
   // as, while an update's `seq` is the raw state it ends at — the two differ
   // whenever a group swallowed more than one delivery, which is the case being
   // checked here.
-  const byJob = new Map(updates.map((u) => [u.group, u]));
+  const byGroup = new Map(updates.map((u) => [u.group, u]));
   let checked = 0;
   for (const group of history.groups({ limit: 1000 })) {
-    const update = byJob.get(group.group);
+    const update = byGroup.get(group.group);
     if (!update) continue;
     checked++;
     assert.deepEqual(

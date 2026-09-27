@@ -1,5 +1,5 @@
 /**
- * Job boundaries — the unit of program intent the classifier is asked about.
+ * Group boundaries — the unit of output the classifier is asked about.
  *
  * These test the grouping rule and the live detector. Nothing here needs a
  * pty: the clock is injected, so a quiet period is *advanced* rather than
@@ -9,7 +9,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { groupByGap, GroupDetector, FakeClock, type Arrival, type Job } from '../src/groups.js';
+import { groupByGap, GroupDetector, FakeClock, type Arrival, type Group } from '../src/groups.js';
 import type { GroupPolicy } from '../src/types.js';
 
 const POLICY: GroupPolicy = { gapMs: 20 };
@@ -18,7 +18,7 @@ function arrivals(spec: Array<[string, number]>): Arrival[] {
   return spec.map(([text, at]) => ({ bytes: Buffer.from(text, 'utf8'), at }));
 }
 
-function texts(groups: Job[]): string[] {
+function texts(groups: Group[]): string[] {
   return groups.map((j) => j.bytes.toString('utf8'));
 }
 
@@ -81,9 +81,9 @@ test('no arrivals means no groups', () => {
 
 // --- the live detector ----------------------------------------------------
 
-function detector(policy: GroupPolicy = POLICY): { groups: Job[]; push: (s: string) => void; clock: FakeClock; d: GroupDetector } {
+function detector(policy: GroupPolicy = POLICY): { groups: Group[]; push: (s: string) => void; clock: FakeClock; d: GroupDetector } {
   const clock = new FakeClock();
-  const groups: Job[] = [];
+  const groups: Group[] = [];
   const d = new GroupDetector(policy, (j) => groups.push(j), clock);
   return { groups, clock, d, push: (s: string) => d.push(Buffer.from(s, 'utf8')) };
 }

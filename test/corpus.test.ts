@@ -14,7 +14,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { loadTraces, classifyTraceStreaming, scoreTrace, fixedChunks, jobChunks } from './helpers/corpus.js';
+import { loadTraces, classifyTraceStreaming, scoreTrace, fixedChunks, groupChunks } from './helpers/corpus.js';
 import type { Trace } from './helpers/corpus.js';
 
 /**
@@ -24,7 +24,7 @@ import type { Trace } from './helpers/corpus.js';
  * act is 6ms apart, one act to the next is 80-120ms. Anything from about 20
  * to 70 separates them, and the measured score is identical across that range.
  */
-const JOB_GAP_MS = 50;
+const GROUP_GAP_MS = 50;
 
 /**
  * Scores are printed so a change is visible. They are measurements of a
@@ -88,14 +88,14 @@ test('corpus is present and well-formed', () => {
  * Score at group granularity, which needs the trace and not just its bytes.
  *
  * The boundary comes from when each delivery arrived, which `raw` does not
- * carry; see `jobChunks`.
+ * carry; see `groupChunks`.
  */
-async function runJobs(gapMs: number): Promise<{ pass: number; total: number; fails: string[] }> {
+async function runGroups(gapMs: number): Promise<{ pass: number; total: number; fails: string[] }> {
   const traces = loadTraces('direct');
   let pass = 0;
   const fails: string[] = [];
   for (const trace of traces) {
-    const segments = await classifyTraceStreaming(trace, () => jobChunks(trace, gapMs));
+    const segments = await classifyTraceStreaming(trace, () => groupChunks(trace, gapMs));
     if (scoreTrace(trace, segments).pass) pass++;
     else fails.push(trace.id);
   }
@@ -131,8 +131,8 @@ test('op-aligned replay beats pty-like replay, or the gap is a real finding', as
 });
 
 test('classifier scores at least the pinned rate under group-aligned replay', async () => {
-  const { pass, total, fails } = await runJobs(JOB_GAP_MS);
-  console.log(`      corpus: ${pass}/${total} at group granularity (${JOB_GAP_MS}ms gap)`);
+  const { pass, total, fails } = await runGroups(GROUP_GAP_MS);
+  console.log(`      corpus: ${pass}/${total} at group granularity (${GROUP_GAP_MS}ms gap)`);
   assert.ok(
     pass >= EXPECTED.groups,
     `expected >= ${EXPECTED.groups}/${total} at group granularity, got ${pass}/${total}. ` +

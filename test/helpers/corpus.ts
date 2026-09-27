@@ -116,7 +116,7 @@ export function fixedChunks(size: number): (raw: string) => string[] {
  *
  * Traces are ASCII, so an arrival's byte offset indexes `raw` directly.
  */
-export function jobChunks(trace: Trace, gapMs: number): string[] {
+export function groupChunks(trace: Trace, gapMs: number): string[] {
   const arrivals = trace.arrivals;
   if (arrivals.length === 0) return [trace.raw];
   const endOf = (i: number): number => arrivals[i + 1]?.offset ?? trace.raw.length;
