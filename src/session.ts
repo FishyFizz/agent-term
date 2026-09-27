@@ -81,7 +81,7 @@ export interface SessionUpdate {
    */
   grid: GridDelta | null;
   /** The screen after this update. Present whenever the change touched it. */
-  screen: ReturnType<ScreenModel['snapshot']>;
+  screen: ScreenSnapshot;
   /**
    * What was merged into this update, or `null` when nothing was.
    *
@@ -362,7 +362,7 @@ export interface GroupWaitResult {
   /** What the group merged, or `null`. `chunks > 1` means states were swallowed. */
   collapsed: CollapsedInfo | null;
   /** The screen as it was when the wait ended, or `null` on `disposed`. */
-  screen: ReturnType<ScreenModel['snapshot']> | null;
+  screen: ScreenSnapshot | null;
   /** What was observed when the wait ended. */
   state: SessionState;
   /** Milliseconds the wait lasted, on the session's clock. */
@@ -426,7 +426,7 @@ export interface OutputWaitResult {
    * silently read as "nothing", which is the `bytesPending: null` vs `0` class
    * of bug (GOAL.md L1.3).
    */
-  screen: ReturnType<ScreenModel['snapshot']> | null;
+  screen: ScreenSnapshot | null;
   /** What was observed when the wait ended. */
   state: SessionState;
   /** Milliseconds the wait lasted, on the session's clock. */
@@ -688,7 +688,6 @@ export class TerminalSession {
       const text: TextLine[] = [];
       let afterSnap = groupStartSnap;
       let after = groupStart;
-      let first = true;
 
       for (const part of parts) {
         // One witness, and it belongs to the model: `feed` takes the frames,
@@ -736,7 +735,6 @@ export class TerminalSession {
           if (rawFrom === 0) rawFrom = seq;
           rawTo = seq;
         }
-        first = false;
       }
 
       this._seq++;

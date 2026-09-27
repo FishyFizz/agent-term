@@ -1,10 +1,10 @@
 /**
  * The MCP surface — a spike of the core loop, not the whole thing.
  *
- * Eight tools, because that is the smallest set an agent can drive a terminal
+ * Nine tools, because that is the smallest set an agent can drive a terminal
  * with: open one, type into it, send a batch of input as one write, wait for it
- * to stop changing, wait for it to show something, read what happened, address
- * the timeline it happened on, close it. The rest of interaction (the pending
+ * to stop changing, wait for it to show something, wait for its next group,
+ * read what happened, address the timeline it happened on, close it. The rest of interaction (the pending
  * prompt, large pastes) goes on top of these rather than beside them, and is
  * deliberately not here yet.
  *

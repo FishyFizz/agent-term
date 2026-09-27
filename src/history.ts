@@ -229,15 +229,15 @@ export interface HistoryReadOptions {
   /** Where to stop, same address space. Default: read on from `from`. */
   to?: HistoryPoint | null;
   /** Cap on what comes back. Default 50. */
-    limit?: number;
-    /** The projection: `records` (default), `groups`, or `text`. */
-    level?: HistoryLevel;
-    /** Materialize the screen at each record. Off by default — it is the expensive part. */
-    screen?: boolean;
-    /** Anchor: `from`/`to` address the timeline relative to *now*. See `readBack`. */
-    anchor?: 'front' | 'back';
-    /**
-     * Cap on what comes back, **counted in characters and cut at a whole
+  limit?: number;
+  /** The projection: `records` (default), `groups`, or `text`. */
+  level?: HistoryLevel;
+  /** Materialize the screen at each record. Off by default — it is the expensive part. */
+  screen?: boolean;
+  /** Anchor: `from`/`to` address the timeline relative to *now*. See `readBack`. */
+  anchor?: 'front' | 'back';
+  /**
+   * Cap on what comes back, **counted in characters and cut at a whole
      * delivery**, so a driver that has been away can ask for "what changed since
      * I last looked" and get the newest of it instead of the oldest.
      *
@@ -252,12 +252,12 @@ export interface HistoryReadOptions {
      * a half screen the caller would read as the state. What did not fit is
      * *counted and reported*, not silently dropped (L1.1).
      *
-     * A single delivery larger than the whole budget is still returned in full,
-     * and reported as such by `overBudget`. The alternative — truncating it —
-     * would make the one thing the caller asked to see unreadable.
-     */
-    maxChars?: number;
-  }
+   * A single delivery larger than the whole budget is still returned in full,
+   * and reported as such by `overBudget`. The alternative — truncating it —
+   * would make the one thing the caller asked to see unreadable.
+   */
+  maxChars?: number;
+}
 
 /**
  * What a read left out, and the screen to continue from.
