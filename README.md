@@ -115,7 +115,7 @@ watermark defaults to the last input, so a prompt already on screen cannot match
 a wait starts. A match is still an observation, not a verdict: the terminal echoes what is
 typed, and an echo is new output too (`GOAL.md` L1.4).
 
-Not built: delivery and boundedness (L1.1), the pending prompt, large pastes and a composed
+Not built: the pending prompt, large pastes and a composed
 write-wait-respond call (L1.4), honest errors beyond the four coded ones (L1.5), and
 retention and durability (L3.4). Grouping is on by default
 (`DEFAULT_GROUP_POLICY`); `SessionOptions.groupPolicy: false` opts out, and gives one update

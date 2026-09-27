@@ -222,27 +222,31 @@ cursor change — should be spelled out.
 
 ## Backlog (consolidated)
 
-Everything from this plan is done. What remains, from `context.md` §11 and `GOAL.md`:
+Everything from this plan is done, including the last two threads: `grid: null`'s three
+meanings are spelled out (context.md §7), and L1.1 is split into 1.1a/b/c in `GOAL.md`
+because one number covering three obligations at different stages of done is why the backlog
+could never say whether it was finished.
+
+What remains, from `context.md` §11 and `GOAL.md`:
 
 | # | Item | Where it comes from | Size |
 |---|---|---|---|
-| 1 | **`grid: null` has three meanings**, one undocumented (above) | this plan, §5 | doc |
-| 2 | **L1.4 the pending prompt** — a program blocked on a prompt and one thinking both read `idle`; needs a real signal, not `wait_for_output` | GOAL.md L1.4, context.md §11 | medium |
-| 3 | **L1.1 delivery and boundedness, fully** | context.md §11 | medium |
-| 4 | **Large pastes** | context.md §11, L1.4 | small |
-| 5 | **Composed write-wait-respond call** — GOAL.md warns a batch that waits between steps is the scripted-recipes non-goal | context.md §11 | design |
-| 6 | **L3.4 retention and durability** | context.md §11 | medium |
-| 7 | **All of L2** — sub-region reads, cursor query, mouse, raw escape hatch, PNG/HTML | context.md §11 | large |
-| 8 | **Open questions 1,2,3,5,6** — update delivery, retention, human input handoff, safety floor, optional representations | context.md §11 | design |
-| 9 | **Delivery granularity** — the one open item that is *not* L3; per-op, per-chunk or adaptive | context.md §11 | design |
+| 1 | **L1.4 the pending prompt** — a program blocked on a prompt and one thinking both read `idle`; needs a real signal, not `wait_for_output` | GOAL.md L1.4, context.md §11 | medium |
+| 2 | **Large pastes** | context.md §11, L1.4 | small |
+| 3 | **Composed write-wait-respond call** — GOAL.md warns a batch that waits between steps is the scripted-recipes non-goal | context.md §11 | design |
+| 4 | **L3.4 retention and durability** | context.md §11 | medium |
+| 5 | **All of L2** — sub-region reads, cursor query, mouse, raw escape hatch, PNG/HTML | context.md §11 | large |
+| 6 | **Open questions 1,2,3,5,6** — update delivery, retention, human input handoff, safety floor, optional representations | context.md §11 | design |
+| 7 | **Delivery granularity** — the one open item that is *not* L3; per-op, per-chunk or adaptive | context.md §11 | design |
+| 8 | **L1.5 honest errors** beyond the four coded ones | context.md §11 | small |
 
 ### Suggested order
 
-Not a commitment — items 3, 6, 7 and 9 each need a design decision before code.
+Not a commitment — items 4, 5, 6 and 7 each need a design decision before code.
 
-1. **B1** — doc, tiny, and it closes the last thread from this plan.
-2. **B2** — the pending prompt is the one that would have helped the 16-input run most:
-   `ls` "looked like nothing happened", and the driver fell back to idle and guessed.
-3. **B4** — large pastes, small and independent.
-4. **B3, B6, B7, B9** — larger; decide, then build.
+1. **B2 (pending prompt)** — the one that would have helped the 16-input run most: `ls`
+   "looked like nothing happened", and the driver fell back to idle and guessed.
+2. **B8 (L1.5) and B3 (large pastes)** — small and independent; either can go first.
+3. **B4, B6, B7** — larger; decide, then build.
+
 

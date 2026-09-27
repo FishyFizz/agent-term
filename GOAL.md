@@ -142,6 +142,33 @@ losing the ability to reconstruct what happened.
 Retrieval is bounded too, not just the feed: reading history takes a window and returns that
 window, with truncation reported explicitly rather than silently.
 
+Three obligations share this number, and they are finished to different degrees — which is why
+the backlog could never say whether "L1.1" was done. Stated separately:
+
+#### L1.1a — Continuity (built)
+
+Updates are ordered and continuous. Built: `_rawSeq` numbers every raw delivery
+(`session.ts`), so the timeline is gapless and every state is addressable by one number.
+Groups are a projection over that stream, computed on read, so continuity is a property of the
+record rather than of what the agent happened to be shown.
+
+#### L1.1b — The feed is bounded (built)
+
+A firehose is coalesced rather than flooded. Built: `DEFAULT_GROUP_POLICY`
+(`{gapMs: 50, maxBytes: 64KB, maxChunks: 256}`) closes a group on silence or on a cap, so a
+repainting TUI arrives as one update rather than hundreds. Coalescing **loses nothing**: every
+state is still recorded, and `collapsed.chunks > 1` says so.
+
+#### L1.1c — Retrieval is bounded (built)
+
+A read takes a window and returns that window. Built: `history_read` caps by `limit`
+(count) and by **`maxChars` (characters, cut at a whole `seq`)** — because a caller's real
+budget is "do not blow up my context", not "fifty". Omission is reported, never silent:
+`omitted` gives the count, the reason, the `seq` to resume from, and the screen at the cut.
+
+What is **not** built under this number: nothing. The three obligations are met; what remains
+elsewhere is L1.4's pending prompt, large pastes, L1.5, L3.4 and L2.
+
 ### L1.2 — Waiting, without claiming to know that output has finished
 
 The agent can wait for the terminal to stop changing, and the wait is bounded: it ends on
