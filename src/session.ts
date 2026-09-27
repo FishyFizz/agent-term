@@ -866,33 +866,25 @@ export class TerminalSession {
    * the result deliberately does not claim it.
    */
   async waitForIdle(options: WaitOptions): Promise<WaitResult> {
-    const startedAt = this.clock.now();
-    const deadline = startedAt + options.timeoutMs;
-
-    for (;;) {
-      const now = this.clock.now();
-      const state = this.state(now);
-
+    return this.wait<Omit<WaitResult, 'waitedMs'>>({
+      timeoutMs: options.timeoutMs,
+      found: (state) =>
+        state.drained === true && state.idleMs !== null && state.idleMs >= options.idleMs
+          ? { reason: 'idle', state }
+          : null,
       // Nothing more can arrive once the process is gone and its output has
-      // been parsed, so a quiet period would no longer be evidence of
-      // anything. Ending here rather than sitting it out.
-      if (state.exit !== null && state.drained === true) {
-        return { reason: 'exited', state, waitedMs: now - startedAt };
-      }
-      if (state.drained === true && state.idleMs !== null && state.idleMs >= options.idleMs) {
-        return { reason: 'idle', state, waitedMs: now - startedAt };
-      }
-      if (now >= deadline) {
-        return { reason: 'timeout', state, waitedMs: now - startedAt };
-      }
-
+      // been parsed, so sitting out a quiet period would no longer be evidence
+      // of anything. Ending here rather than waiting for one.
+      onExit: (state) => ({ reason: 'exited', state }),
       // Not drained, there is no moment to compute: only the pipeline knows
       // when it will finish, so this waits on the change rather than on a
       // clock. Drained, it waits exactly until the quiet period would elapse.
-      const remaining =
-        state.drained === true && state.idleMs !== null ? options.idleMs - state.idleMs : Infinity;
-      await this.nextChange(Math.min(deadline, now + remaining));
-    }
+      until: (state, now, deadline) => {
+        const remaining =
+          state.drained === true && state.idleMs !== null ? options.idleMs - state.idleMs : Infinity;
+        return Math.min(deadline, now + remaining);
+      },
+    });
   }
 
   /**
@@ -932,8 +924,6 @@ export class TerminalSession {
    * terminal repeating is the caller's judgement, as everywhere else (L1.2).
    */
   async waitForOutput(options: WaitForOutputOptions): Promise<OutputWaitResult> {
-    const startedAt = this.clock.now();
-    const deadline = startedAt + options.timeoutMs;
     const surface: MatchSurface = options.surface ?? 'both';
     const sinceByte = options.sinceByte ?? this.pty.lastInputByte;
     const pattern = options.pattern;
@@ -955,51 +945,36 @@ export class TerminalSession {
     });
 
     try {
+      // Awaited inside the `try`, not returned straight out of it: the
+      // `finally` below unsubscribes, and returning an unresolved promise would
+      // run it immediately, unsubscribing before the wait saw anything.
       // Read once, and only once: everything written after this point arrives
       // as a delivery and is tested as it lands, so re-scanning the grid on
       // every wake would only re-check rows that cannot have changed.
       if (surface !== 'text') hit = hit ?? this.matchScreen(pattern, sinceByte);
 
-      for (;;) {
-        const now = this.clock.now();
-        const state = this.state(now);
-        if (hit) {
-          return {
-            reason: 'matched',
-            match: hit,
-            screen: null,
-            state,
-            waitedMs: now - startedAt,
-            sinceByte,
-          };
-        }
+      return await this.wait<Omit<OutputWaitResult, 'waitedMs'>>({
+        timeoutMs: options.timeoutMs,
+        found: (state) =>
+          hit ? { reason: 'matched', match: hit, screen: null, state, sinceByte } : null,
         // Nothing more can arrive and nothing matched, so waiting longer cannot
         // change the answer -- the same early end as `waitForIdle`, for the
         // same reason: the quiet period would no longer be evidence.
-        if (state.exit !== null && state.drained === true) {
-          return {
-            reason: 'exited',
-            match: null,
-            screen: this.screen.snapshot(),
-            state,
-            waitedMs: now - startedAt,
-            sinceByte,
-          };
-        }
-        if (now >= deadline) {
-          return {
-            reason: 'timeout',
-            match: null,
-            screen: this.screen.snapshot(),
-            state,
-            waitedMs: now - startedAt,
-            sinceByte,
-          };
-        }
-        // A bound, not a step: this resolves at the deadline or the moment the
-        // session changes, whichever comes first.
-        await this.nextChange(deadline);
-      }
+        onExit: (state) => ({
+          reason: 'exited',
+          match: null,
+          screen: this.screen.snapshot(),
+          state,
+          sinceByte,
+        }),
+        onTimeout: (state) => ({
+          reason: 'timeout',
+          match: null,
+          screen: this.screen.snapshot(),
+          state,
+          sinceByte,
+        }),
+      });
     } finally {
       off();
     }
@@ -1040,8 +1015,6 @@ export class TerminalSession {
    * policy without caps never closes a firehose group at all.
    */
   async waitForGroup(options: WaitForGroupOptions): Promise<GroupWaitResult> {
-    const startedAt = this.clock.now();
-    const deadline = startedAt + options.timeoutMs;
     // The state the caller has already seen. Anything at or before it is
     // content it has had, whatever produced it.
     const sinceSeq = options.sinceSeq ?? this._lastInputSeq;
@@ -1069,67 +1042,67 @@ export class TerminalSession {
     });
 
     try {
-      for (;;) {
-        const now = this.clock.now();
-        const state = this.state(now);
-        const found = box.found;
-        if (found) {
-          return {
-            reason: 'group',
-            afterInput: this.afterInput(found),
-            seq: found.seq,
-            group: found.group,
-            collapsed: found.collapsed,
-            screen: found.screen,
-            state,
-            waitedMs: now - startedAt,
-            sinceSeq,
-          };
-        }
-        // Disposed: the listeners were cleared, so nothing will ever arrive.
-        // Ending here with a reason rather than letting the deadline run out,
-        // which would look like a timeout the caller has to interpret.
-        if (disposed) {
-          return {
-            reason: 'disposed',
-            afterInput: null,
-            seq: sinceSeq,
-            group: null,
-            collapsed: null,
-            screen: null,
-            state,
-            waitedMs: now - startedAt,
-            sinceSeq,
-          };
-        }
-        if (state.exit !== null && state.drained === true) {
-          return {
-            reason: 'exited',
-            afterInput: null,
-            seq: sinceSeq,
-            group: null,
-            collapsed: null,
-            screen: this.screen.snapshot(),
-            state,
-            waitedMs: now - startedAt,
-            sinceSeq,
-          };
-        }
-        if (now >= deadline) {
-          return {
-            reason: 'timeout',
-            afterInput: null,
-            seq: sinceSeq,
-            group: null,
-            collapsed: null,
-            screen: this.screen.snapshot(),
-            state,
-            waitedMs: now - startedAt,
-            sinceSeq,
-          };
-        }
-        await this.nextChange(deadline);
-      }
+      // Awaited inside the `try`, not returned straight out of it: the
+      // `finally` below unsubscribes, and a `return` of an unresolved promise
+      // would run it immediately -- unsubscribing before the wait ever saw
+      // anything, which is a wait that can only ever time out.
+      return await this.wait<Omit<GroupWaitResult, 'waitedMs'>>({
+        timeoutMs: options.timeoutMs,
+        found: (state) => {
+          const found = box.found;
+          if (found) {
+            return {
+              reason: 'group',
+              afterInput: this.afterInput(found),
+              seq: found.seq,
+              group: found.group,
+              collapsed: found.collapsed,
+              screen: found.screen,
+              state,
+              sinceSeq,
+            };
+          }
+          // Disposed: the listeners were cleared, so nothing will ever arrive.
+          // Ending here with a reason rather than letting the deadline run out,
+          // which would look like a timeout the caller has to interpret.
+          if (disposed) {
+            return {
+              reason: 'disposed',
+              afterInput: null,
+              seq: sinceSeq,
+              group: null,
+              collapsed: null,
+              screen: null,
+              state,
+              sinceSeq,
+            };
+          }
+          return null;
+        },
+        onExit: (state) => ({
+          reason: 'exited',
+          afterInput: null,
+          seq: sinceSeq,
+          group: null,
+          collapsed: null,
+          screen: this.screen.snapshot(),
+          state,
+          sinceSeq,
+        }),
+        // Nothing arrived and no group is coming. The wait still reports the
+        // state it was waiting at, so `reason` is the only thing that changed --
+        // a caller that timed out can decide what to do without reading again.
+        onTimeout: (state) => ({
+          reason: 'timeout',
+          afterInput: null,
+          seq: sinceSeq,
+          group: null,
+          collapsed: null,
+          screen: this.screen.snapshot(),
+          state,
+          sinceSeq,
+        }),
+      });
     } finally {
       off();
       offDispose();
@@ -1240,6 +1213,97 @@ export class TerminalSession {
     const written = this.pty.bytesWritten;
     if (written === 0) return null;
     return update.fromByte >= this.pty.lastInputByte;
+  }
+
+  /**
+   * Whether nothing more can arrive: the process is gone and everything it
+   * wrote has been through the parser.
+   *
+   * Named because every wait ends early on it, and because the two halves are
+   * easy to get wrong separately -- an exit with output still in the pipeline
+   * is the window a wait exists to sit in, and `drained` alone would close it.
+   */
+  private finished(state: SessionState): boolean {
+    return state.exit !== null && state.drained === true;
+  }
+
+  /**
+   * The skeleton every wait on this session shares.
+   *
+   * Three waits, three different things they are looking for, and one loop they
+   * would otherwise each have written: re-read the state, ask whether the wait
+   * is over, sleep until the moment the answer could change, and stop at the
+   * deadline. Three copies of that is how one guarantee holds in two places and
+   * quietly does not in the third -- the exit check in `waitForIdle` and the one
+   * in `waitForOutput` were already drifting apart in what they reported.
+   *
+   * What genuinely differs is passed in, and each piece fires at a different
+   * point in the loop:
+   *
+   *  - `found` -- the positive condition, asked on every wake, including the
+   *    first one before anything is awaited. A wait must be able to return
+   *    without sleeping: content that arrived while the caller was doing
+   *    something else is already there, and a wait that sleeps before looking
+   *    is the bug the baseline parameters exist to prevent.
+   *  - `onExit` -- asked only once the process is gone and its output has been
+   *    parsed. Nothing more can arrive then, so a quiet period would no longer
+   *    be evidence of anything and the wait ends early rather than sitting out
+   *    a deadline that no longer means anything.
+   *  - `onTimeout` -- what to report when the deadline ran out, so a wait can
+   *    carry its own fields instead of only a reason: a caller that timed out
+   *    needs the screen and the state to decide what to do next, and without
+   *    this it would have to read again to find out.
+   *  - `until` -- the moment this wait could next have an answer, defaulting to
+   *    the deadline. `waitForIdle` is the one that needs it: it waits for a
+   *    quiet period to *elapse*, which is a time it can compute, so it sleeps
+   *    exactly that long instead of waking on every byte.
+   *
+   * `waitedMs` is measured here, on the session's clock, so all three report
+   * the same quantity the same way.
+   */
+  private async wait<T>(options: {
+    timeoutMs: number;
+    found: (state: SessionState) => T | null;
+    onExit?: (state: SessionState) => T | null;
+    onTimeout?: (state: SessionState) => T | null;
+    until?: (state: SessionState, now: number, deadline: number) => number;
+  }): Promise<T & { waitedMs: number }> {
+    const startedAt = this.clock.now();
+    const deadline = startedAt + options.timeoutMs;
+
+    for (;;) {
+      const now = this.clock.now();
+      const state = this.state(now);
+
+      // `found` is asked *first*, and that ordering is load-bearing: a session
+      // can exit having already produced the thing being waited for, and an
+      // exit checked first would report `exited` while dropping the group that
+      // arrived. The wait's own condition is the more specific answer whenever
+      // it holds.
+      const hit = options.found(state);
+      if (hit) return { ...hit, waitedMs: now - startedAt };
+
+      // Ends the wait only when `onExit` has something to say. A wait with no
+      // exit shape keeps running to the deadline: it is waiting for content,
+      // and an exit that produced none is a reason to stop only if it says so.
+      if (this.finished(state)) {
+        const ended = options.onExit?.(state);
+        if (ended) return { ...ended, waitedMs: now - startedAt };
+      }
+
+      if (now >= deadline) {
+        const ended = options.onTimeout?.(state);
+        if (ended) return { ...ended, waitedMs: now - startedAt };
+        return { reason: 'timeout', state, waitedMs: now - startedAt } as unknown as T & {
+          waitedMs: number;
+        };
+      }
+
+      const at = options.until ? options.until(state, now, deadline) : deadline;
+      // A bound, not a step: this resolves at that moment, or when the session
+      // changes, whichever comes first. Nothing here wakes on a fixed step.
+      await this.nextChange(Math.min(deadline, at));
+    }
   }
 
   /**
