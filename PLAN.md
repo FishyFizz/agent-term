@@ -231,7 +231,7 @@ What remains, from `context.md` §11 and `GOAL.md`:
 
 | # | Item | Where it comes from | Size |
 |---|---|---|---|
-| 1 | **L1.4 the pending prompt** — a program blocked on a prompt and one thinking both read `idle`; needs a real signal, not `wait_for_output` | GOAL.md L1.4, context.md §11 | medium |
+| 1 | ~~**L1.4 the pending prompt**~~ — **resolved: not implementable.** Measured, four candidates all fail to distinguish a prompt from a busy builtin. Shipped instead: `inputUnconsumed` (bytes) and `afterInput` (placement), plus consumer guidance in the skill | GOAL.md L1.4 | done |
 | 2 | **Large pastes** | context.md §11, L1.4 | small |
 | 3 | **Composed write-wait-respond call** — GOAL.md warns a batch that waits between steps is the scripted-recipes non-goal | context.md §11 | design |
 | 4 | **L3.4 retention and durability** | context.md §11 | medium |
@@ -244,9 +244,13 @@ What remains, from `context.md` §11 and `GOAL.md`:
 
 Not a commitment — items 4, 5, 6 and 7 each need a design decision before code.
 
-1. **B2 (pending prompt)** — the one that would have helped the 16-input run most: `ls`
-   "looked like nothing happened", and the driver fell back to idle and guessed.
-2. **B8 (L1.5) and B3 (large pastes)** — small and independent; either can go first.
-3. **B4, B6, B7** — larger; decide, then build.
+The pending prompt is **off the list**: research showed it is not observable, and what shipped
+instead (input watermark + consumer guidance) addresses the symptom that put it here — `ls`
+"looked like nothing happened" is now answered by anchoring on the program's own output rather
+than by detecting readiness.
+
+1. **B8 (L1.5 honest errors) and B3 (large pastes)** — small and independent; either first.
+   Note L1.5's "session is waiting for input" error was removed from `GOAL.md` as undeliverable.
+2. **B4, B6, B7** — larger; decide, then build.
 
 

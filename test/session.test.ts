@@ -227,7 +227,7 @@ test('the state read reports facts, and no verdict about whether output is finis
   // find no field that has already decided for it.
   assert.deepEqual(
     Object.keys(during).sort(),
-    ['bytesPending', 'drained', 'exit', 'idleMs', 'running'],
+    ['bytesPending', 'drained', 'exit', 'idleMs', 'inputUnconsumed', 'running'],
     'facts only — there is no settled',
   );
 });

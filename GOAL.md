@@ -229,17 +229,54 @@ actually written so the round trip can be checked without a read. Interrupts are
 insofar as Ctrl-C is the `0x03` byte, which is how a human reaches for it — the tty line
 discipline raises the signal, and in a raw-mode program it is a byte, exactly as at a keyboard.
 
-Not built: the pending prompt (`SessionState` reports `idle`, which a program waiting and a
-program thinking both are), large pastes, and a composed write-wait-respond call. That last one
-is the one to be careful with — a batch that waits between steps is the scripted-recipes
+Not built: the pending prompt, large pastes, and a composed write-wait-respond call. That last
+one is the one to be careful with — a batch that waits between steps is the scripted-recipes
 non-goal wearing a different hat, so a batch is a sequence of writes at one instant and
 reactions stay in the caller's loop.
 
+#### The pending prompt is not observable — measured, not assumed
+
+"Is the program blocked waiting for input?" cannot be answered at a byte interface, and this
+was checked rather than assumed. Four candidates, all measured on this machine:
+
+| Candidate | Result |
+|---|---|
+| Process state (stat / wchan / thread count) | A shell at a prompt and the same shell busy on a builtin are **identical** — same pid, same name, same thread count. |
+| Child-process presence | Distinguishes `ping`, but a busy **builtin** (`for /L`) has no child, so it reads as "at prompt". |
+| Echo probing (write a byte, see if it echoes) | Echoes in **both** states. It also *writes to the thing being observed* — a mutation, not an observation. |
+| node-pty API | Exposes no unread-byte query; ConPTY has no foreground-process-group concept. |
+
+So **there is deliberately no `atPrompt`**. A field answering that question would be
+"a judgement dressed as an observation" (L1.2).
+
+What is built instead is the two facts that *are* observable:
+
+- **`SessionState.inputUnconsumed`** — how many bytes went in that no output has followed.
+  `null` before any input (L1.3: "nothing written" and "cannot say" differ), `0` once output
+  comes back. **It is a byte count, not a verdict on the program.**
+- **`waitForGroup(...).afterInput`** — whether the group's bytes sit after the last write.
+  `null` before any input or when no group arrived. This is *placement, not causation*: output
+  following input may still be unrelated to it.
+
+`false` from `afterInput` is the case worth acting on: the wait ended on output already in
+flight, so sending more now is typing into something that has not read the last thing yet.
+
+**For the consumer:** do not wait for "the program is ready". Wait for **text the program
+prints** (`wait_for_output`), or for a group and then read it. In the run that motivated this
+— `ls` "looked like nothing happened" — the fix is not to detect a prompt; it is to anchor on
+`ls`'s own output, or accept that a slow command and an empty one are not distinguishable
+until bytes arrive.
+
 ### L1.5 — Honest errors
 
-"No such session", "process exited with status N", "session is waiting for input" — actionable
+"no such session", "process exited with status N", "the session is disposed" — actionable
 and typed, not opaque failures. Tool schemas are self-describing enough that an agent can use
 them correctly without out-of-band documentation.
+
+One error listed here earlier — "session is waiting for input" — is **not deliverable**, and is
+removed rather than left as a promise. Whether a program is waiting cannot be observed
+(L1.4's measurement above), so an honest server cannot report it as a fact. It is replaced by
+the input watermark, which states what was sent and whether anything has come back.
 
 ---
 

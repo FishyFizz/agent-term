@@ -189,6 +189,22 @@ export interface SessionIo {
   bytesRead: number;
   /** Bytes read but not yet parsed. `null` when not knowable. */
   bytesPending: number | null;
+  /**
+   * Bytes written into the pty that no output has followed. `null` before any
+   * input; `0` when output has been produced since the last write.
+   *
+   * **A byte count, not a verdict about the program.** It is the most a byte
+   * interface can honestly say about "is it still waiting": input went in and
+   * nothing has come back out. Whether the program is blocked on a prompt,
+   * busy computing, or has not flushed is **not observable here** — measured
+   * on this machine, a shell running a slow builtin and a shell sitting at a
+   * prompt are indistinguishable from outside (identical process state, no
+   * child process either way). See `GOAL.md` L1.4.
+   *
+   * `null` before any input because "nothing written" and "we cannot say" are
+   * different facts (L1.3).
+   */
+  inputUnconsumed: number | null;
 }
 
 /**
@@ -230,6 +246,16 @@ export interface SessionState {
   drained: boolean | null;
   /** Bytes the pty handed us that the parser has not finished with. */
   bytesPending: number | null;
+  /**
+   * Bytes written into the pty that no output has followed. `null` before any
+   * input; `0` once output has come back.
+   *
+   * The L1.4 input watermark. It is the most a byte interface can say about
+   * "is it still waiting" and it says nothing about *why*: a shell running a
+   * slow builtin and a shell at a prompt cannot be told apart from outside,
+   * which is why there is no `atPrompt` here.
+   */
+  inputUnconsumed: number | null;
   /** Exit info once the pty has reported the process gone, otherwise `null`. */
   exit: PtyExitInfo | null;
 }
@@ -308,6 +334,21 @@ export type GroupWaitReason = 'group' | 'disposed' | 'exited' | 'timeout';
 
 export interface GroupWaitResult {
   reason: GroupWaitReason;
+  /**
+   * Whether this group contains output produced **after** the last input was
+   * sent. `null` before any input.
+   *
+   * This is the causal half of L1.4, and it is a fact rather than a verdict:
+   * the group's byte span either starts after the input watermark or it does
+   * not. It does **not** say the program was waiting, or that it finished, or
+   * that this output is a *response* — only where the bytes sit relative to
+   * the write.
+   *
+   * `false` is the case worth acting on: the wait ended on output that was
+   * already in flight before the input, so sending more input would be
+   * typing into something that has not read the last thing yet.
+   */
+  afterInput: boolean | null;
   /**
    * The state the wait reached, or `sinceSeq` when nothing new arrived.
    *
@@ -735,7 +776,11 @@ export class TerminalSession {
         // in while it was being written, still held by the group detector or
         // queued behind this feed. That is the number L1.3 is asking for -- a
         // hardcoded 0 would make "nothing pending" unfalsifiable.
-        io: { bytesRead: this.pty.bytesRead, bytesPending: this.pendingBytes() },
+        io: {
+          bytesRead: this.pty.bytesRead,
+          bytesPending: this.pendingBytes(),
+          inputUnconsumed: this.pty.unconsumedBytes,
+        },
         screen: afterSnap,
         collapsed: group
           ? {
@@ -800,6 +845,7 @@ export class TerminalSession {
       idleMs: this.idleMs(at),
       drained: this.drained(),
       bytesPending: this.pendingBytes(),
+      inputUnconsumed: this.pty.unconsumedBytes,
       exit,
     };
   }
@@ -1032,6 +1078,7 @@ export class TerminalSession {
         if (found) {
           return {
             reason: 'group',
+            afterInput: this.afterInput(found),
             seq: found.seq,
             group: found.group,
             collapsed: found.collapsed,
@@ -1047,6 +1094,7 @@ export class TerminalSession {
         if (disposed) {
           return {
             reason: 'disposed',
+            afterInput: null,
             seq: sinceSeq,
             group: null,
             collapsed: null,
@@ -1059,6 +1107,7 @@ export class TerminalSession {
         if (state.exit !== null && state.drained === true) {
           return {
             reason: 'exited',
+            afterInput: null,
             seq: sinceSeq,
             group: null,
             collapsed: null,
@@ -1071,6 +1120,7 @@ export class TerminalSession {
         if (now >= deadline) {
           return {
             reason: 'timeout',
+            afterInput: null,
             seq: sinceSeq,
             group: null,
             collapsed: null,
@@ -1173,6 +1223,25 @@ export class TerminalSession {
   /** The byte watermark at the last write into the pty. See `PtySession`. */
   get lastInputByte(): number {
     return this.pty.lastInputByte;
+  }
+
+  /**
+   * Whether an update's bytes start after the last input was written.
+   *
+   * `null` before any input, because "no input has been sent" and "this output
+   * did not follow it" are different facts and `null`/`0` conflation is the
+   * bug L1.3 exists to prevent.
+   *
+   * Compares byte watermarks, not time: the input watermark is stamped on the
+   * way in and every byte read carries its own offset, so this is arithmetic on
+   * two measured counts. It says nothing about causation — output that follows
+   * input may still be unrelated to it — but it is the one causal fact a byte
+   * interface can state without guessing.
+   */
+  private afterInput(update: SessionUpdate): boolean | null {
+    const written = this.pty.bytesWritten;
+    if (written === 0) return null;
+    return update.fromByte >= this.pty.lastInputByte;
   }
 
   /**

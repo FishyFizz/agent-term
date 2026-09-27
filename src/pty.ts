@@ -67,6 +67,15 @@ export class PtySession implements PtyEventTarget {
    * forgotten (the same reason `dispose` owns the kill).
    */
   private _lastInputByte = 0;
+  /**
+   * Total bytes written into the pty. Monotonic, never reset.
+   *
+   * The counterpart to `bytesRead`, and L1.4's input watermark: comparing how
+   * much went *in* against how much has come *back out* is the only honest
+   * statement available about whether a program has consumed what it was sent.
+   * It does not say the program is waiting — only what the byte counts are.
+   */
+  private _bytesWritten = 0;
 
   constructor(id: string, options: SessionOptions = {}) {
     const shell = defaultShell();
@@ -147,7 +156,31 @@ export class PtySession implements PtyEventTarget {
   write(input: string): void {
     if (!this._alive) return;
     this._lastInputByte = this._bytesRead;
+    this._bytesWritten += Buffer.byteLength(input, 'utf8');
     this.pty.write(input);
+  }
+
+  /** Total bytes written into the pty so far. Monotonic; never reset. */
+  get bytesWritten(): number {
+    return this._bytesWritten;
+  }
+
+  /**
+   * Bytes written since the pty last produced output, or `null` before any
+   * input.
+   *
+   * **This is a byte count, not a statement about the program.** It says how
+   * much went in and has not been followed by anything coming out — which is
+   * the most that a byte interface can honestly say about "is it waiting".
+   * Whether the program is blocked on a prompt, busy, or has simply not
+   * flushed is not observable here (see `GOAL.md` L1.4): a shell running a
+   * slow builtin and a shell sitting at a prompt look identical from outside.
+   */
+  get unconsumedBytes(): number | null {
+    if (this._bytesWritten === 0) return null;
+    return this._bytesWritten > 0 && this._lastInputByte === this._bytesRead
+      ? this._bytesWritten
+      : 0;
   }
 
   /** Resize the pty; the program inside is told via SIGWINCH / ConPTY. */

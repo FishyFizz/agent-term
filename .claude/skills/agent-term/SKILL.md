@@ -184,9 +184,39 @@ is a claim about the program.** Cross that line only with evidence you assembled
 
 | You want to know | What the server gives you | What you must add |
 |---|---|---|
-| Did my input do anything? | `written` (the bytes), then `wait_for_group` / a pattern | Compare the screen before and after. `written` proves what was sent, never that the program read it. |
+| Did my input do anything? | `written`, `state.inputUnconsumed`, `afterInput` | Compare the screen before and after. `written` proves what was sent, never that the program read it. |
+| Is the program waiting for me? | **nothing** — it is not observable | See below. Do not look for `atPrompt`; it does not exist, by measurement. |
 | Is it done? | `reason: idle/exited/timeout`, `state.drained` | Nothing proves "done" while it runs (L1.2). `exited` + `drained` is the only closed set. Otherwise: name a signal the program prints, or accept a confidence interval. |
 | Did this repaint mean anything? | `collapsed.chunks`, `seq`, the screen | Read the span with `history_read`; a highlight that moved and moved back nets to no visible change, and only the count says anything happened. |
+
+### "Is it waiting for me?" — not observable, and what to do instead
+
+There is deliberately **no `atPrompt`**. This was measured, not assumed:
+
+- **Process state** — a shell at a prompt and the same shell busy on a builtin are identical
+  (same pid, same name, same thread count).
+- **Child processes** — distinguishes `ping`, but a busy *builtin* has no child, so it reads as
+  "at prompt".
+- **Echo probing** — echoes in both states, and it *writes to the thing observed*.
+- **node-pty** — exposes no unread-byte query; ConPTY has no foreground-process-group concept.
+
+A field answering that question would be a judgement dressed as an observation. **What you get
+instead is two facts:**
+
+- **`state.inputUnconsumed`** — bytes you sent that no output has followed. `null` before any
+  input, `0` once something came back. **A byte count, not a verdict.**
+- **`afterInput`** on a group wait — whether the group's bytes sit after your last write.
+  Placement, not causation: output after input may still be unrelated to it.
+
+**What to actually do:**
+
+1. **Anchor on text the program prints.** `wait_for_output` on the prompt string, the result
+   marker, whatever the program *says*. This is an observation; a guess about readiness is not.
+2. **Use `afterInput: false` as your warning.** It means the wait ended on output already in
+   flight — sending more now types into something that has not read the last thing yet.
+3. **Accept that slow and empty look the same.** `ls` that "looked like nothing happened" is
+   not distinguishable from `ls` of an empty directory until bytes arrive. Report that you
+   could not tell; do not invent a conclusion.
 
 ### Working rules
 

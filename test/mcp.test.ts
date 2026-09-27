@@ -135,7 +135,7 @@ test('a read reports the session state as facts, with no verdict on it', async (
   const state = (read.structuredContent as { state: Record<string, unknown> }).state;
   assert.deepEqual(
     Object.keys(state).sort(),
-    ['bytesPending', 'drained', 'exit', 'idleMs', 'running'],
+    ['bytesPending', 'drained', 'exit', 'idleMs', 'inputUnconsumed', 'running'],
     'a caller is given measurements and can find no field that decided for it',
   );
   assert.equal(state.running, true, 'running');

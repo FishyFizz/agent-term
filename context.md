@@ -800,9 +800,11 @@ deltas. Those run on the pty half too — the feed where things actually go wron
 
 ### What is NOT built
 
-- L1.4 the **pending prompt** (a program blocked on a prompt is indistinguishable from one
-  thinking — both read `idle`), large pastes, a composed write-wait-respond call; L1.5 honest
-  errors beyond the four coded ones.
+- L1.4 large pastes and a composed write-wait-respond call; L1.5 honest errors beyond the four
+  coded ones. **The pending prompt is not one of these — it is not implementable.** Measured:
+  process state, child presence, echo probing and the node-pty API all fail to distinguish a
+  shell at a prompt from one busy on a builtin. What shipped instead is objective:
+  `state.inputUnconsumed` (a byte count) and `wait_for_group().afterInput` (placement).
 - (L1.1 is built: split in `GOAL.md` into 1.1a continuity, 1.1b the feed is bounded, 1.1c
   retrieval is bounded. One number over three obligations at different stages of done was why
   this list could never say whether it was finished.)

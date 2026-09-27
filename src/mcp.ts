@@ -232,7 +232,11 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
         'stands for. Returns the last classified update, or null when nothing has arrived ' +
         'yet — which is not the same as an empty screen. Also reports `state`: whether ' +
         'the session is running, how long it has been idle, and whether what it produced ' +
-        'has been read through. **`seq` is the number of the state being shown** — one ' +
+        'has been read through. **`state.inputUnconsumed` is how many bytes you sent that ' +
+        'no output has followed** — `null` before any input, `0` once something came back. ' +
+        'It is a byte count, not a verdict: a shell running a slow builtin and a shell ' +
+        'sitting at a prompt are indistinguishable from outside, so there is deliberately ' +
+        'no `atPrompt`. **`seq` is the number of the state being shown** — one ' +
         'number for the whole timeline, incremented per raw delivery, and the same one ' +
         '`history_read` addresses with. A group that swallowed states 3..9 reports 9, and ' +
         '`history_read({from:{seq:3}, to:{seq:9}, screen:true})` plays 3..9 back.',
@@ -379,6 +383,11 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
         'finished an act, is still working, or will produce more. Whether this group is the ' +
         'unit you care about is your call. ' +
         'Returns `reason`: `group` (with `seq`, `group`, `collapsed`, `screen`), `exited`, ' +
+        '`disposed`, or `timeout`. **`afterInput` says whether the group you got contains ' +
+        'bytes produced after your last write** — `null` before any input. `false` means the ' +
+        'wait ended on output that was already in flight, so sending more now would be ' +
+        'typing into something that has not read the last thing yet. It is placement, not ' +
+        'causation: output after input may still be unrelated to it. ' +
         '`disposed` (the session was closed), or `timeout`. ' +
         '**`collapsed.reason` is how the group ended, measured by the detector** — `gap`: no ' +
         'bytes arrived for `gapMs`; `bytes`: the merged bytes reached `maxBytes`; `chunks`: ' +
