@@ -6,7 +6,7 @@ and fixes all three.
 
 ---
 
-## 1. The npx fact (docs only, do first)
+## 1. The npx fact (docs only) — **DONE** (`bff6150`)
 
 **Reported:** `npx` fails to spawn ("Cannot create process, error code: 2"); an
 absolute path to `npx.cmd` is needed.
@@ -31,7 +31,7 @@ common location but is machine-dependent and must not be hard-coded into the rep
 
 ---
 
-## 2. One sequence number for everything (the main change)
+## 2. One sequence number for everything — **DONE** (`30f527f`)
 
 ### The idea
 
@@ -176,7 +176,7 @@ fallback, not the truth"* — so a job wait is not *more* correct than idle, it 
 
 ---
 
-## 4. Still open: attach the screen to a failed wait
+## 4. Attach the screen to a failed wait — **DONE** (`30f527f`)
 
 Cheap and independent of §2/§3. On `timeout`/`exited`, `wait_for_output` returns
 `reason` and nothing else (`OutputWaitResult` has only `match`, populated solely on
@@ -185,21 +185,64 @@ make it explicitly `null` on `matched` — a field that is sometimes *absent* ge
 as "nothing", which is the `bytesPending: null vs 0` class of bug (L1.3). Do this
 after §2 so the attached screen carries the unified number.
 
-## 5. Open question carried forward
+## 5. Cursor motion — **CLOSED, no change** (`35ac797`)
 
-**Does cursor motion count as a change?** `gridDelta` does not consider `cursorX/Y`
-(grep: no cursor in `delta.ts`), so a menu moving its highlight with no glyph or
-colour change yields `grid: null`. In a TUI that is often the only change. Unresolved
-by §2/§3 — a change-wait is gone, but `read_screen` consumers still face it.
-Recommend settling it empirically against `fixtures/life` rather than by argument.
+**Question:** does cursor motion count as a change? `gridDelta` ignores `cursorX/Y`, so a
+menu moving its highlight with no glyph or colour change yields `grid: null`.
+
+**Answer: it is already supported, and putting the cursor into the diff space would
+break things.** Three findings:
+
+1. **The cursor is already per-state history.** `HistoryRecord` carries its own `cursor`
+   (`history.ts:113`), stored on every push (`:356`), and `screenInEpoch` overlays it
+   back onto the reconstructed screen (`:463-468`) with the comment *"The cursor is not
+   part of a delta; it belongs to the record being read."* So `screenAt({seq})` already
+   returns the cursor position of that state — a menu whose highlight moved is two
+   records with different cursors, and replaying them shows the move. This was
+   deliberate, not an oversight.
+2. **It would break the keyframe test.** `isAnchor = records.length === 0 ||
+   update.grid === null` (`history.ts:346`). A cursor-only change would produce a
+   non-null delta with empty `runs`/`rows`, so the record would not become a keyframe —
+   storing an empty delta to reconstruct two bytes the record already holds.
+3. **It would distort cost.** The `bestCost === 0` early return depends on cost counting
+   the appearance payload (`delta.ts:126`). A two-byte position difference would pollute
+   the shift search, and the chosen shift is a **classifier input** — this would hang an
+   interaction convenience off classification quality.
+
+The remaining risk is not in history but on the wait side: a job whose only change was
+the cursor reports `grid: null`, which a caller may misread as "nothing happened".
+Already documented in context.md §7 and the skill. `intermediates: true` /
+`collapsed.chunks > 1` is the signal that something was swallowed.
+
+**One doc gap this leaves:** `grid: null` currently has three distinct meanings and only
+two are documented (resize, alt-screen switch). The third — no *grid* change, possibly a
+cursor change — should be spelled out.
 
 ---
 
-## Sequencing
+## Backlog (consolidated)
 
-1. §1 — docs only, confirmed, would have saved this run time. No code.
-2. §2 — add `SessionUpdate.rawSeq`, switch `present()`. Small, and it is the
-   foundation for §3.
-3. §3 — `wait_for_job`, with the hazards above.
-4. §4 — screen on failed waits.
-5. §5 — measure, then decide.
+Everything from this plan is done. What remains, from `context.md` §11 and `GOAL.md`:
+
+| # | Item | Where it comes from | Size |
+|---|---|---|---|
+| 1 | **`grid: null` has three meanings**, one undocumented (above) | this plan, §5 | doc |
+| 2 | **L1.4 the pending prompt** — a program blocked on a prompt and one thinking both read `idle`; needs a real signal, not `wait_for_output` | GOAL.md L1.4, context.md §11 | medium |
+| 3 | **L1.1 delivery and boundedness, fully** | context.md §11 | medium |
+| 4 | **Large pastes** | context.md §11, L1.4 | small |
+| 5 | **Composed write-wait-respond call** — GOAL.md warns a batch that waits between steps is the scripted-recipes non-goal | context.md §11 | design |
+| 6 | **L3.4 retention and durability** | context.md §11 | medium |
+| 7 | **All of L2** — sub-region reads, cursor query, mouse, raw escape hatch, PNG/HTML | context.md §11 | large |
+| 8 | **Open questions 1,2,3,5,6** — update delivery, retention, human input handoff, safety floor, optional representations | context.md §11 | design |
+| 9 | **Delivery granularity** — the one open item that is *not* L3; per-op, per-chunk or adaptive | context.md §11 | design |
+
+### Suggested order
+
+Not a commitment — items 3, 6, 7 and 9 each need a design decision before code.
+
+1. **B1** — doc, tiny, and it closes the last thread from this plan.
+2. **B2** — the pending prompt is the one that would have helped the 16-input run most:
+   `ls` "looked like nothing happened", and the driver fell back to idle and guessed.
+3. **B4** — large pastes, small and independent.
+4. **B3, B6, B7, B9** — larger; decide, then build.
+
