@@ -747,12 +747,10 @@ single verdict over a span the screen shows two kinds on.
   file; running them all at once corrupts the heap under node-pty).
 - Corpus subset alone (`corpus/test/corpus.test.ts`) — **39 tests, 39 pass**.
 - `npm run corpus` — see the table below.
-- Git: branch `main`, HEAD `94069d0` *"feat: a wait for a pattern, so a prompt is not read off
-  the screen by eye"*.
-- Working tree at last check had uncommitted work: modified `GOAL.md`, `README.md`,
-  `package.json`, `src/mcp.ts`, `src/screen.ts`, `test/mcp.test.ts`, `test/screen.test.ts`,
-  `.claude/skills/agent-term/SKILL.md`; **untracked** `src/keys.ts` and `test/keys.test.ts`
-  (the keys feature was built but not yet committed).
+- Git: branch `main`, HEAD `e7828f9` *"docs: close the cursor question, and consolidate the
+  backlog"*. Working tree **clean**; no stashes.
+- The last four commits added `send_sequence` + named keys, `history_read` (one tool over the
+  timeline), the unified sequence number, `wait_for_job`, and a screen on failed waits.
 - Environment: Node v22.23.2, Windows 11.
 
 ### Verified classifier scores (`npm run corpus`, `direct` traces)
