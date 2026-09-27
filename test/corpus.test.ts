@@ -18,7 +18,7 @@ import { loadTraces, classifyTraceStreaming, scoreTrace, fixedChunks, jobChunks 
 import type { Trace } from './helpers/corpus.js';
 
 /**
- * The gap that closes a job when replaying at job granularity.
+ * The gap that closes a group when replaying at group granularity.
  *
  * Sits between the two things the corpus's pacing produces: output within one
  * act is 6ms apart, one act to the next is 80-120ms. Anything from about 20
@@ -54,7 +54,7 @@ const EXPECTED = {
    * either inventing expectations or making the classifier guess, and §11 says
    * not to do either.
    */
-  jobs: 23,
+  groups: 23,
 };
 
 async function run(
@@ -85,7 +85,7 @@ test('corpus is present and well-formed', () => {
 });
 
 /**
- * Score at job granularity, which needs the trace and not just its bytes.
+ * Score at group granularity, which needs the trace and not just its bytes.
  *
  * The boundary comes from when each delivery arrived, which `raw` does not
  * carry; see `jobChunks`.
@@ -130,12 +130,12 @@ test('op-aligned replay beats pty-like replay, or the gap is a real finding', as
   assert.ok(best.pass >= realistic.pass, 'finer deliveries should not be worse');
 });
 
-test('classifier scores at least the pinned rate under job-aligned replay', async () => {
+test('classifier scores at least the pinned rate under group-aligned replay', async () => {
   const { pass, total, fails } = await runJobs(JOB_GAP_MS);
-  console.log(`      corpus: ${pass}/${total} at job granularity (${JOB_GAP_MS}ms gap)`);
+  console.log(`      corpus: ${pass}/${total} at group granularity (${JOB_GAP_MS}ms gap)`);
   assert.ok(
-    pass >= EXPECTED.jobs,
-    `expected >= ${EXPECTED.jobs}/${total} at job granularity, got ${pass}/${total}. ` +
+    pass >= EXPECTED.groups,
+    `expected >= ${EXPECTED.groups}/${total} at group granularity, got ${pass}/${total}. ` +
       `Failing: ${fails.join(', ')}`,
   );
 });

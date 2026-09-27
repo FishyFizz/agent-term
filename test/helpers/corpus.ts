@@ -17,7 +17,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ScreenModel } from '../../src/screen.js';
 import { classify, coalesce, frameOf } from '../../src/classify.js';
-import { groupByGap } from '../../src/jobs.js';
+import { groupByGap } from '../../src/groups.js';
 import { OP } from '../../src/edit-record.js';
 import type { Trace } from '../../corpus/src/types.js';
 import type { Segment } from '../../src/classify.js';
@@ -121,9 +121,9 @@ export function jobChunks(trace: Trace, gapMs: number): string[] {
   if (arrivals.length === 0) return [trace.raw];
   const endOf = (i: number): number => arrivals[i + 1]?.offset ?? trace.raw.length;
 
-  // A job may not straddle a resize, for the same reason the live detector
+  // A group may not straddle a resize, for the same reason the live detector
   // flushes on one (`session.ts`) and for the same reason history splits
-  // epochs there (HISTORY.md §2): inside one job the width is fixed, so a
+  // epochs there (HISTORY.md §2): inside one group the width is fixed, so a
   // row-run delta means one thing and a captured line's wrapping is
   // unambiguous. Across a resize neither is true, and a frame diff spanning
   // two grid sizes describes a terminal that never existed.
@@ -153,7 +153,7 @@ export function jobChunks(trace: Trace, gapMs: number): string[] {
     // `Op.byteOffset` is bytes fed *before* the op, so it names the end of the
     // delivery that carried it. `<=`, not `<`: a switch sitting exactly at
     // `end` is in this delivery, and missing it merges a repaint with the exit
-    // that destroys what it painted -- the job's net diff is then "everything
+    // that destroys what it painted -- the group's net diff is then "everything
     // vanished", which describes neither the repaint nor the exit.
     const crossesSwitch = nextSwitch < switches.length && switches[nextSwitch]! <= end;
 
@@ -162,7 +162,7 @@ export function jobChunks(trace: Trace, gapMs: number): string[] {
       start = a.offset;
     }
     // The replay applies the resize before the delivery containing it, so that
-    // delivery begins the next job and the whole job is at the new size.
+    // delivery begins the next group and the whole group is at the new size.
     if (crossesResize) nextResize++;
     if (crossesSwitch) nextSwitch++;
     lastAt = a.at;

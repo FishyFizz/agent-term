@@ -45,8 +45,8 @@ test('the surface exposes the core loop', async (t) => {
     'read_screen',
     'send_input',
     'send_sequence',
+    'wait_for_group',
     'wait_for_idle',
-    'wait_for_job',
     'wait_for_output',
   ]);
   for (const tool of tools.tools) {
@@ -277,7 +277,7 @@ test('closing ends the session and the tool says so', async (t) => {
  * line-buffered and receives nothing until a line ending arrives.
  *
  * The escape sequences are written `\x1b` in the child's *source*, which the
- * child then parses as ESC -- see the same note in `jobs-live.test.ts`.
+ * child then parses as ESC -- see the same note in `groups-live.test.ts`.
  */
 function byteReporter(withDecckm: boolean): string {
   return (
@@ -473,9 +473,9 @@ test('send_input reports the bytes it wrote, including the newline it appended',
  * `read_screen` reports `collapsed.intermediates` -- states that existed and
  * were not shown -- and until now nothing on the surface could reach them.
  * The whole point of one history tool is that the same call that pages also
- * plays those back, so this follows a real collapsed job into its frames.
+ * plays those back, so this follows a real collapsed group into its frames.
  */
-test('a collapsed job\'s swallowed frames are reachable from the surface', async (t) => {
+test('a collapsed group\'s swallowed frames are reachable from the surface', async (t) => {
   const { client, host, close } = await connected();
   t.after(() => {
     host.disposeAll();
@@ -486,7 +486,7 @@ test('a collapsed job\'s swallowed frames are reachable from the surface', async
   const sessionId = (opened.structuredContent as { sessionId: string }).sessionId;
 
   // Enough output at once that the pty delivers it in more than one piece and
-  // the job swallows some -- the shape `intermediates` exists to report.
+  // the group swallows some -- the shape `intermediates` exists to report.
   await call(client, 'send_input', {
     sessionId,
     text: 'for i in 1 2 3 4 5 6 7 8; do printf "row-%s\\n" "$i"; done',
@@ -582,7 +582,7 @@ test('a bad address is a typed error a caller can branch on', async (t) => {
   assert.equal((none.structuredContent as { error: { code: string } }).error.code, 'no_session');
 });
 
-test('a job wait returns the act whole, and its swallowed states are reachable', async (t) => {
+test('a group wait returns the act whole, and its swallowed states are reachable', async (t) => {
   const { client, host, close } = await connected();
   t.after(() => {
     host.disposeAll();
@@ -593,31 +593,31 @@ test('a job wait returns the act whole, and its swallowed states are reachable',
   const sessionId = (opened.structuredContent as { sessionId: string }).sessionId;
 
   await call(client, 'send_input', { sessionId, text: 'echo JOB-ONE', submit: true });
-  const waited = await call(client, 'wait_for_job', { sessionId, timeoutMs: 20000 });
-  const job = waited.structuredContent as {
+  const waited = await call(client, 'wait_for_group', { sessionId, timeoutMs: 20000 });
+  const group = waited.structuredContent as {
     reason: string;
     seq: number;
-    job: number | null;
+    group: number | null;
     collapsed: { chunks: number; rawFrom: number; reason: string } | null;
     screen: string[] | null;
   };
 
-  assert.equal(job.reason, 'job', 'the wait ended on a job');
-  assert.ok(job.screen, 'and carried the screen, so no second read is needed');
-  assert.ok(job.seq > 0, 'ending at a state');
+  assert.equal(group.reason, 'group', 'the wait ended on a group');
+  assert.ok(group.screen, 'and carried the screen, so no second read is needed');
+  assert.ok(group.seq > 0, 'ending at a state');
 
-  // The number it reports is one the timeline addresses, so a job that
+  // The number it reports is one the timeline addresses, so a group that
   // swallowed states hands back a span that can be played.
-  if (job.collapsed && job.collapsed.chunks > 1) {
+  if (group.collapsed && group.collapsed.chunks > 1) {
     const played = (await call(client, 'history_read', {
       sessionId,
-      from: { seq: job.collapsed.rawFrom },
-      to: { seq: job.seq },
+      from: { seq: group.collapsed.rawFrom },
+      to: { seq: group.seq },
       screen: true,
     })).structuredContent as { records: Array<{ seq: number; screen?: { lines: string[] } }> };
     assert.equal(
       played.records.length,
-      job.collapsed.chunks,
+      group.collapsed.chunks,
       'every swallowed state comes back',
     );
     for (const record of played.records) {

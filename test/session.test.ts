@@ -9,7 +9,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { TerminalSession, type WaitResult } from '../src/session.js';
-import { FakeClock } from '../src/jobs.js';
+import { FakeClock } from '../src/groups.js';
 import { applyDelta } from '../src/delta.js';
 import { HistoryStore } from '../src/history.js';
 import { SessionHost } from '../src/host.js';
@@ -180,8 +180,8 @@ test('bytesPending is a count the parser disagrees with, never a hardcoded zero'
 });
 
 test('idle is measured from the last byte, and is unknown before there is one', async (t) => {
-  // A clock that only moves when told to: the fake clock's job here is to hold
-  // the job detector's gap timer shut, so no delivery ever completes.
+  // A clock that only moves when told to: the fake clock's group here is to hold
+  // the group detector's gap timer shut, so no delivery ever completes.
   const clock = new FakeClock();
   const session = new TerminalSession('idle-probe', { command, args, cols: 80, rows: 24, clock });
   t.after(() => session.dispose());
@@ -479,32 +479,32 @@ test('history reconstructs every screen of a live session', async (t) => {
     assert.equal(current.fromByte, previous.toByte, 'and tile the byte stream');
   }
 
-  // The **job** is the projection over it, and it is what the agent was shown.
+  // The **group** is the projection over it, and it is what the agent was shown.
   // Compared against the updates the session actually delivered, so this checks
   // the projection against the live path rather than against itself.
   //
-  // Joined on `job`, not on `seq`: a job's number is the update it was shown
+  // Joined on `group`, not on `seq`: a group's number is the update it was shown
   // as, while an update's `seq` is the raw state it ends at — the two differ
-  // whenever a job swallowed more than one delivery, which is the case being
+  // whenever a group swallowed more than one delivery, which is the case being
   // checked here.
-  const byJob = new Map(updates.map((u) => [u.job, u]));
+  const byJob = new Map(updates.map((u) => [u.group, u]));
   let checked = 0;
-  for (const job of history.jobs({ limit: 1000 })) {
-    const update = byJob.get(job.job);
+  for (const group of history.groups({ limit: 1000 })) {
+    const update = byJob.get(group.group);
     if (!update) continue;
     checked++;
     assert.deepEqual(
-      job.screen.lines,
+      group.screen.lines,
       update.screen.lines,
-      `projected job ${job.job} reproduces the screen the session reported`,
+      `projected group ${group.group} reproduces the screen the session reported`,
     );
     assert.deepEqual(
-      job.segments.map((s) => s.kind),
+      group.segments.map((s) => s.kind),
       update.segments.map((s) => s.kind),
-      `projected job ${job.job} reaches the verdict the session reached`,
+      `projected group ${group.group} reaches the verdict the session reached`,
     );
   }
-  assert.ok(checked >= 2, `compared real jobs (${checked})`);
+  assert.ok(checked >= 2, `compared real groups (${checked})`);
 });
 
 test('a live resize splits the timeline and freezes the old epoch at its size', async (t) => {
@@ -624,10 +624,10 @@ test('the update seq addresses the timeline: what was swallowed is reachable', a
   });
 
   // Find an update that swallowed more than one delivery: that is the case the
-  // old numbering could not express, because a job that collapsed states 3..9
+  // old numbering could not express, because a group that collapsed states 3..9
   // reported one number and the eight states between it were unreachable.
   const merged = updates.filter((u) => u.collapsed && u.collapsed.chunks > 1);
-  assert.ok(merged.length > 0, 'a bulk write is grouped into jobs of several deliveries');
+  assert.ok(merged.length > 0, 'a bulk write is grouped into groups of several deliveries');
 
   for (const update of merged) {
     const from = update.collapsed!.rawFrom;

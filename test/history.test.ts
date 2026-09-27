@@ -62,7 +62,7 @@ function feeder(history: SessionHistory, cols = 20, rows = 4) {
       }));
       const input: HistoryInput = {
         seq,
-        job: seq,
+        group: seq,
         at: at++,
         fromByte,
         toByte: byte,

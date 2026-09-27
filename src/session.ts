@@ -23,7 +23,7 @@ import type { TextLine } from './text-log.js';
 import type { ScreenSnapshot } from './screen.js';
 import type { SessionOptions } from './types.js';
 import { assertGridSize } from './types.js';
-import { JobDetector, DEFAULT_JOB_POLICY, realClock, type JobClock, type JobCloseReason, type Job } from './jobs.js';
+import { GroupDetector, DEFAULT_GROUP_POLICY, realClock, type GroupClock, type GroupCloseReason, type Job } from './groups.js';
 
 /** One classified change to a session. */
 export interface SessionUpdate {
@@ -35,26 +35,26 @@ export interface SessionUpdate {
    * It is the raw stream counter (`Delivery.seq`), incremented once per raw
    * delivery, which is the same number the timeline records with
    * (`history.ts`). One number therefore addresses: what the agent was just
-   * shown, and any intermediate state inside it — the frames a job swallowed
+   * shown, and any intermediate state inside it — the frames a group swallowed
    * are simply the numbers between `collapsed.rawFrom` and `rawTo`, readable
    * with `history_read({from:{seq:a}, to:{seq:b}})`.
    *
-   * A job is a projection over a run of these and occupies no number of its
+   * A group is a projection over a run of these and occupies no number of its
    * own, so the sequence never skips: state N is always the Nth thing the
-   * session produced, whether or not it was shown as part of a job.
+   * session produced, whether or not it was shown as part of a group.
    */
   seq: number;
   /**
-   * Which job this update was shown as, or the same as `seq` when output is not
+   * Which group this update was shown as, or the same as `seq` when output is not
    * being grouped.
    *
-   * The job's number is what `history.jobs()` reports and what the agent was
+   * The group's number is what `history.groups()` reports and what the agent was
    * shown; `seq` above is the raw state this update ends at. They differ
-   * whenever a job swallowed more than one delivery — which is exactly the
+   * whenever a group swallowed more than one delivery — which is exactly the
    * case where the extra states are addressable between `collapsed.rawFrom`
    * and `rawTo` but were never shown as their own update.
    */
-  job: number;
+  group: number;
   at: number;
   /** Byte range of the pty output this update covers. */
   fromByte: number;
@@ -86,7 +86,7 @@ export interface SessionUpdate {
    * What was merged into this update, or `null` when nothing was.
    *
    * `null` is the honest value when the session is not grouping output into
-   * jobs, or when this update came from a direct `feed` — GOAL.md L1.3: an
+   * groups, or when this update came from a direct `feed` — GOAL.md L1.3: an
    * unknown is `null`, never a fabricated `1`.
    *
    * `chunks > 1` is the signal a consumer acts on: the screen it is looking at
@@ -99,9 +99,9 @@ export interface SessionUpdate {
 }
 
 /**
- * What one delivered job swallowed.
+ * What one delivered group swallowed.
  *
- * Same meaning whatever the granularity: a job is one update, and this says
+ * Same meaning whatever the granularity: a group is one update, and this says
  * how much raw output it stands for, so a consumer can decide to go back and
  * read the intermediates rather than being told about them.
  */
@@ -121,12 +121,12 @@ export interface CollapsedInfo {
   ops: number;
   /** Bytes merged. Equal to `toByte - fromByte`; kept so it need not be derived. */
   bytes: number;
-  /** Why the job stopped accumulating — which is why the granularity changed. */
-  reason: JobCloseReason;
-  /** Milliseconds between the first and last delivery in the job. */
+  /** Why the group stopped accumulating — which is why the granularity changed. */
+  reason: GroupCloseReason;
+  /** Milliseconds between the first and last delivery in the group. */
   spanMs: number;
   /**
-   * The deliveries this job stands for, as an inclusive range of `Delivery.seq`.
+   * The deliveries this group stands for, as an inclusive range of `Delivery.seq`.
    * Pass to `SessionHistory.deliveries(from, to)` to read and play them back.
    *
    * `0..0` when grouping is off: nothing was swallowed, so there is nothing to
@@ -140,7 +140,7 @@ export interface CollapsedInfo {
  * One raw delivery — the canonical unit of what a session produced.
  *
  * Emitted for every delivery, grouped or not, and recorded by the timeline.
- * A job is a *projection* over a run of these (`history.jobs`), which is why
+ * A group is a *projection* over a run of these (`history.groups`), which is why
  * nothing here carries a verdict: the presentation classifies the span from
  * the frames, and a verdict stored beside those frames would be a second
  * opinion that could drift from them.
@@ -150,10 +150,10 @@ export interface CollapsedInfo {
  * session's — encoding is what a store does.
  */
 export interface Delivery {
-  /** Monotonic per session, independent of the job sequence. */
+  /** Monotonic per session, independent of the group sequence. */
   seq: number;
-  /** The job this delivery was grouped into. */
-  job: number;
+  /** The group this delivery was grouped into. */
+  group: number;
   at: number;
   fromByte: number;
   toByte: number;
@@ -203,7 +203,7 @@ export interface SessionIo {
  * There is deliberately no "settled". Whether a live program will produce more
  * output is not provable at a byte interface: it may emit at any future moment
  * for reasons entirely internal to it -- a timer, a network reply, a
- * background job -- and the only event that closes the set is termination. A
+ * background group -- and the only event that closes the set is termination. A
  * state claiming otherwise would be a judgement dressed as an observation.
  * `idleMs` is the measurement; what it means is the caller's call, and the
  * caller is the one that knows what it is driving.
@@ -276,14 +276,14 @@ export interface WaitOptions {
   timeoutMs: number;
 }
 
-/** What `waitForJob` is asked for. */
-export interface WaitForJobOptions {
+/** What `waitForGroup` is asked for. */
+export interface WaitForGroupOptions {
   /**
-   * Only a job ending at a state *after* this one counts.
+   * Only a group ending at a state *after* this one counts.
    *
    * The same numbering `seq` reports: a state in the timeline, not a count of
    * updates (see `SessionUpdate.seq`). Defaults to the last state the session
-   * was typed at, so a job that closed before the input was sent cannot
+   * was typed at, so a group that closed before the input was sent cannot
    * satisfy the wait.
    */
   sinceSeq?: number;
@@ -291,34 +291,34 @@ export interface WaitForJobOptions {
    * Stop waiting after this long, in milliseconds.
    *
    * The only bound that always holds. A policy without caps never closes a
-   * firehose job, so the caps cannot be relied on to end this on their own.
+   * firehose group, so the caps cannot be relied on to end this on their own.
    */
   timeoutMs: number;
 }
 
 /**
- * Why a job wait ended.
+ * Why a group wait ended.
  *
- * `job` carries the reason the job closed in `collapsed.reason`, and the four
- * do not mean the same thing: `bytes`/`chunks` are caps cutting a job open
+ * `group` carries the reason the group closed in `collapsed.reason`, and the four
+ * do not mean the same thing: `bytes`/`chunks` are caps cutting a group open
  * while the program is still writing, `flush` is a resize or an exit forcing
  * it, and only `gap` means the program went quiet on its own.
  */
-export type JobWaitReason = 'job' | 'disposed' | 'exited' | 'timeout';
+export type GroupWaitReason = 'group' | 'disposed' | 'exited' | 'timeout';
 
-export interface JobWaitResult {
-  reason: JobWaitReason;
+export interface GroupWaitResult {
+  reason: GroupWaitReason;
   /**
    * The state the wait reached, or `sinceSeq` when nothing new arrived.
    *
-   * Always present, and never a guess: on a job this is the last state it
+   * Always present, and never a guess: on a group this is the last state it
    * covered, so a caller that wants the frames it swallowed reads
    * `history_read({from:{seq:collapsed.rawFrom}, to:{seq}})`.
    */
   seq: number;
-  /** Which job, or `null` when no job arrived. */
-  job: number | null;
-  /** What the job merged, or `null`. `chunks > 1` means states were swallowed. */
+  /** Which group, or `null` when no group arrived. */
+  group: number | null;
+  /** What the group merged, or `null`. `chunks > 1` means states were swallowed. */
   collapsed: CollapsedInfo | null;
   /** The screen as it was when the wait ended, or `null` on `disposed`. */
   screen: ReturnType<ScreenModel['snapshot']> | null;
@@ -420,14 +420,14 @@ export class TerminalSession {
   readonly id: string;
   readonly pty: PtySession;
   readonly screen: ScreenModel;
-  private readonly clock: JobClock;
+  private readonly clock: GroupClock;
 
   private readonly listeners: ((update: SessionUpdate) => void)[] = [];
   private readonly resizeListeners: ((size: SessionSize) => void)[] = [];
   private readonly exitListeners: ((info: PtyExitInfo) => void)[] = [];
   private readonly disposeListeners: (() => void)[] = [];
-  /** Present unless the session was opened with `jobPolicy: false`. */
-  private readonly jobs?: JobDetector;
+  /** Present unless the session was opened with `groupPolicy: false`. */
+  private readonly groups?: GroupDetector;
   private readonly deliveryListeners: ((delivery: Delivery) => void)[] = [];
   /**
    * Per row, the byte watermark of the delivery that last wrote it.
@@ -481,15 +481,15 @@ export class TerminalSession {
     // Grouping is the default: where a delivery begins decides what the
     // classifier can see (CLASSIFIER.md §9.3), and the alternative is letting
     // the pty's buffer decide it. `false` is the opt-out.
-    const policy = options.jobPolicy === false ? undefined : (options.jobPolicy ?? DEFAULT_JOB_POLICY);
+    const policy = options.groupPolicy === false ? undefined : (options.groupPolicy ?? DEFAULT_GROUP_POLICY);
     if (policy) {
       // Grouped at the boundary the program drew rather than the one the pty's
-      // buffer happened to fill: `jobs.ts` has the reasoning, and
+      // buffer happened to fill: `groups.ts` has the reasoning, and
       // CLASSIFIER.md §9.3 has the measurement that makes it necessary.
-      this.jobs = new JobDetector(
+      this.groups = new GroupDetector(
         policy,
-        (job) => {
-          void this.feed(job.bytes, job).then(this.deliver);
+        (group) => {
+          void this.feed(group.bytes, group).then(this.deliver);
         },
         this.clock,
       );
@@ -499,8 +499,8 @@ export class TerminalSession {
       // Stamped here, at the byte, before anything decides what to do with it.
       this._lastByteAt = this.clock.now();
       this.wake();
-      if (this.jobs) {
-        this.jobs.push(chunk);
+      if (this.groups) {
+        this.groups.push(chunk);
         return;
       }
       void this.feed(chunk).then(this.deliver);
@@ -512,7 +512,7 @@ export class TerminalSession {
       // Flushed first, for the same reason as a resize and more urgently:
       // alt-screen content is destroyed when the program leaves it (L0.1), so
       // the last live frame has to be classified before the exit is reported.
-      this.jobs?.flush();
+      this.groups?.flush();
       this.wake();
       this.enqueue(() => {
         for (const listener of this.exitListeners) listener(info);
@@ -561,9 +561,9 @@ export class TerminalSession {
    * Send input, and remember the state it was typed at.
    *
    * The seq watermark belongs here rather than on the pty, because `_rawSeq`
-   * is incremented in `feed` and only the session knows it. `waitForJob`
+   * is incremented in `feed` and only the session knows it. `waitForGroup`
    * defaults its baseline to it, exactly as `waitForOutput` defaults to the
-   * pty's byte watermark: without a baseline, a job that closed *before* this
+   * pty's byte watermark: without a baseline, a group that closed *before* this
    * input was sent would satisfy the wait.
    */
   send(input: string): void {
@@ -572,14 +572,14 @@ export class TerminalSession {
   }
 
   /**
-   * Whether this session groups output into jobs.
+   * Whether this session groups output into groups.
    *
-   * `wait_for_job` has nothing to wait for without one, and it says so rather
-   * than hanging: a session opened with `jobPolicy: false` produces no job
+   * `wait_for_group` has nothing to wait for without one, and it says so rather
+   * than hanging: a session opened with `groupPolicy: false` produces no group
    * boundary at all, so the wait would always run to its deadline.
    */
   get grouping(): boolean {
-    return this.jobs !== undefined;
+    return this.groups !== undefined;
   }
 
   /** The state input was last typed at. See `send`. */
@@ -595,7 +595,7 @@ export class TerminalSession {
   /**
    * Every delivery this session produces, in order. Returns an unsubscribe.
    *
-   * This is the stream: the raw record from which a job is projected, and what
+   * This is the stream: the raw record from which a group is projected, and what
    * a timeline stores. Emitted whether or not output is being grouped — the
    * grouping decides what the *agent* is shown, not what happened.
    */
@@ -623,30 +623,30 @@ export class TerminalSession {
   /**
    * Feed one chunk of pty output and classify it. Serialized.
    *
-   * `job` may carry the group this chunk belongs to, in which case the update
+   * `group` may carry the group this chunk belongs to, in which case the update
    * reports what was merged. A caller feeding bytes directly gets
    * `collapsed: null`, which is correct: nothing was merged, and claiming `1`
    * would say otherwise (GOAL.md L1.3).
    */
-  feed(chunk: Buffer, job?: Job): Promise<SessionUpdate> {
+  feed(chunk: Buffer, group?: Job): Promise<SessionUpdate> {
     this.pendings++;
     const run = this.queue.then(async () => {
       const fromByte = this.screen.ops.bytesFed;
-      // A job is classified over its whole span -- that is what makes a
+      // A group is classified over its whole span -- that is what makes a
       // repaint legible -- but it is *fed* one raw delivery at a time, because
       // the intermediate frames are the only place the swallowed states exist
       // and they cannot be recovered from merged bytes afterwards.
-      const parts = job ? job.parts : [chunk];
-      const jobStartSnap = this.screen.snapshot();
-      const jobStart = frameOf(this.screen, jobStartSnap);
+      const parts = group ? group.parts : [chunk];
+      const groupStartSnap = this.screen.snapshot();
+      const groupStart = frameOf(this.screen, groupStartSnap);
 
       let rawFrom = 0;
       let rawTo = 0;
       let scrolled = 0;
       let ops = 0;
       const text: TextLine[] = [];
-      let afterSnap = jobStartSnap;
-      let after = jobStart;
+      let afterSnap = groupStartSnap;
+      let after = groupStart;
       let first = true;
 
       for (const part of parts) {
@@ -668,7 +668,7 @@ export class TerminalSession {
         text.push(...facts.text);
 
         // Emitted for every delivery, grouped or not: this is the stream, and
-        // the job is a projection over it. The hint is the emulator's own
+        // the group is a projection over it. The hint is the emulator's own
         // scroll count, not the viewport difference -- `viewportY` saturates
         // once the scrollback ring is full and reports 0 while content keeps
         // moving (HISTORY.md 3).
@@ -681,7 +681,7 @@ export class TerminalSession {
         this.noteWritten(grid, toByte);
         const delivery: Delivery = {
           seq,
-          job: job ? this._seq + 1 : seq,
+          group: group ? this._seq + 1 : seq,
           at: Date.now(),
           fromByte: partFromByte,
           toByte,
@@ -691,7 +691,7 @@ export class TerminalSession {
           screen: afterSnap,
         };
         for (const listener of this.deliveryListeners) listener(delivery);
-        if (job) {
+        if (group) {
           if (rawFrom === 0) rawFrom = seq;
           rawTo = seq;
         }
@@ -700,7 +700,7 @@ export class TerminalSession {
 
       this._seq++;
       const classified = classify({
-        before: jobStart,
+        before: groupStart,
         after,
         fromByte,
         toByte: this.screen.ops.bytesFed,
@@ -710,17 +710,17 @@ export class TerminalSession {
       return {
         sessionId: this.id,
         // The state this update ends at, in the same numbering the timeline
-        // records with: `rawTo` is the last raw delivery it covers, so a job
+        // records with: `rawTo` is the last raw delivery it covers, so a group
         // that swallowed 1..7 reports 7, and everything between is still
         // addressable. The previous update counter (`_seq`) counted *updates*,
-        // which skipped the frames a job collapsed -- the one number an agent
+        // which skipped the frames a group collapsed -- the one number an agent
         // holds was not one it could address history with.
         seq: rawTo === 0 ? this._rawSeq : rawTo,
-        // The job this update was shown as — the same number the deliveries it
-        // merged were stamped with (`delivery.job`), which was computed *before*
+        // The group this update was shown as — the same number the deliveries it
+        // merged were stamped with (`delivery.group`), which was computed *before*
         // the increment below and so is `this._seq` afterwards, not one more.
-        // Ungrouped, each delivery is its own job and the two numbers coincide.
-        job: job ? this._seq : rawTo === 0 ? this._rawSeq : rawTo,
+        // Ungrouped, each delivery is its own group and the two numbers coincide.
+        group: group ? this._seq : rawTo === 0 ? this._rawSeq : rawTo,
         at: Date.now(),
         fromByte,
         toByte: classified.toByte,
@@ -729,22 +729,22 @@ export class TerminalSession {
         // The viewport delta is exactly the scroll until the scrollback ring
         // saturates; past that it is useless, and the encoder falls back to
         // searching for a shift it can verify (see `delta.ts`).
-        grid: gridDelta(jobStartSnap, afterSnap, after.viewportY - jobStart.viewportY),
+        grid: gridDelta(groupStartSnap, afterSnap, after.viewportY - groupStart.viewportY),
         // Not zero by construction. Everything this update covers is already
         // parsed, so what is left is what arrived *behind* it: bytes that came
-        // in while it was being written, still held by the job detector or
+        // in while it was being written, still held by the group detector or
         // queued behind this feed. That is the number L1.3 is asking for -- a
         // hardcoded 0 would make "nothing pending" unfalsifiable.
         io: { bytesRead: this.pty.bytesRead, bytesPending: this.pendingBytes() },
         screen: afterSnap,
-        collapsed: job
+        collapsed: group
           ? {
-              chunks: job.chunks,
-              intermediates: job.chunks > 1,
+              chunks: group.chunks,
+              intermediates: group.chunks > 1,
               ops,
               bytes: classified.toByte - fromByte,
-              reason: job.reason,
-              spanMs: job.closedAt - job.startedAt,
+              reason: group.reason,
+              spanMs: group.closedAt - group.startedAt,
               rawFrom,
               rawTo,
             }
@@ -775,7 +775,7 @@ export class TerminalSession {
    * Milliseconds since the pty last handed us a byte. `null` before the first.
    *
    * Measured from the *byte*, not from the last delivery. A program that never
-   * pauses never opens a gap, so a job stays open until a cap closes it and no
+   * pauses never opens a gap, so a group stays open until a cap closes it and no
    * delivery completes for seconds at a time — idle measured from the last
    * delivery would report "idle for 2560ms" while the program was flooding
    * output, which is the one thing this number must never do.
@@ -879,7 +879,7 @@ export class TerminalSession {
    * line history (`TextLog` drains as it goes) and retention is L3.4's
    * problem, so a line is matched from the moment the wait begins. Rows do
    * catch up, from the per-row watermark. Reading text that already went past
-   * is history's job, not a wait's.
+   * is history's group, not a wait's.
    *
    * The result is an observation and not a verdict. The tty echoes what was
    * typed, so an echo is new output and the row carrying it is new by every
@@ -962,40 +962,40 @@ export class TerminalSession {
   }
 
   /**
-   * Wait for the next job — the next unit of output the program produced as
+   * Wait for the next group — the next unit of output the program produced as
    * one act.
    *
    * The third wait, and the one a TUI needs. `waitForIdle` is *negative* --
    * nothing arrived for a while -- so it cannot tell a program that is
    * thinking from one that is waiting for you, and it returns whether or not
    * anything actually happened. `waitForOutput` is *positive* but needs a
-   * pattern, and a repainting menu has no stable text to anchor on. A job is
+   * pattern, and a repainting menu has no stable text to anchor on. A group is
    * positive and content-agnostic: it ends when the program's own act ends.
    *
-   * **A job boundary is inferred from silence, not declared** (`jobs.ts` calls
+   * **A group boundary is inferred from silence, not declared** (`groups.ts` calls
    * it "a fallback, not the truth"). So this is not *more* correct than idle,
    * it is better aimed: it ends on the unit the classifier already computes.
    *
-   * Subscribed to updates rather than to the job's close, because at close
+   * Subscribed to updates rather than to the group's close, because at close
    * time nothing exists yet: the detector's callback is
-   * `feed(job.bytes, job).then(deliver)`, and feed is async and queued. A
-   * waiter woken at close would have to read again to see what the job was --
+   * `feed(group.bytes, group).then(deliver)`, and feed is async and queued. A
+   * waiter woken at close would have to read again to see what the group was --
    * the round trip that makes a wait useless. `onUpdate` delivers the whole
-   * object atomically, so one call returns job, screen and reason together.
+   * object atomically, so one call returns group, screen and reason together.
    *
    * `sinceSeq` is the same number `seq` reports: a state in the timeline, not
-   * a count of updates. Without it a fast program can close a job before the
-   * wait begins, and the waiter would return the *previous* job -- output from
+   * a count of updates. Without it a fast program can close a group before the
+   * wait begins, and the waiter would return the *previous* group -- output from
    * before the input was sent, which is the bug `waitForOutput`'s `sinceByte`
    * exists to prevent.
    *
    * Every close reason is reported, because they do not mean the same thing:
-   * `bytes` and `chunks` are caps cutting a job open **while the program is
+   * `bytes` and `chunks` are caps cutting a group open **while the program is
    * still writing**, and `gap` is the only one that means the program went
    * quiet on its own. `timeout` is the bound that always holds, since a
-   * policy without caps never closes a firehose job at all.
+   * policy without caps never closes a firehose group at all.
    */
-  async waitForJob(options: WaitForJobOptions): Promise<JobWaitResult> {
+  async waitForGroup(options: WaitForGroupOptions): Promise<GroupWaitResult> {
     const startedAt = this.clock.now();
     const deadline = startedAt + options.timeoutMs;
     // The state the caller has already seen. Anything at or before it is
@@ -1007,14 +1007,14 @@ export class TerminalSession {
     const box: { found: SessionUpdate | null } = { found: null };
     let disposed = false;
 
-    // Caught up before subscribing is wrong in the other direction -- a job
+    // Caught up before subscribing is wrong in the other direction -- a group
     // could land between the scan and the subscription -- so subscribe first,
     // then scan, exactly as `waitForOutput` does.
     const off = this.onUpdate((update) => {
       if (box.found) return;
       if (update.seq <= sinceSeq) return;
-      // A job's update is the one that closed it. Without grouping every
-      // update is its own job, so each one ends the wait -- which is correct:
+      // A group's update is the one that closed it. Without grouping every
+      // update is its own group, so each one ends the wait -- which is correct:
       // there is nothing to group, and the caller gets output as it arrives.
       box.found = update;
       this.wake();
@@ -1031,9 +1031,9 @@ export class TerminalSession {
         const found = box.found;
         if (found) {
           return {
-            reason: 'job',
+            reason: 'group',
             seq: found.seq,
-            job: found.job,
+            group: found.group,
             collapsed: found.collapsed,
             screen: found.screen,
             state,
@@ -1048,7 +1048,7 @@ export class TerminalSession {
           return {
             reason: 'disposed',
             seq: sinceSeq,
-            job: null,
+            group: null,
             collapsed: null,
             screen: null,
             state,
@@ -1060,7 +1060,7 @@ export class TerminalSession {
           return {
             reason: 'exited',
             seq: sinceSeq,
-            job: null,
+            group: null,
             collapsed: null,
             screen: this.screen.snapshot(),
             state,
@@ -1072,7 +1072,7 @@ export class TerminalSession {
           return {
             reason: 'timeout',
             seq: sinceSeq,
-            job: null,
+            group: null,
             collapsed: null,
             screen: this.screen.snapshot(),
             state,
@@ -1251,16 +1251,16 @@ export class TerminalSession {
    * delivery in flight would be recorded as having happened before output that
    * was produced at the old size.
    *
-   * A pending job is flushed first, because a job may not straddle a boundary
+   * A pending group is flushed first, because a group may not straddle a boundary
    * that freezes history: everything before a resize belongs to the old epoch
-   * at the old size (HISTORY.md §2). The job is closed but its bytes are still
+   * at the old size (HISTORY.md §2). The group is closed but its bytes are still
    * fed through the queue, so they may land after the resize applies -- which
    * is the case `history.ts` already handles by deriving epochs from the size
    * a record reports rather than trusting the resize event.
    */
   resize(cols: number, rows: number): void {
     assertGridSize(cols, rows);
-    this.jobs?.flush();
+    this.groups?.flush();
     this.pty.resize(cols, rows);
     this.screen.resize(cols, rows);
     // The old stamps describe rows of a grid that no longer exists. Everything
@@ -1287,7 +1287,7 @@ export class TerminalSession {
     this.resizeListeners.length = 0;
     this.exitListeners.length = 0;
     this.disposeListeners.length = 0;
-    this.jobs?.dispose();
+    this.groups?.dispose();
     this.screen.dispose();
     this.pty.dispose();
     // Anything waiting is waiting on a session that will never change again.

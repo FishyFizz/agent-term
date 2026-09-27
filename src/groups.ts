@@ -1,29 +1,44 @@
 /**
- * Job boundaries — where one unit of program intent ends and the next begins.
+ * Group boundaries — where one run of output ends and the next begins.
  *
  * CLASSIFIER.md §9.3 measured that the verdict depends on where deliveries
  * begin: the same corpus scores 20/23 replayed per drawing op and 17/23
  * replayed in 64-byte chunks. A chunk boundary lands wherever the pty buffer
  * filled, which has nothing to do with what the program meant, so the
  * classifier is being asked its question at boundaries the program never drew.
- * A job is the missing unit: the run of output a program emits as one act.
+ * A **group** is the missing unit: a run of output delivered together.
  *
- * The signal available without a second parser is silence. A program painting
- * a menu writes its rows back to back and then waits; the gap between bursts
- * is the boundary. Measured on `cli.menu-selector`: 0ms between the ops of one
- * draw, 15–16ms between draws.
+ * **Why "group" and not "group".** A group is a unit of *intent*, and intent is
+ * not observable here. The boundary is inferred from silence: a program
+ * painting a menu writes its rows back to back and then waits, and the gap
+ * between those runs is the boundary (measured on `cli.menu-selector`: 0ms
+ * between the ops of one draw, 15–16ms between draws). Silence is a fallback,
+ * not the truth — `CSI ?2026 h/l` is a program declaring its own frame, and it
+ * needs no special case here because a frame is written in one run, so no gap
+ * opens inside it.
  *
- * Silence is a fallback, not the truth. `CSI ?2026 h/l` is a program declaring
- * its own frame, and it needs no special case here: a frame is written in one
- * burst, so no gap opens inside it. What the detector does need is a cap. A
- * firehose never goes quiet, so without one the job grows without bound and
- * "bounded delivery" (GOAL.md L1.1) is violated by the thing meant to provide
- * it.
+ * **So a group is two things at once, and both matter:**
+ *
+ *  1. **A delivery granularity.** Merging is what keeps a repainting TUI from
+ *     arriving as hundreds of updates.
+ *  2. **A classification input.** `feed` classifies the whole span, from the
+ *     frame before it to the frame after, which is the only way a repaint is
+ *     legible as one thing. Where the boundary lands *changes the verdict*
+ *     (§9.3) — which is why this lives in `src/` and why grouping is on by
+ *     default.
+ *
+ * Point 2 is why the name cannot be merely neutral about *packing*: a caller
+ * who reads "group" as "just a batching detail" will misread what the
+ * classifier was asked. What the name stops claiming is *intent*.
+ *
+ * The caps exist for the pathological case GOAL.md calls out: a program that
+ * never goes quiet. Without them a firehose holds one group open forever, and
+ * the thing meant to provide bounded delivery would be the thing violating it.
  *
  * The numbers are policy, and this module takes them as arguments: L0 owns the
  * fact that output has boundaries, L1/L3 owns how long a quiet period is.
  */
-import type { JobPolicy } from './types.js';
+import type { GroupPolicy } from './types.js';
 
 /**
  * The policy a session uses when it is not given one.
@@ -36,22 +51,39 @@ import type { JobPolicy } from './types.js';
  * in the middle of it.
  *
  * The caps exist for the pathological case GOAL.md calls out: a program that
- * never goes quiet. Without them a firehose holds one job open forever, and
+ * never goes quiet. Without them a firehose holds one group open forever, and
  * the thing meant to provide bounded delivery would be the thing violating it.
  * They are set well above what any corpus programme writes, so they do not
  * change the measured score.
  */
-export const DEFAULT_JOB_POLICY: JobPolicy = {
+export const DEFAULT_GROUP_POLICY: GroupPolicy = {
   gapMs: 50,
   maxBytes: 64 * 1024,
   maxChunks: 256,
 };
 
-/** Why a job stopped accumulating. Reported so a consumer can read the granularity. */
-export type JobCloseReason =
-  /** The pty went quiet for the policy's gap. */
+/**
+ * Why a group stopped accumulating. Reported so a consumer can read the
+ * granularity.
+ *
+ * Each of these is a **measurement of the detector's own state machine**, and
+ * none of them is a claim about what the program was doing:
+ *
+ *  - `gap` — no bytes arrived for `gapMs`.
+ *  - `bytes` — the merged bytes reached `maxBytes`.
+ *  - `chunks` — the merged deliveries reached `maxChunks`.
+ *  - `flush` — a resize, an exit or a dispose closed it.
+ *
+ * What a caller may be tempted to read into `bytes` and `chunks` — "the
+ * program is still writing, more is coming" — is not provable here. Whether
+ * more output will arrive is L1.2's question and has no answer at a byte
+ * interface: it may emit at any future moment for reasons internal to it.
+ * The reason says how *this group* ended, which is all it measured.
+ */
+export type GroupCloseReason =
+  /** No bytes arrived for the policy's gap. */
   | 'gap'
-  /** The byte cap was reached — a program that never pauses. */
+  /** The byte cap was reached. */
   | 'bytes'
   /** The delivery-count cap was reached. */
   | 'chunks'
@@ -71,7 +103,7 @@ export interface Job {
   /**
    * The raw deliveries themselves, in arrival order.
    *
-   * Kept because the merged bytes cannot be un-merged. A job is classified
+   * Kept because the merged bytes cannot be un-merged. A group is classified
    * over its whole span, which is what makes a repaint legible; the parts are
    * what let a caller who saw only the net effect go back and read the
    * intermediate states it swallowed.
@@ -81,34 +113,34 @@ export interface Job {
   chunks: number;
   /** When the first delivery arrived. */
   startedAt: number;
-  /** When the job closed. */
+  /** When the group closed. */
   closedAt: number;
-  reason: JobCloseReason;
+  reason: GroupCloseReason;
 }
 
 /**
- * Group recorded arrivals into jobs by gap.
+ * Group recorded arrivals into groups by gap.
  *
- * The pure form, used to replay a trace at job granularity: a trace records
+ * The pure form, used to replay a trace at group granularity: a trace records
  * when each op ran, so the gaps are recoverable even though the raw bytes
  * carry no timing of their own.
  *
- * A cap closes a job mid-run rather than merging without bound, but the cap is
+ * A cap closes a group mid-run rather than merging without bound, but the cap is
  * checked *before* appending, so a single arrival larger than the cap becomes a
- * job of its own instead of being split — splitting a delivery would invent a
+ * group of its own instead of being split — splitting a delivery would invent a
  * boundary the program never drew.
  */
-export function groupByGap(arrivals: readonly Arrival[], policy: JobPolicy): Job[] {
-  const jobs: Job[] = [];
+export function groupByGap(arrivals: readonly Arrival[], policy: GroupPolicy): Job[] {
+  const groups: Job[] = [];
   let parts: Buffer[] = [];
   let chunks = 0;
   let bytes = 0;
   let startedAt = 0;
   let lastAt = 0;
 
-  const close = (at: number, reason: JobCloseReason): void => {
+  const close = (at: number, reason: GroupCloseReason): void => {
     if (chunks === 0) return;
-    jobs.push({ bytes: Buffer.concat(parts), parts, chunks, startedAt, closedAt: at, reason });
+    groups.push({ bytes: Buffer.concat(parts), parts, chunks, startedAt, closedAt: at, reason });
     parts = [];
     chunks = 0;
     bytes = 0;
@@ -131,25 +163,25 @@ export function groupByGap(arrivals: readonly Arrival[], policy: JobPolicy): Job
 
     // Closed as soon as it is full, rather than waiting for a gap: the cap
     // exists for programs that never go quiet, and a cap that only takes
-    // effect on the *next* arrival lets a firehose hold a job open forever.
+    // effect on the *next* arrival lets a firehose hold a group open forever.
     const fullBytes = policy.maxBytes !== undefined && bytes >= policy.maxBytes;
     const fullChunks = policy.maxChunks !== undefined && chunks >= policy.maxChunks;
     if (fullBytes || fullChunks) close(lastAt, fullBytes ? 'bytes' : 'chunks');
   }
   // The tail is not a gap -- nothing went quiet, the arrivals simply ran out.
   close(lastAt, 'flush');
-  return jobs;
+  return groups;
 }
 
 /** The clock and timer a live detector uses. Injected so tests need no sleeping. */
-export interface JobClock {
+export interface GroupClock {
   now(): number;
   set(fn: () => void, ms: number): unknown;
   clear(handle: unknown): void;
 }
 
 /** The real clock. `now` is `Date.now`, in the same millisecond space as `Op.at`. */
-export const realClock: JobClock = {
+export const realClock: GroupClock = {
   now: () => Date.now(),
   set: (fn, ms) => setTimeout(fn, ms),
   clear: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>),
@@ -161,7 +193,7 @@ export const realClock: JobClock = {
  * Sleeping through a quiet period makes a test both slow and flaky, and a
  * boundary that only sometimes opens is the worst thing a test can assert.
  */
-export class FakeClock implements JobClock {
+export class FakeClock implements GroupClock {
   private t = 0;
   private next = 1;
   private readonly timers = new Map<number, { at: number; fn: () => void }>();
@@ -200,10 +232,10 @@ export class FakeClock implements JobClock {
 }
 
 /**
- * Group live pty output into jobs, closing one when the pty goes quiet.
+ * Group live pty output into groups, closing one when the pty goes quiet.
  *
- * A pending job is held open across arrivals and re-armed on each one, so the
- * timer measures the gap *since the last byte* rather than since the job
+ * A pending group is held open across arrivals and re-armed on each one, so the
+ * timer measures the gap *since the last byte* rather than since the group
  * opened — otherwise a slow but continuous program would be chopped at
  * arbitrary intervals.
  *
@@ -211,13 +243,13 @@ export class FakeClock implements JobClock {
  * late where it matters most. A resize and an exit both destroy state the
  * classifier needs to see as a whole: history freezes an epoch at a resize
  * (HISTORY.md §2), and alt-screen content is gone once the program leaves it
- * (L0.1). Both force the pending job out first, in the same order the bytes
+ * (L0.1). Both force the pending group out first, in the same order the bytes
  * arrived.
  */
-export class JobDetector {
-  private readonly policy: JobPolicy;
-  private readonly emit: (job: Job) => void;
-  private readonly clock: JobClock;
+export class GroupDetector {
+  private readonly policy: GroupPolicy;
+  private readonly emit: (group: Job) => void;
+  private readonly clock: GroupClock;
 
   private parts: Buffer[] = [];
   private chunks = 0;
@@ -227,23 +259,23 @@ export class JobDetector {
   private handle: unknown;
   private closed = false;
 
-  constructor(policy: JobPolicy, emit: (job: Job) => void, clock: JobClock = realClock) {
+  constructor(policy: GroupPolicy, emit: (group: Job) => void, clock: GroupClock = realClock) {
     this.policy = policy;
     this.emit = emit;
     this.clock = clock;
   }
 
-  /** Raw deliveries merged into the job currently open. */
+  /** Raw deliveries merged into the group currently open. */
   get pendingChunks(): number {
     return this.chunks;
   }
 
-  /** Bytes held in the job currently open. */
+  /** Bytes held in the group currently open. */
   get pendingBytes(): number {
     return this.bytes;
   }
 
-  /** Add one raw delivery. May close a job synchronously on a cap. */
+  /** Add one raw delivery. May close a group synchronously on a cap. */
   push(bytes: Buffer): void {
     if (this.closed) return;
     const at = this.clock.now();
@@ -262,7 +294,7 @@ export class JobDetector {
 
     // Closed as soon as it is full, rather than waiting for a gap. Note this
     // tests the *new* total: the check above was against what was already
-    // pending, so reusing it here would close a job that just absorbed a
+    // pending, so reusing it here would close a group that just absorbed a
     // two-byte delivery after a cap was hit.
     const fullBytes = this.policy.maxBytes !== undefined && this.bytes >= this.policy.maxBytes;
     const fullChunks = this.policy.maxChunks !== undefined && this.chunks >= this.policy.maxChunks;
@@ -278,8 +310,8 @@ export class JobDetector {
     }, this.policy.gapMs);
   }
 
-  /** Close the pending job now, whatever the reason. */
-  flush(reason: JobCloseReason = 'flush'): void {
+  /** Close the pending group now, whatever the reason. */
+  flush(reason: GroupCloseReason = 'flush'): void {
     if (this.handle !== undefined) {
       this.clock.clear(this.handle);
       this.handle = undefined;
@@ -287,10 +319,10 @@ export class JobDetector {
     this.close(reason);
   }
 
-  /** Stop the timer. A pending job is *not* emitted — see `dispose`. */
-  private close(reason: JobCloseReason): void {
+  /** Stop the timer. A pending group is *not* emitted — see `dispose`. */
+  private close(reason: GroupCloseReason): void {
     if (this.chunks === 0) return;
-    const job: Job = {
+    const group: Job = {
       bytes: Buffer.concat(this.parts),
       parts: this.parts,
       chunks: this.chunks,
@@ -301,13 +333,13 @@ export class JobDetector {
     this.parts = [];
     this.chunks = 0;
     this.bytes = 0;
-    this.emit(job);
+    this.emit(group);
   }
 
   /**
    * Close anything pending, then stop accepting.
    *
-   * The pending job is flushed rather than dropped: those bytes arrived, and
+   * The pending group is flushed rather than dropped: those bytes arrived, and
    * dropping them would leave the classifier's byte offsets short of what the
    * pty actually produced.
    */

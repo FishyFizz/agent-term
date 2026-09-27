@@ -48,12 +48,12 @@ const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const GAP_MS = 30;
 
-function open(options: { jobPolicy?: { gapMs: number } | false } = {}): {
+function open(options: { groupPolicy?: { gapMs: number } | false } = {}): {
   session: TerminalSession;
   history: SessionHistory;
   updates: SessionUpdate[];
 } {
-  const session = new TerminalSession('jobs-live', {
+  const session = new TerminalSession('groups-live', {
     command: process.execPath,
     args: ['-e', MENU_SCRIPT],
     cols: 50,
@@ -79,8 +79,8 @@ async function waitFor(predicate: () => boolean, timeoutMs = 15000): Promise<boo
 const line = (u: SessionUpdate, needle: string): boolean =>
   u.screen.lines.some((l) => l.includes(needle));
 
-test('a real repaint burst is one job, and reads as drawing', async (t) => {
-  const { session, updates } = open({ jobPolicy: { gapMs: GAP_MS } });
+test('a real repaint burst is one group, and reads as drawing', async (t) => {
+  const { session, updates } = open({ groupPolicy: { gapMs: GAP_MS } });
   t.after(() => session.dispose());
 
   const got = await waitFor(() => updates.some((u) => line(u, '> beta')));
@@ -92,13 +92,13 @@ test('a real repaint burst is one job, and reads as drawing', async (t) => {
 
   // The point of the whole exercise: one update for the burst, carrying what
   // it swallowed, rather than one update per row the program happened to write.
-  assert.ok(move.collapsed !== null, 'job mode reports what it merged');
+  assert.ok(move.collapsed !== null, 'group mode reports what it merged');
   assert.ok(move.collapsed!.chunks >= 1);
   assert.equal(move.collapsed!.reason, 'gap', 'closed on silence, not on a cap');
 });
 
-test('every update in job mode carries its collapsed count', async (t) => {
-  const { session, updates } = open({ jobPolicy: { gapMs: GAP_MS } });
+test('every update in group mode carries its collapsed count', async (t) => {
+  const { session, updates } = open({ groupPolicy: { gapMs: GAP_MS } });
   t.after(() => session.dispose());
 
   const got = await waitFor(() => updates.length >= 3);
@@ -109,7 +109,7 @@ test('every update in job mode carries its collapsed count', async (t) => {
 });
 
 test('merged updates report intermediates the consumer did not see', async (t) => {
-  const { session, updates } = open({ jobPolicy: { gapMs: GAP_MS } });
+  const { session, updates } = open({ groupPolicy: { gapMs: GAP_MS } });
   t.after(() => session.dispose());
 
   await waitFor(() => updates.some((u) => line(u, '> beta')));
@@ -131,54 +131,54 @@ test('merged updates report intermediates the consumer did not see', async (t) =
   }
 });
 
-test('a merged job can be played back: the states it swallowed are readable', async (t) => {
-  // The whole reason `collapsed` exists. A job is classified over its span,
+test('a merged group can be played back: the states it swallowed are readable', async (t) => {
+  // The whole reason `collapsed` exists. A group is classified over its span,
   // which is what makes a repaint legible, and what it nets to may be nothing
   // at all -- a highlight that moved out and back leaves no trace. The count
   // says something happened; this is the thing that shows what.
-  const { session, history, updates } = open({ jobPolicy: { gapMs: GAP_MS } });
+  const { session, history, updates } = open({ groupPolicy: { gapMs: GAP_MS } });
   t.after(() => session.dispose());
 
   await waitFor(() => updates.some((u) => u.collapsed && u.collapsed.chunks > 1));
-  const job = updates.find((u) => u.collapsed && u.collapsed.chunks > 1)!;
-  const { rawFrom, rawTo, chunks } = job.collapsed!;
+  const group = updates.find((u) => u.collapsed && u.collapsed.chunks > 1)!;
+  const { rawFrom, rawTo, chunks } = group.collapsed!;
 
   const playback = history.deliveries({ seq: rawFrom }, { seq: rawTo });
-  assert.equal(playback.length, chunks, 'one record per raw delivery the job swallowed');
-  assert.ok(playback.length > 1, 'the job really did merge');
+  assert.equal(playback.length, chunks, 'one record per raw delivery the group swallowed');
+  assert.ok(playback.length > 1, 'the group really did merge');
 
   const seqs = playback.map((r) => r.seq);
   assert.deepEqual(seqs, [...seqs].sort((a, b) => a - b), 'in the order they arrived');
   for (const r of playback) {
-    // Joined on `job`, not `seq`: an update's `seq` is the raw state it ends
-    // at, and a job that swallowed 1..4 ends at 4 -- so comparing it against
-    // every record in the span would only ever match the last one. The job
+    // Joined on `group`, not `seq`: an update's `seq` is the raw state it ends
+    // at, and a group that swallowed 1..4 ends at 4 -- so comparing it against
+    // every record in the span would only ever match the last one. The group
     // number is what all of them share.
-    assert.equal(r.job, job.job, 'tied to the job it was grouped into');
+    assert.equal(r.group, group.group, 'tied to the group it was grouped into');
     assert.ok(r.screen, 'each one reconstructs to a screen');
   }
   assert.notDeepEqual(
     playback[0]!.screen.lines,
-    job.screen.lines,
-    'the first intermediate state is not the first state the job reported',
+    group.screen.lines,
+    'the first intermediate state is not the first state the group reported',
   );
-  // The strongest check available: replay the whole job and the last
-  // intermediate must land on the screen the job itself reported. If a single
+  // The strongest check available: replay the whole group and the last
+  // intermediate must land on the screen the group itself reported. If a single
   // delta in the chain were lossy, this would not match.
   assert.deepEqual(
     playback.at(-1)!.screen.lines,
-    job.screen.lines,
-    'replaying every intermediate lands on the screen the job reported',
+    group.screen.lines,
+    'replaying every intermediate lands on the screen the group reported',
   );
 });
 
 test('with grouping opted out, the session reports no merging rather than inventing one', async (t) => {
-  const { session, updates } = open({ jobPolicy: false });
+  const { session, updates } = open({ groupPolicy: false });
   t.after(() => session.dispose());
 
   const got = await waitFor(() => updates.length >= 1);
   assert.ok(got, 'expected at least one update');
   for (const u of updates) {
-    assert.equal(u.collapsed, null, 'no job policy means nothing was merged');
+    assert.equal(u.collapsed, null, 'no group policy means nothing was merged');
   }
 });

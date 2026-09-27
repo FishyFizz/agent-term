@@ -1,4 +1,4 @@
-import type { JobClock } from './jobs.js';
+import type { GroupClock } from './groups.js';
 
 /**
  * Opaque handle identifying a hosted terminal session.
@@ -9,24 +9,24 @@ import type { JobClock } from './jobs.js';
 export type SessionId = string;
 
 /**
- * How raw pty output is grouped into jobs — the program's units of intent.
+ * How raw pty output is grouped into groups — the program's units of intent.
  *
  * The numbers are policy and belong to L1/L3; the fact that output *has*
  * boundaries belongs to L0, because where a boundary falls decides what the
- * classifier can see (CLASSIFIER.md §9.3). See `jobs.ts` for the reasoning and
+ * classifier can see (CLASSIFIER.md §9.3). See `groups.ts` for the reasoning and
  * for what each field guards against.
  */
-export interface JobPolicy {
+export interface GroupPolicy {
   /**
-   * Milliseconds of silence that close a job.
+   * Milliseconds of silence that close a group.
    *
    * Measured against `Op.at`, the same millisecond clock the emulator stamps
    * ops with, so a policy tuned on live output replays against the corpus.
    */
   gapMs: number;
-  /** Cap on bytes in one job. Without it a firehose never closes a job. */
+  /** Cap on bytes in one group. Without it a firehose never closes a group. */
   maxBytes?: number;
-  /** Cap on raw deliveries in one job. */
+  /** Cap on raw deliveries in one group. */
   maxChunks?: number;
 }
 
@@ -43,21 +43,21 @@ export interface SessionOptions {
   cols?: number;
   rows?: number;
   /**
-   * Group output into jobs before classifying it.
+   * Group output into groups before classifying it.
    *
    * On by default, because where a delivery begins decides what the classifier
    * can see (CLASSIFIER.md §9.3) and leaving it to the pty means letting a
-   * buffer decide. Pass `false` for what a session did before jobs existed:
+   * buffer decide. Pass `false` for what a session did before groups existed:
    * one classified update per raw pty delivery, which is the honest setting
    * for a caller that wants every byte boundary and is what the corpus's
    * op-aligned replay measures.
    *
-   * The numbers are policy; absent means `DEFAULT_JOB_POLICY`.
+   * The numbers are policy; absent means `DEFAULT_GROUP_POLICY`.
    *
    * Off, the session reports `collapsed: null` rather than an invented `1`
    * (GOAL.md L1.3).
    */
-  jobPolicy?: JobPolicy | false;
+  groupPolicy?: GroupPolicy | false;
 
   /**
    * The clock the session measures silence with.
@@ -66,10 +66,10 @@ export interface SessionOptions {
    * period that only sometimes elapses is the worst thing a test can assert,
    * and a real clock makes every timing test both slow and flaky.
    *
-   * Shared with the job detector, so the boundary a job closes on and the
+   * Shared with the group detector, so the boundary a group closes on and the
    * session's idle measurement cannot disagree about what time it is.
    */
-  clock?: JobClock;
+  clock?: GroupClock;
 }
 
 export const DEFAULT_COLS = 80;

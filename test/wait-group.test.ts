@@ -1,5 +1,5 @@
 /**
- * Waiting for a job, against a real pty.
+ * Waiting for a group, against a real pty.
  *
  * The menu subject is the case the other two waits cannot serve: it repaints
  * with no stable text to anchor a pattern on, and it pauses between repaints
@@ -44,13 +44,13 @@ const line = 'x'.repeat(511) + '\\n';
 for (;;) process.stdout.write(line);
 `;
 
-function open(script: string, jobPolicy?: { gapMs: number; maxBytes?: number } | false) {
-  const session = new TerminalSession('wait-job', {
+function open(script: string, groupPolicy?: { gapMs: number; maxBytes?: number } | false) {
+  const session = new TerminalSession('wait-group', {
     command: process.execPath,
     args: ['-e', script],
     cols: 50,
     rows: 8,
-    ...(jobPolicy === undefined ? {} : { jobPolicy }),
+    ...(groupPolicy === undefined ? {} : { groupPolicy }),
   });
   const updates: SessionUpdate[] = [];
   session.onUpdate((u) => updates.push(u));
@@ -66,56 +66,56 @@ async function waitFor(predicate: () => boolean, timeoutMs = 15000): Promise<boo
   return false;
 }
 
-test('a job wait ends on a job, and returns it whole', async (t) => {
+test('a group wait ends on a group, and returns it whole', async (t) => {
   const { session } = open(MENU_SCRIPT);
   t.after(() => session.dispose());
 
-  const result = await session.waitForJob({ timeoutMs: 10000 });
-  assert.equal(result.reason, 'job', 'the menu drew');
-  assert.ok(result.job !== null, 'and says which job');
+  const result = await session.waitForGroup({ timeoutMs: 10000 });
+  assert.equal(result.reason, 'group', 'the menu drew');
+  assert.ok(result.group !== null, 'and says which group');
   assert.ok(result.screen, 'and carries the screen, so no second read is needed');
   assert.ok(result.seq > result.sinceSeq, 'ending at a state after the baseline');
 
-  // The point of hanging on the update rather than on the job's close: the
-  // job, its screen and why it closed all arrive in one call. At close time
+  // The point of hanging on the update rather than on the group's close: the
+  // group, its screen and why it closed all arrive in one call. At close time
   // none of them exists yet -- feed is async and queued.
   assert.ok(result.collapsed, 'with what was merged');
   assert.equal(result.collapsed!.reason, 'gap', 'the program went quiet on its own');
   assert.ok(
     session.screen.snapshot().lines.some((l) => l.includes('alpha')),
-    'and the screen is the one the job produced',
+    'and the screen is the one the group produced',
   );
 });
 
-test('the baseline decides, so a job from before the input cannot satisfy it', async (t) => {
+test('the baseline decides, so a group from before the input cannot satisfy it', async (t) => {
   const { session } = open(MENU_SCRIPT);
   t.after(() => session.dispose());
 
-  const first = await session.waitForJob({ timeoutMs: 10000 });
-  assert.equal(first.reason, 'job');
+  const first = await session.waitForGroup({ timeoutMs: 10000 });
+  assert.equal(first.reason, 'group');
 
   // The bug this prevents is the one `sinceByte` prevents for a pattern: with
-  // no baseline, a job that closed before the caller asked would be handed
+  // no baseline, a group that closed before the caller asked would be handed
   // back as if it were the answer to this call.
   const seen = first.seq;
-  const again = await session.waitForJob({ sinceSeq: seen, timeoutMs: 10000 });
+  const again = await session.waitForGroup({ sinceSeq: seen, timeoutMs: 10000 });
   assert.ok(
-    again.reason !== 'job' || again.seq > seen,
-    'a job already seen is not offered again',
+    again.reason !== 'group' || again.seq > seen,
+    'a group already seen is not offered again',
   );
 });
 
-test('without grouping every update is its own job, so the wait still ends', async (t) => {
+test('without grouping every update is its own group, so the wait still ends', async (t) => {
   const { session } = open(MENU_SCRIPT, false);
   t.after(() => session.dispose());
 
   assert.equal(session.grouping, false, 'opened with grouping off');
   // Not an error, and not a hang: with no detector there is no boundary to
-  // group to, so each update is a job of one. Ending on it is the honest
+  // group to, so each update is a group of one. Ending on it is the honest
   // answer -- the caller asked for the next act of output and there is no
   // grouping that could say what one act is.
-  const result = await session.waitForJob({ timeoutMs: 10000 });
-  assert.equal(result.reason, 'job');
+  const result = await session.waitForGroup({ timeoutMs: 10000 });
+  assert.equal(result.reason, 'group');
   assert.equal(result.collapsed, null, 'and nothing was merged, which is the truth');
 });
 
@@ -126,7 +126,7 @@ test('a disposed session ends the wait with a reason, not a timeout', async (t) 
   // `dispose()` clears the listener lists before it wakes anyone, so a waiter
   // subscribed only to updates would be silently unsubscribed and would sit
   // out its deadline -- indistinguishable from a timeout.
-  const waiting = session.waitForJob({ timeoutMs: 10000 });
+  const waiting = session.waitForGroup({ timeoutMs: 10000 });
   await delay(50);
   session.dispose();
   const result = await waiting;
@@ -144,8 +144,8 @@ test('a firehose is cut by a cap, and says the program has not stopped', async (
   const { session } = open(FIREHOSE, { gapMs: 50, maxBytes: 4096 });
   t.after(() => session.dispose());
 
-  const result = await session.waitForJob({ timeoutMs: 10000 });
-  assert.equal(result.reason, 'job', 'it returns rather than hanging');
+  const result = await session.waitForGroup({ timeoutMs: 10000 });
+  assert.equal(result.reason, 'group', 'it returns rather than hanging');
   assert.ok(result.collapsed);
   assert.ok(
     result.collapsed!.reason === 'bytes' || result.collapsed!.reason === 'chunks',

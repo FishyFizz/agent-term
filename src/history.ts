@@ -82,8 +82,8 @@ export type HistoryPoint = HistoryAddress | HistoryToken;
 /**
  * One delivery as recorded — the canonical unit of this timeline.
  *
- * A delivery, not a job: the raw stream is the record, and the job the agent is
- * shown is a *projection* over it (`jobs`). That is the difference between
+ * A delivery, not a group: the raw stream is the record, and the group the agent is
+ * shown is a *projection* over it (`groups`). That is the difference between
  * storing what happened and storing one account of what happened — a projection
  * can be recomputed at a different granularity, and cannot disagree with the
  * stream it came from because it is derived from it.
@@ -94,8 +94,8 @@ export type HistoryPoint = HistoryAddress | HistoryToken;
  */
 export interface HistoryRecord {
   seq: number;
-  /** The job this delivery was grouped into. See `jobs`. */
-  job: number;
+  /** The group this delivery was grouped into. See `groups`. */
+  group: number;
   at: number;
   fromByte: number;
   toByte: number;
@@ -104,7 +104,7 @@ export interface HistoryRecord {
   /**
    * Rows the emulator reported the content moved during this delivery.
    *
-   * Kept because the projection classifies a job from the screen before it to
+   * Kept because the projection classifies a group from the screen before it to
    * the screen after it, and needs the scroll between them to compare the two
    * at the right offset. Recovering it afterwards would mean re-deriving it
    * from the grid, which is the guess `classify` exists to avoid.
@@ -126,7 +126,7 @@ export interface HistoryRecord {
  */
 export interface HistoryInput {
   seq: number;
-  job: number;
+  group: number;
   at: number;
   fromByte: number;
   toByte: number;
@@ -180,15 +180,15 @@ export interface HistoryPage {
 }
 
 /**
- * A job as the agent was shown it — computed from the stream, never stored.
+ * A group as the agent was shown it — computed from the stream, never stored.
  *
  * `segments` are here and not on a `HistoryRecord` because a delivery cannot
- * carry a verdict the projection would agree with: the job's span is what was
- * measured, so the job is what can be classified.
+ * carry a verdict the projection would agree with: the group's span is what was
+ * measured, so the group is what can be classified.
  */
-export interface JobRecord {
-  /** The job's sequence number; the same one its update carried. */
-  job: number;
+export interface GroupRecord {
+  /** The group's sequence number; the same one its update carried. */
+  group: number;
   at: number;
   fromByte: number;
   toByte: number;
@@ -199,7 +199,7 @@ export interface JobRecord {
   screen: ScreenSnapshot;
   cursor: { x: number; y: number };
   buffer: 'normal' | 'alternate';
-  /** How many raw deliveries this job stands for. */
+  /** How many raw deliveries this group stands for. */
   chunks: number;
 }
 
@@ -220,7 +220,7 @@ export interface TextPage {
  * was shown" are two accounts of one stream and a caller wants one of them at
  * a time.
  */
-export type HistoryLevel = 'records' | 'jobs' | 'text';
+export type HistoryLevel = 'records' | 'groups' | 'text';
 
 /** What a read of the timeline is asking for. */
 export interface HistoryReadOptions {
@@ -230,7 +230,7 @@ export interface HistoryReadOptions {
   to?: HistoryPoint | null;
   /** Cap on what comes back. Default 50. */
   limit?: number;
-  /** The projection: `records` (default), `jobs`, or `text`. */
+  /** The projection: `records` (default), `groups`, or `text`. */
   level?: HistoryLevel;
   /** Materialize the screen at each record. Off by default — it is the expensive part. */
   screen?: boolean;
@@ -250,13 +250,13 @@ export type HistoryReadResult =
       screens: boolean;
     }
   | {
-      level: 'jobs';
+      level: 'groups';
       epoch: EpochInfo;
       from: HistoryToken;
       next: HistoryToken | null;
       truncated: boolean;
       stoppedAtEpochEnd: boolean;
-      jobs: readonly JobRecord[];
+      groups: readonly GroupRecord[];
     }
   | {
       level: 'text';
@@ -309,7 +309,7 @@ export class SessionHistory {
     }
     const offs = [
       // Deliveries, not updates: this timeline records the stream, and the
-      // job the agent is shown is projected from it on read.
+      // group the agent is shown is projected from it on read.
       session.onDelivery((delivery) => this.push(delivery)),
       session.onResize((size) => this.resize(size.cols, size.rows)),
       session.onExit((info) => this.end(info)),
@@ -347,7 +347,7 @@ export class SessionHistory {
 
     target.records.push({
       seq: update.seq,
-      job: update.job,
+      group: update.group,
       at: update.at,
       fromByte: update.fromByte,
       toByte: update.toByte,
@@ -480,10 +480,10 @@ export class SessionHistory {
    *
    * The stream read straight: every delivery in the span, in order, with its
    * state reconstructed. This is what `collapsed.intermediates` promises — the
-   * states a job swallowed, playable back — and it lives here because the
+   * states a group swallowed, playable back — and it lives here because the
    * stream is this timeline's, not the session's.
    *
-   * Crosses epochs where `read` will not, because a replay of what one job did
+   * Crosses epochs where `read` will not, because a replay of what one group did
    * is not less true for the grid having changed under it. Each screen comes
    * back at the size it was produced at, so the caller can tell; `epoch` says
    * which. A page is a window into one grid, a replay is a span of what
@@ -524,7 +524,7 @@ export class SessionHistory {
    * Read a bounded window of the timeline, at the projection asked for.
    *
    * One read over one timeline. `level` chooses what a record stands for --
-   * the deliveries as recorded, the jobs the agent was shown, or the plain
+   * the deliveries as recorded, the groups the agent was shown, or the plain
    * lines -- and `screen` asks for the state at each point. Paging and
    * playback are the same operation at two settings of these, which is why
    * they are one call: a page is a window you move, a replay is a span you
@@ -569,19 +569,19 @@ export class SessionHistory {
       return { level: 'text', epoch: epoch.info, from, next, truncated, stoppedAtEpochEnd, lines };
     }
 
-    if (level === 'jobs') {
-      const jobs = this.jobs({ limit: Number.MAX_SAFE_INTEGER }).filter(
-        (job) => job.fromByte <= (records[records.length - 1]?.toByte ?? -1),
+    if (level === 'groups') {
+      const groups = this.groups({ limit: Number.MAX_SAFE_INTEGER }).filter(
+        (group) => group.fromByte <= (records[records.length - 1]?.toByte ?? -1),
       );
-      const bounded = jobs.slice(-limit);
+      const bounded = groups.slice(-limit);
       return {
-        level: 'jobs',
+        level: 'groups',
         epoch: epoch.info,
         from,
         next,
-        truncated: truncated || jobs.length > limit,
+        truncated: truncated || groups.length > limit,
         stoppedAtEpochEnd,
-        jobs: bounded,
+        groups: bounded,
       };
     }
 
@@ -631,33 +631,33 @@ export class SessionHistory {
   }
 
   /**
-   * The deliveries grouped into the jobs the agent was shown.
+   * The deliveries grouped into the groups the agent was shown.
    *
-   * The projection the canonical stream exists for. A job is classified from
+   * The projection the canonical stream exists for. A group is classified from
    * the screen before its first delivery to the screen after its last, across
    * the whole span — which is what makes a repaint legible where no single
-   * delivery could show it. Nothing is stored per job; this is computed from
+   * delivery could show it. Nothing is stored per group; this is computed from
    * the records every time it is asked for, so it cannot disagree with them.
    */
-  jobs(options: { limit?: number } = {}): JobRecord[] {
+  groups(options: { limit?: number } = {}): GroupRecord[] {
     const limit = options.limit ?? DEFAULT_LIMIT;
-    const out: JobRecord[] = [];
+    const out: GroupRecord[] = [];
     for (const epoch of this.list) {
       for (let i = 0; i < epoch.records.length && out.length < limit; i++) {
         const first = epoch.records[i]!;
-        // Only from a job's first delivery: a job never straddles an epoch,
+        // Only from a group's first delivery: a group never straddles an epoch,
         // because a resize forces one closed (HISTORY.md §2).
-        if (i > 0 && epoch.records[i - 1]!.job === first.job) continue;
+        if (i > 0 && epoch.records[i - 1]!.group === first.group) continue;
 
         const group: HistoryRecord[] = [];
-        for (let j = i; j < epoch.records.length && epoch.records[j]!.job === first.job; j++) {
+        for (let j = i; j < epoch.records.length && epoch.records[j]!.group === first.group; j++) {
           group.push(epoch.records[j]!);
         }
 
         const after = this.screenInEpoch(epoch, i + group.length - 1);
         if (!after) continue;
-        // What the job started from: the delivery before it, or the epoch's
-        // first keyframe when the job opens the epoch.
+        // What the group started from: the delivery before it, or the epoch's
+        // first keyframe when the group opens the epoch.
         const beforeScreen = i > 0 ? this.screenInEpoch(epoch, i - 1) : null;
         const before = frameFrom(beforeScreen ?? after);
         const scrolledBy = group.reduce((n, r) => n + r.scrolledRows, 0);
@@ -670,7 +670,7 @@ export class SessionHistory {
         });
 
         out.push({
-          job: first.job,
+          group: first.group,
           at: first.at,
           fromByte: first.fromByte,
           toByte: group[group.length - 1]!.toByte,

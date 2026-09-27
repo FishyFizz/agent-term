@@ -51,7 +51,7 @@ function feeder(history: SessionHistory, cols = 20, rows = 4) {
   return {
     write(
       lines: string[],
-      opts: { text?: string[]; cols?: number; rows?: number; job?: number } = {},
+      opts: { text?: string[]; cols?: number; rows?: number; group?: number } = {},
     ): number {
       seq++;
       const size = { cols: opts.cols ?? cols, rows: opts.rows ?? rows };
@@ -65,7 +65,7 @@ function feeder(history: SessionHistory, cols = 20, rows = 4) {
       }));
       const input: HistoryInput = {
         seq,
-        job: opts.job ?? seq,
+        group: opts.group ?? seq,
         at: at++,
         fromByte,
         toByte: byte,
@@ -197,21 +197,21 @@ test('`screen` is what separates a page from a playback', () => {
   assert.deepEqual(played.records[1]!.screen!.lines[1], 'beta'.padEnd(20, ' '), 'the state at that point');
 });
 
-test('a read at the `text` level returns lines, and at `jobs` level verdicts', () => {
+test('a read at the `text` level returns lines, and at `groups` level verdicts', () => {
   const history = new SessionHistory('s');
   const f = feeder(history);
-  f.write(['one'], { text: ['one'], job: 1 });
-  f.write(['one', 'two'], { text: ['two'], job: 1 });
-  f.write(['one', 'two', 'three'], { text: ['three'], job: 2 });
+  f.write(['one'], { text: ['one'], group: 1 });
+  f.write(['one', 'two'], { text: ['two'], group: 1 });
+  f.write(['one', 'two', 'three'], { text: ['three'], group: 2 });
 
   const asText = history.readBack({ level: 'text' });
   assert.equal(asText.level, 'text');
   assert.deepEqual(asText.lines.map((l) => l.text), ['one', 'two', 'three']);
 
-  const asJobs = history.readBack({ level: 'jobs' });
-  assert.equal(asJobs.level, 'jobs');
-  assert.deepEqual(asJobs.jobs.map((j) => j.job), [1, 2], 'one entry per job, not per delivery');
-  assert.equal(asJobs.jobs[0]!.chunks, 2, 'and it remembers it swallowed two');
+  const asJobs = history.readBack({ level: 'groups' });
+  assert.equal(asJobs.level, 'groups');
+  assert.deepEqual(asJobs.groups.map((j) => j.group), [1, 2], 'one entry per group, not per delivery');
+  assert.equal(asJobs.groups[0]!.chunks, 2, 'and it remembers it swallowed two');
 });
 
 test('paging on `next` walks the whole timeline without repeating or skipping', () => {

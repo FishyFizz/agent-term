@@ -234,7 +234,7 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
         'the session is running, how long it has been idle, and whether what it produced ' +
         'has been read through. **`seq` is the number of the state being shown** — one ' +
         'number for the whole timeline, incremented per raw delivery, and the same one ' +
-        '`history_read` addresses with. A job that swallowed states 3..9 reports 9, and ' +
+        '`history_read` addresses with. A group that swallowed states 3..9 reports 9, and ' +
         '`history_read({from:{seq:3}, to:{seq:9}, screen:true})` plays 3..9 back.',
       inputSchema: { sessionId: z.string() },
     },
@@ -363,30 +363,39 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
   );
 
   server.registerTool(
-    'wait_for_job',
+    'wait_for_group',
     {
-      title: 'Wait for the next job',
+      title: 'Wait for the next group',
       description:
-        'Block until the program finishes one act of output, or until `timeoutMs` passes. ' +
+        'Block until the next **group** is delivered, or until `timeoutMs` passes. A group ' +
+        'is a run of output delivered together; its boundary is drawn by `gapMs` of silence ' +
+        'or by a cap. ' +
         'The third wait, and the one a full-screen TUI needs: `wait_for_idle` is negative ' +
         '(nothing arrived for a while) so it returns whether or not anything happened, and ' +
         '`wait_for_output` needs a pattern to anchor on, which a repainting menu does not ' +
-        'have. A job is positive and content-agnostic. ' +
-        'Returns `reason`: `job` (with `seq`, `job`, `collapsed`, `screen`), `exited`, ' +
+        'have. A group is positive and content-agnostic. ' +
+        '**What this reports is measured, not interpreted.** The boundary is *inferred from ' +
+        'silence, not declared by the program* — nothing here can tell you the program ' +
+        'finished an act, is still working, or will produce more. Whether this group is the ' +
+        'unit you care about is your call. ' +
+        'Returns `reason`: `group` (with `seq`, `group`, `collapsed`, `screen`), `exited`, ' +
         '`disposed` (the session was closed), or `timeout`. ' +
-        '**`collapsed.reason` says how the job ended, and the four do not mean the same ' +
-        'thing**: `gap` is the program going quiet on its own; `bytes` and `chunks` are ' +
-        'caps cutting a job open *while the program is still writing*, so more output is ' +
-        'coming; `flush` is a resize or an exit forcing it closed. ' +
-        '**`collapsed.grid` being `null` does not mean nothing changed** — a resize or an ' +
-        'alt-screen switch is exactly when no delta exists, and those are the largest ' +
-        'changes there are. ' +
+        '**`collapsed.reason` is how the group ended, measured by the detector** — `gap`: no ' +
+        'bytes arrived for `gapMs`; `bytes`: the merged bytes reached `maxBytes`; `chunks`: ' +
+        'the merged deliveries reached `maxChunks`; `flush`: a resize, an exit or a dispose ' +
+        'closed it. It does **not** say whether the program is still writing or whether more ' +
+        'output is coming: at a byte interface that is not provable, and a claim either way ' +
+        'would be a judgement dressed as an observation (GOAL.md L1.2). ' +
+        '**`collapsed.grid` is `null` when no grid delta exists** — which includes a resize ' +
+        'and an alt-screen switch, i.e. some of the largest changes there are, and also a ' +
+        'change that touched only the cursor. Do not read it as "nothing changed"; compare ' +
+        'the screens, or read `seq` and play the span back. ' +
         'When `collapsed.chunks > 1`, states existed that were not shown: read them with ' +
         '`history_read({from:{seq:collapsed.rawFrom}, to:{seq}, screen:true})`. ' +
-        '`sinceSeq` defaults to the state the session was last typed at, so a job that ' +
+        '`sinceSeq` defaults to the state the session was last typed at, so a group that ' +
         'closed *before* your input cannot satisfy the wait; pass the `seq` you last saw ' +
-        'to continue from there. A firehose produces a sequence of jobs — loop with ' +
-        '`sinceSeq`. A session opened without grouping still ends on a job: with no ' +
+        'to continue from there. A firehose produces a sequence of groups — loop with ' +
+        '`sinceSeq`. A session opened without grouping still ends on a group: with no ' +
         'detector there is no boundary to group to, so each update is one, and ' +
         '`collapsed` is null.',
       inputSchema: {
@@ -396,18 +405,18 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
           .int()
           .nonnegative()
           .optional()
-          .describe('Only a job ending after this state counts. Default: the last input.'),
+          .describe('Only a group ending after this state counts. Default: the last input.'),
         timeoutMs: z.number().int().positive().describe('Give up after this long.'),
       },
     },
     async ({ sessionId, sinceSeq, timeoutMs }) => {
       const target = session(sessionId);
       if (!target) return fail('no_session', `no session ${sessionId}`);
-      const result = await target.waitForJob({ sinceSeq, timeoutMs });
+      const result = await target.waitForGroup({ sinceSeq, timeoutMs });
       const { screen, ...rest } = result;
       const said =
-        result.reason === 'job'
-          ? `job ${result.job} at state ${result.seq} (${result.collapsed?.reason ?? 'none'})`
+        result.reason === 'group'
+          ? `group ${result.group} at state ${result.seq} (${result.collapsed?.reason ?? 'none'})`
           : result.reason;
       return {
         content: [{ type: 'text', text: said }],
@@ -426,17 +435,17 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
       title: 'Read a session\'s history',
       description:
         'Address a session\'s timeline and read it back. This is one surface over one ' +
-        'timeline: paging through what happened and replaying the frames a job swallowed ' +
+        'timeline: paging through what happened and replaying the states inside a group ' +
         'are the same operation here, at different settings. `from` and `to` take any ' +
         'address — a token from a previous read (`next`), a sequence number, a timestamp ' +
         'in ms, or a byte offset — and the two ends need not be the same kind. `level` ' +
-        'chooses the projection: `records` (default, the deliveries as recorded), `jobs` ' +
+        'chooses the projection: `records` (default, the deliveries as recorded), `groups` ' +
         '(the units the agent was shown, with verdicts), or `text` (plain lines). ' +
         '`screen: true` materializes the screen at each point, which is what turns a page ' +
         'into a playback — leave it off for cheap paging. Passing `to` reads a span and ' +
         'may cross a resize; paging with only `from` never does, and every result reports ' +
         'the grid size its records were produced at. This is how `collapsed.intermediates` ' +
-        'from `read_screen` is followed up: read the job\'s span with `screen: true` to see ' +
+        'from `read_screen` is followed up: read the group\'s span with `screen: true` to see ' +
         'the states it merged. History stays readable after `close_session` (L0.3). ' +
         'Returns `next` to resume, `truncated` when the limit stopped the read, and ' +
         '`stoppedAtEpochEnd` when the grid changed.',
@@ -462,11 +471,11 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
           ])
           .optional()
           .describe('Where to stop, same address space. Default: read on from `from`.'),
-        limit: z.number().int().positive().optional().describe('Cap on records, jobs or lines. Default 50.'),
+        limit: z.number().int().positive().optional().describe('Cap on records, groups or lines. Default 50.'),
         level: z
-          .enum(['records', 'jobs', 'text'])
+          .enum(['records', 'groups', 'text'])
           .optional()
-          .describe('The projection: deliveries as recorded (default), the jobs shown, or plain text.'),
+          .describe('The projection: deliveries as recorded (default), the groups shown, or plain text.'),
         screen: z
           .boolean()
           .optional()
@@ -487,9 +496,9 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
 
       try {
         // A span is a replay: `deliveries` is what crosses a resize, because
-        // what one job did is not less true for the grid having changed.
+        // what one group did is not less true for the grid having changed.
         if (options.to !== undefined && options.to !== null) {
-          if ((options.level ?? 'records') === 'jobs') {
+          if ((options.level ?? 'records') === 'groups') {
             return fail('bad_input', 'a span (`to`) is read at the `records` or `text` level');
           }
           const records = history.deliveries(options.from, options.to);
@@ -501,7 +510,7 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
                 level: 'records' as const,
                 records: capped.map((r) => ({
                   seq: r.seq,
-                  job: r.job,
+                  group: r.group,
                   at: r.at,
                   fromByte: r.fromByte,
                   toByte: r.toByte,
@@ -534,18 +543,18 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
         const page = history.readBack(options);
         const said = page.level === 'text'
           ? `${page.lines.length} lines`
-          : page.level === 'jobs'
-            ? `${page.jobs.length} jobs`
+          : page.level === 'groups'
+            ? `${page.groups.length} groups`
             : `${page.records.length} deliveries${page.screens ? ' with screens' : ''}`;
 
         const shaped =
           page.level === 'text'
             ? { level: page.level, lines: page.lines.map((l) => l.text) }
-            : page.level === 'jobs'
+            : page.level === 'groups'
               ? {
                   level: page.level,
-                  jobs: page.jobs.map((j) => ({
-                    job: j.job,
+                  groups: page.groups.map((j) => ({
+                    group: j.group,
                     at: j.at,
                     fromByte: j.fromByte,
                     toByte: j.toByte,
@@ -568,7 +577,7 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
                   level: page.level,
                   records: page.records.map((r) => ({
                     seq: r.seq,
-                    job: r.job,
+                    group: r.group,
                     at: r.at,
                     fromByte: r.fromByte,
                     toByte: r.toByte,

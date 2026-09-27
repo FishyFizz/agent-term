@@ -70,8 +70,8 @@ async function replayIntoHistory(history: SessionHistory, trace: ReturnType<type
     history.push({
       seq,
       // Ungrouped here: the replay feeds one chunk at a time, so each is its
-      // own delivery and its own job.
-      job: seq,
+      // own delivery and its own group.
+      group: seq,
       at: seq,
       fromByte: prevTo,
       toByte,
