@@ -472,6 +472,18 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
           .optional()
           .describe('Where to stop, same address space. Default: read on from `from`.'),
         limit: z.number().int().positive().optional().describe('Cap on records, groups or lines. Default 50.'),
+        maxChars: z
+          .number()
+          .int()
+          .positive()
+          .optional()
+          .describe(
+            'Cap in **characters**, cut at a whole delivery. For a driver returning after a gap: ' +
+            'of 300 unseen groups the newest ones are actionable and the oldest are history, so ' +
+            'assembly runs from the newest end and stops at a seq boundary. What did not fit is ' +
+            'counted in `omitted`, with the screen at the cut so the gap is resumable. A single ' +
+            'delivery larger than the budget still comes back in full rather than half a screen.',
+          ),
         level: z
           .enum(['records', 'groups', 'text'])
           .optional()
@@ -482,7 +494,7 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
           .describe('Materialize the screen at each record — playback. Off by default.'),
       },
     },
-    async ({ sessionId, from, to, limit, level, screen }) => {
+    async ({ sessionId, from, to, limit, maxChars, level, screen }) => {
       const history = host.historyFor(sessionId as SessionId);
       if (!history) return fail('no_session', `no session ${sessionId}`);
 
@@ -492,6 +504,7 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
         limit,
         level,
         screen,
+        maxChars,
       };
 
       try {
@@ -598,6 +611,12 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
             next: page.next,
             truncated: page.truncated,
             stoppedAtEpochEnd: page.stoppedAtEpochEnd,
+            omitted: {
+              count: page.omitted.count,
+              reason: page.omitted.reason,
+              fromSeq: page.omitted.fromSeq,
+              ...(page.omitted.screen ? { screen: page.omitted.screen.lines } : {}),
+            },
             ...shaped,
           },
         };
