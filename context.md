@@ -60,7 +60,7 @@ README.md          user-facing status + dev commands
 context.md         THIS FILE
 
 src/               ~5,000 lines of implementation (see §4)
-test/              ~4,800 lines, 242 tests
+test/              ~5,800 lines, 249 tests
 scripts/           entry points: mcp-stdio, mcp-http, smoke, life, corpus-score
 corpus/            23 terminal programmes + 46 recorded traces (regression suite)
 fixtures/life/     "lifelike" interactive subject — a black-box driving exercise
@@ -120,7 +120,7 @@ module exists and the failure it prevents.
 
 | File | LOC | Responsibility |
 |---|---|---|
-| `pty.ts` | 215 | The real pty. `PtySession`: `write`, `resize`, `kill`, `dispose`; events `data`/`exit`. Spawns with `encoding: null` for raw buffers. Owns `bytesRead`. |
+| `pty.ts` | 261 | The real pty. `PtySession`: `write`, `resize`, `kill`, `dispose`; events `data`/`exit`/`input`. Spawns with `encoding: null` for raw buffers. Owns `bytesRead`, `bytesWritten`, `lastInputByte`. |
 | `xterm.ts` | 46 | Constructs `@xterm/headless` with `allowProposedApi: true` (required — `buffer` is proposed API and throws otherwise). |
 | `screen.ts` | 447 | **The screen model.** `ScreenModel` wraps the emulator; owns the cell grid, the op stream (`EditRecord`), and the `TextLog`. `snapshot()` returns a deep copy carrying its own `cols`/`rows`. Owns the two coordinates (glyph index vs column) and is the only place they are reconciled. |
 | `edit-record.ts` | 286 | The op stream: control ops (`csi`/`esc`/`event`) each stamped with byte offset, cursor position, params, alt-screen flag, and `at` (ms). Used for **replay, boundaries, and the raw escape hatch — never as input to the verdict.** |
@@ -130,7 +130,7 @@ module exists and the failure it prevents.
 | `groups.ts` | 356 | **Group boundaries** — where one run of output ends. Inferred from silence, so it is a
    measured boundary, not a declared one; it is also a classification input (§9.3). `DEFAULT_GROUP_POLICY = {gapMs: 50, maxBytes: 64KB, maxChunks: 256}`. `GroupDetector`, `groupByGap`, `FakeClock`. |
 | `history.ts` | 982 | **The timeline.** `SessionHistory` (epochs, records, `read`, `screenAt`, `deliveries`, `groups`, `textSince`, `tokenAt`) and `HistoryStore`. |
-| `session.ts` | 1460 | **The L0.4 session**: pty + screen + classifier as one object. `TerminalSession`: `feed`, `waitForIdle`, `waitForOutput`, `waitForGroup` (all three over one private `wait` skeleton), `state`, `resize`, `onUpdate`/`onDelivery`/`onExit`/`onResize`/`onDispose`, `dispose`. |
+| `session.ts` | 1554 | **The L0.4 session**: pty + screen + classifier as one object. `TerminalSession`: `feed`, `waitForIdle`, `waitForOutput`, `waitForGroup` (all three over one private `wait` skeleton), `state`, `resize`, `onUpdate`/`onDelivery`/`onExit`/`onResize`/`onDispose`, `dispose`. |
 | `registry.ts` | 53 | `SessionRegistry` — live sessions by id. Deliberately **history-agnostic**: dropping a live session must not discard what it did. |
 | `host.ts` | 89 | **The composition root.** `SessionHost.open()` creates a session *and starts recording it* in one call, because two calls would let a caller forget the second and get a working terminal with silently empty history. |
 | `keys.ts` | 480 | Named keys + `composeSteps`. The key table, mode-dependent encoding (`CSI B` vs `SS3 B`), `escapeBytes`, `KeyInputError`. |
@@ -324,9 +324,9 @@ definition is context the agent pays for on every turn.)
 | `open_session` | Start a session. `{command?, args?, cwd?, cols?, rows?}` → `{sessionId, cols, rows, pid}`. Defaults to a platform shell. |
 | `send_input` | Write text as if typed. `{sessionId, text, submit?}` — `submit` appends a newline. Reports `written` (escaped bytes). |
 | `send_sequence` | Write several inputs in **one write**: steps of `{text}`, `{key}` or `{byte}`, in order. Reports `written` and per-step bytes. |
-| `wait_for_idle` | `{sessionId, idleMs, timeoutMs}` → reason: `idle` \| `exited` \| `timeout`. |
-| `wait_for_output` | `{sessionId, pattern, surface?, sinceByte?, timeoutMs}` → reason: `matched` \| `exited` \| `timeout`, plus `match` `{surface, text, atByte, row, buffer}`. **On a non-match, `screen` carries the rows** it ended on. |
-| `wait_for_group` | `{sessionId, sinceSeq?, timeoutMs}` → reason: `group` \| `disposed` \| `exited` \| `timeout`. **On a group it carries the act whole** — `seq`, `group`, `collapsed`, `screen`, and the same `segments`/`text`/`io` a read reports for that state — so a wait is not a prelude to a read. See below. |
+| `wait_for_idle` | `{sessionId, idleMs, timeoutMs}` → reason: `idle` \| `exited` \| `timeout`, plus `seq`. Returns no screen. |
+| `wait_for_output` | `{sessionId, pattern, surface?, sinceByte?, timeoutMs}` → reason: `matched` \| `exited` \| `timeout`, plus `match` `{surface, text, atByte, row, buffer}` and `seq`. **On a non-match, `screen` carries the rows** it ended on, and `seq` names that state. |
+| `wait_for_group` | `{sessionId, sinceSeq?, timeoutMs}` → reason: `group` \| `disposed` \| `exited` \| `timeout`. **On a group it carries the act whole** — `seq`, `group`, `collapsed`, `screen`, and the same `segments`/`text`/`io` a read reports for that state — so a wait is not a prelude to a read. On the other three, `seq` is the state the returned `screen` is at. See below. |
 | `read_screen` | `{sessionId}` → `screen`, `segments`, `text`, `collapsed`, `io`, `state`. `update: null` when nothing has arrived yet. A `wait_for_group` already returned this same report for the state it ended at. |
 | `history_read` | Address the timeline. `{sessionId, from?, to?, limit?, level?, screen?}` → …, plus `ended` (`{at, exitCode, signal}`, `null` while it runs) — see below. |
 | `close_session` | End the session, kill the process tree. **History stays readable afterwards** — closing is not forgetting. |
@@ -725,7 +725,7 @@ without loss is not worth adding.
 ```bash
 npm install
 npm run typecheck     # src, test, scripts, corpus, fixtures — one project
-npm run test          # 242 tests (includes corpus/test/corpus.test.ts)
+npm run test          # 249 tests (includes corpus/test/corpus.test.ts)
 npm run smoke         # end-to-end against a real shell
 npm run corpus        # score the classifier across replay granularities
 
@@ -780,20 +780,54 @@ single verdict over a span the screen shows two kinds on.
 **Verified by real runs in this session:**
 
 - `npm run typecheck` — **clean, exit 0**.
-- `test/mcp.test.ts` — **20 tests, 20 pass**, two of them new in this job.
 - `npm test` — pinned to `--test-concurrency=2` (a real pty per test file; running them all at
-  once corrupts the heap under node-pty). The intended total is **244** (242 verified earlier,
-  plus the 2 this job added), but a full run *reports* fewer and the number moves between runs:
+  once corrupts the heap under node-pty). The intended total is **249** (244 before this job,
+  plus the 5 it added), but a full run *reports* fewer and the number moves between runs:
   `test/wait-group.test.ts` and `test/life.test.ts` hit the `AttachConsole` crash at teardown and
-  their later tests never report (§12). **Confirmed against a clean HEAD with `git stash`: both
-  files fail identically there**, so it is not a change in the working tree. Both figures are
+  their later tests never report (§12). Measured the three ways that make the count
+  reproducible: everything but those two files is **234/234**, `life.test.ts` alone reports
+  3 of its 7, `wait-group.test.ts` alone reports 7 of its 8. Both files carry **no assertion
+  failure** at any count — the crash is the file-level error and nothing else. Both figures are
   from Node v26.8.1 on Windows 11.
+- `test/mcp.test.ts` — **20 tests, 20 pass**; `test/wait-output.test.ts` **9/9**;
+  `test/l14-pending.test.ts` **5/5**; `test/session.test.ts` and `test/wait-group.test.ts`
+  green apart from the crash above.
 - `npm run corpus` — not re-run in this job; the classifier was not touched, so the scores
   below stand as previously verified.
-- Git: branch `main`, HEAD `e8e9ddd` *"Added test workspace for claude code and transcript
-  stripper."* The working tree carries this job's seven files, uncommitted.
+- Git: branch `main`, HEAD `774a9d9` *"fix: a wait that ends on a screen names the state that
+  screen is at."* Two commits this job (the catch-up; the addressable timeout), plus one
+  committing the previous job's wait-carries-the-change work, which had been left in the tree.
+  The working tree carries this job's docs, uncommitted.
 
-**This job — the wait carries the change.** Motivated by a driven run recorded in `feedbacks/1/`:
+**This job — the wait stops losing round trips.** Motivated by a driven run recorded in
+`feedbacks/edca2559`: 18 MCP calls over 165s, of which **43s was three waits sitting out a
+timeout over an act that had already happened**, and two of four `read_screen` calls returned a
+screen the caller had already been handed. Three changes, all in the same vein — the wait was
+aimed right and still cost calls:
+
+- **`waitForGroup` never scanned, though its own comment said it did.** "Subscribe first, then
+  scan, exactly as `waitForOutput` does" — and `waitForOutput` scans the current screen while
+  `waitForGroup` had no scan at all. A group is not a screen, so the session now keeps its last
+  delivered update and reads it once, after subscribing. The unambiguous witness from the run:
+  `waitedMs: 20000` beside `state.idleMs: 21172` — the output had stopped 1.2s *before the wait
+  began*.
+- **The baseline that scan reads from was not trustworthy.** `sinceSeq` defaults to the state
+  input was last typed at, stamped in `send()`; `pty.write` is not a private path, so a caller
+  writing through it left the baseline at 0 and the catch-up offered the group that closed
+  *before* the input. `PtySession.write` now emits `input` and the session stamps there, which
+  is where the pty's own byte watermark is stamped and for the same stated reason — "whoever
+  writes, the surface, a test, a script, it cannot be forgotten". `l14-pending` caught it.
+- **A wait that did not resolve named the wrong state, or none.** `waitForGroup` reported
+  `sinceSeq` — the baseline, a different frame whenever output arrived that no group closed on —
+  and `waitForOutput` carried no `seq` at all, so the screen it handed back was unaddressable
+  and the driver re-read to get one, twice. `seq` on every non-group reason is now the state the
+  returned screen is at, and all three waits carry one.
+
+Also fixed: `get seq()` returned `_seq`, the count of *classified updates*, while every number a
+caller can address is a raw state — grouping makes the two diverge, so the one number reachable
+without holding an update was on a scale nothing else used.
+
+**Previous job — the wait carries the change.** Motivated by a driven run recorded in `feedbacks/1/`:
 17 MCP calls over 117s of wall clock, of which **116s was the driving model's own think time
 between calls — the server contributed none of it**, and 10 of the 17 calls were a
 `wait_for_idle` + `read_screen` pair after every send. `wait_for_group` already returned the

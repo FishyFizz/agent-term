@@ -258,6 +258,29 @@ not per computation. The one thing it buys that a screen cannot give is that `te
 non-empty `segments` is a repaint that completed no line — a cursor moving, a highlight following
 it — which two screens compared by eye report as nothing having happened.
 
+**A wait's baseline is a floor, and what it ends on must be nameable.** Two corrections from
+the next driven run (`feedbacks/edca2559`), both the same shape: the wait was *aimed* right and
+still cost round trips.
+
+The first: a group wait only ever heard the *next* group, so an act that closed inside the
+round trip between the send and the wait was invisible to it — the wait slept its deadline while
+the answer sat on the screen. Two of three group waits in that run did this, 20s and 8s, and the
+first is unambiguous: `waitedMs: 20000` returned beside `state.idleMs: 21172`, so the output had
+stopped 1.2s *before the wait began*. The scan was already the documented intent at the call
+site and simply was not there. `sinceSeq` is a floor: anything after it is the answer whether or
+not it closed while you watched. That is also why the baseline has to be stamped where bytes go
+in rather than in `send()` — a caller writing through `pty.write` is not a private case, and a
+baseline only `send` maintained is one the catch-up reads as "nothing has been typed".
+
+The second: a wait that did not resolve handed back the rows it ended on, but not the number
+those rows are filed under — `sinceSeq` on a group timeout (a different frame whenever output
+arrived that no group closed on) and nothing at all on a pattern wait. A screen with no address
+is one you cannot read back, compare, or `history_read`; the driver in that run read again
+immediately and got a screen **byte-identical** to the one it held. `seq` on every non-group
+reason is now the state the returned screen is at. Neither change adds a verdict: a floor and an
+address are facts about the timeline, and §7's rule — the measurement is reported, the meaning is
+the caller's — is untouched.
+
 ## 8. Out of scope here
 
 - **Retention and pruning** — `L3.4`. The seam is in place: deltas make pruning snapshots inside

@@ -124,6 +124,13 @@ two calls. `segments` is the part a screen cannot show you: `text: []` beside a 
 `segments` is a repaint that completed no line, which is a cursor moving or a highlight
 following it rather than output that stopped.
 
+The baseline it waits from is a floor rather than a starting gun: an act that closed *after*
+it is returned even if it closed before the wait was issued, so the round trip between a send
+and a wait cannot lose the act the send caused. And a wait that does **not** resolve still
+names what it ended on — the `screen` it hands back comes with the `seq` that state is filed
+under, `history_read`'s own address, so a timeout is a state you can go on to address rather
+than one you have to re-read to name.
+
 Not built: the pending prompt, large pastes and a composed
 write-wait-respond call (L1.4) — a group wait carrying the change is not that: nothing waits
 inside a write, and the reaction is still the caller's own call — honest errors beyond the four

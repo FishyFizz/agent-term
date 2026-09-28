@@ -18,6 +18,12 @@ are driving.
    **The executable is spawned as given: there is no PATH or PATHEXT resolution.** If
    an interpreter or a script wrapper is not launching, name the file the platform
    actually executes (`foo.cmd` on Windows, not `foo`) or give an absolute path.
+   **`cols` and `rows` are a token decision, not just a layout one.** Every screen you
+   are shown is `rows` rows of `cols` characters, so they are paid for on *every* read
+   and *every* group wait, for the whole session — a 140×40 grid costs about 12k tokens
+   across nine screens, most of it blank. Pick the smallest grid the program's layout
+   actually needs; a full-screen TUI's frame will wrap and repaint badly below its own
+   minimum, so do not shrink past that to save bytes.
 2. **`send_input`** — writes text as if typed. `submit: true` appends a line ending;
    without it no Enter is pressed.
 3. **`send_sequence`** — writes several inputs in one call: `{text}`, `{key}` or `{byte}`,
@@ -95,6 +101,12 @@ ends a loop rather than starting a second call.
   can arrive.
 - `timeout` — it gave up; `state` says what it saw.
 
+**This wait returns no screen, and on `exited` that costs you a call.** Watching a program
+end is usually `wait_for_idle` → `read_screen`, because the thing you want to see is the last
+frame it drew. `wait_for_group`'s `exited` branch returns the screen with the verdict, so when
+what you are waiting for is the program *finishing*, reach for that one instead — one call
+where the pairing takes two.
+
 Always branch on `reason`. Treating a timeout as idle is how a driver reports success
 at nothing. Choose `idleMs` from what the program does, not from what you hope: a
 program with slow startup looks idle while it is merely quiet.
@@ -103,9 +115,10 @@ program with slow startup looks idle while it is merely quiet.
 regular expression appears. Returns `reason` (`matched`, `exited`, `timeout`) and,
 when it matched, `match` = `{surface, text, atByte, row, buffer}`. **When it does not
 match, `screen` carries the rows as they were when the wait ended** — so a timeout
-already answers "what is it showing?" and you do not read again to find out; it is
-`null` on `matched`, where the match is the answer. Prefer this over
-wait-then-eyeball whenever the program has a readiness signal you can name.
+already answers "what is it showing?", with `seq` naming the state those rows are at,
+and you do not read again to find out; it is `null` on `matched`, where the match is
+the answer. Prefer this over wait-then-eyeball whenever the program has a readiness
+signal you can name.
 
 - Matched against **screen rows the session wrote** and **completed lines it
   emitted** — `surface: 'screen' | 'text' | 'both'`, default both.
@@ -146,6 +159,11 @@ a prelude to a read.** On `exited`/`timeout`/`disposed` no act arrived: those th
 - `sinceSeq` defaults to the state you last typed at, so a group that closed *before* your
   input cannot satisfy the wait. Pass the `seq` you last saw to continue from there — a
   firehose produces a stream of groups, so loop on it.
+- **The baseline is a floor, not a starting gun.** A group that closed *after* it is still
+  the answer when you ask for it — it does not have to close *while* you wait. Between your
+  send and your wait there is a round trip, and a program that repaints in 70ms has finished
+  its act long before your wait arrives; that act is returned anyway. So it is safe to send,
+  do something else, and wait afterwards — the act you caused is not lost to the gap.
 
 For example, a menu that repaints on every keypress: send `down`, then
 `wait_for_group {timeoutMs: 5000}`. That resolves on the repaint, not on a guess about time,
@@ -189,6 +207,12 @@ history with:
   readable; 9 is just where the update landed.
 - `seq` never skips. A group is a projection over a run of states and takes no number of
   its own.
+- **On a wait that did not resolve, `seq` is the state the `screen` beside it is at** — not
+  the baseline. So a screen handed to you by a timeout or an exit is one you can name: read
+  it back, compare it against a later read, or `history_read` from it. Reaching for a read
+  purely to get a screen you can address is a round trip you do not need.
+- **All three waits carry it, including `wait_for_idle`**, which has no screen to show. The
+  moment a wait stopped is still a moment you can `history_read` on from.
 
 **`seq` and `group` are not the same number**, and mixing them silently narrows what you
 see: a group spanning 1..4 has `seq: 4`, so looking its records up by `seq` finds only
