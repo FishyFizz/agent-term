@@ -60,7 +60,7 @@ README.md          user-facing status + dev commands
 context.md         THIS FILE
 
 src/               ~5,000 lines of implementation (see §4)
-test/              ~5,800 lines, 249 tests
+test/              ~5,900 lines, 250 tests
 scripts/           entry points: mcp-stdio, mcp-http, smoke, life, corpus-score
 corpus/            23 terminal programmes + 46 recorded traces (regression suite)
 fixtures/life/     "lifelike" interactive subject — a black-box driving exercise
@@ -327,7 +327,7 @@ definition is context the agent pays for on every turn.)
 | `wait_for_idle` | `{sessionId, idleMs, timeoutMs}` → reason: `idle` \| `exited` \| `timeout`, plus `seq`. Returns no screen. |
 | `wait_for_output` | `{sessionId, pattern, surface?, sinceByte?, timeoutMs}` → reason: `matched` \| `exited` \| `timeout`, plus `match` `{surface, text, atByte, row, buffer}` and `seq`. **On a non-match, `screen` carries the rows** it ended on, and `seq` names that state. |
 | `wait_for_group` | `{sessionId, sinceSeq?, timeoutMs}` → reason: `group` \| `disposed` \| `exited` \| `timeout`. **On a group it carries the act whole** — `seq`, `group`, `collapsed`, `screen`, and the same `segments`/`text`/`io` a read reports for that state — so a wait is not a prelude to a read. On the other three, `seq` is the state the returned `screen` is at. See below. |
-| `read_screen` | `{sessionId}` → `screen`, `segments`, `text`, `collapsed`, `io`, `state`. `update: null` when nothing has arrived yet. A `wait_for_group` already returned this same report for the state it ended at. |
+| `read_screen` | `{sessionId}` → `screen`, `segments`, `text`, `collapsed`, `io`, `state`. `update: null` when nothing has arrived yet. A `wait_for_group` already returned this same report for the state it ended at. **`screen` is trimmed of trailing blanks**, row indices and columns intact (§7). |
 | `history_read` | Address the timeline. `{sessionId, from?, to?, limit?, level?, screen?}` → …, plus `ended` (`{at, exitCode, signal}`, `null` while it runs) — see below. |
 | `close_session` | End the session, kill the process tree. **History stays readable afterwards** — closing is not forgetting. |
 
@@ -454,6 +454,18 @@ of these and occupies no number of its own, so the sequence never skips.
 `history.groups()` reports and what every record in its span shares; `seq` is the single
 state the update ended at. Joining the two is the mistake to avoid: a group spanning 1..4
 has `seq: 4`, so matching its records against `seq` matches only the last one.
+
+**`screen` is trimmed of trailing blanks before it is sent.** The grid is `cols` wide and
+`screen.ts` pads every row to it — deliberately, because a row is genuinely `cols` glyphs in
+column space. What that costs the caller is padding: on the 140x40 grid in
+`feedbacks/edca2559`, 51,480 characters across nine screen-bearing calls, of which 11,701
+carried anything (77% padding, ~9,900 tokens). `presentScreen()` cuts it at the presentation
+boundary and not in the snapshot, because `glyphAtColumn`/`columnOf` index rows by column and
+those lookups need the padded row. Every row stays in the array at its own index — a blanked
+row is `''`, not a shift — and trimming from the end only means every glyph keeps its column,
+so `wait_for_output`'s `row` and the pattern matching in `match.ts` still mean what they did.
+Nothing is lost: a row that was erased or overwritten is in `segments`, a line that was
+written is in `text`.
 
 ### Transports — how to run it
 
@@ -725,7 +737,7 @@ without loss is not worth adding.
 ```bash
 npm install
 npm run typecheck     # src, test, scripts, corpus, fixtures — one project
-npm run test          # 249 tests (includes corpus/test/corpus.test.ts)
+npm run test          # 250 tests (includes corpus/test/corpus.test.ts)
 npm run smoke         # end-to-end against a real shell
 npm run corpus        # score the classifier across replay granularities
 

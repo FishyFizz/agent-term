@@ -182,6 +182,14 @@ snapshot, so `state.bytesPending > 0` means bytes have arrived that it does not 
 returned this same report for the state it ended at**, so reading straight after one is the
 same answer again unless output arrived since.
 
+**Rows come back trimmed of trailing blanks.** The grid is `cols` wide and the pty pads
+every row to it, so an untrimmed 140-column screen is 140 characters a row whether or not
+the program wrote them; you are given the row's content instead. Every row is still in the
+array **at its own index**, and a row the program blanked is `''` rather than a shift, so
+row numbers and columns mean what they always did — a glyph keeps its column, because only
+the end is cut. Nothing is lost by it: a row that was erased or overwritten is in
+`segments`, and a line that was written is in `text`.
+
 - `segments` — what changed, as spans of byte range, each flagged `erased`,
   `overwrote`, `reachedBack`, `scrolledBy`, `altScreen`. The server has already
   decided whether a change is appended text or a redrawn surface; you do not have to.

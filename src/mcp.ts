@@ -84,11 +84,31 @@ function presentText(text: readonly TextLine[] | null) {
   return text === null ? null : text.map((l) => l.text);
 }
 
+/**
+ * One screen, as the agent reads it: trailing blanks trimmed off every row.
+ *
+ * The grid is `cols` wide and every row is padded to it, so what a caller is
+ * handed is `rows` x `cols` characters whether or not the program wrote them.
+ * On the 140x40 grid used in `feedbacks/edca2559` that was 5,600 characters a
+ * read and 12,870 tokens across nine screens, of which 11% carried anything.
+ * Blank cells hold no fact the rest of the report does not: a row that was
+ * erased or overwritten is in `segments`, a line that was completed is in
+ * `text`, and neither needs the padding to be read.
+ *
+ * Trimmed from the end only, so every glyph keeps its column, and every row
+ * stays in the array at its own index -- a row the program blanked is `''`,
+ * not a shift. It is the stripping `wait_for_output` already does before
+ * matching a pattern (`match.ts`), applied to what the caller is shown.
+ */
+function presentScreen(lines: readonly string[]): string[] {
+  return lines.map((line) => line.replace(/ +$/, ''));
+}
+
 /** One update, in the form the agent reads: what the screen is and what changed. */
 function present(update: SessionUpdate) {
   return {
     seq: update.seq,
-    screen: update.screen.lines,
+    screen: presentScreen(update.screen.lines),
     segments: presentSegments(update.segments),
     text: presentText(update.text),
     collapsed: update.collapsed,
@@ -284,7 +304,7 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
           content: [{ type: 'text', text: '(no output yet)' }],
           structuredContent: {
             sessionId,
-            screen: target.screen.snapshot().lines,
+            screen: presentScreen(target.screen.snapshot().lines),
             update: null,
             bytesRead: target.pty.bytesRead,
             state,
@@ -292,7 +312,7 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
         };
       }
       return {
-        content: [{ type: 'text', text: last.screen.lines.join('\n') }],
+        content: [{ type: 'text', text: presentScreen(last.screen.lines).join('\n') }],
         structuredContent: { sessionId, ...present(last), state },
       };
     },
@@ -391,7 +411,11 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
       const { screen, ...rest } = result;
       return {
         content: [{ type: 'text', text: said }],
-        structuredContent: { sessionId, ...rest, screen: screen ? screen.lines : null },
+        structuredContent: {
+          sessionId,
+          ...rest,
+          screen: screen ? presentScreen(screen.lines) : null,
+        },
       };
     },
   );
@@ -466,7 +490,7 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
         structuredContent: {
           sessionId,
           ...rest,
-          screen: screen ? screen.lines : null,
+          screen: screen ? presentScreen(screen.lines) : null,
           // The change itself, in the form a read reports it, so a wait and a
           // read of one state are the same answer twice rather than two
           // descriptions a caller has to reconcile.
@@ -582,7 +606,7 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
                   toByte: r.toByte,
                   text: r.text.map((l) => l.text),
                   epoch: r.epoch,
-                  screen: r.screen.lines,
+                  screen: presentScreen(r.screen.lines),
                   cursor: r.cursor,
                   buffer: r.buffer,
                 })),
@@ -629,7 +653,7 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
                     fromByte: j.fromByte,
                     toByte: j.toByte,
                     text: presentText(j.text),
-                    screen: j.screen.lines,
+                    screen: presentScreen(j.screen.lines),
                     segments: presentSegments(j.segments),
                     chunks: j.chunks,
                   })),
@@ -645,7 +669,7 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
                     text: r.text.map((l) => l.text),
                     cursor: r.cursor,
                     buffer: r.buffer,
-                    ...(r.screen ? { screen: r.screen.lines } : {}),
+                    ...(r.screen ? { screen: presentScreen(r.screen.lines) } : {}),
                   })),
                 };
 
@@ -664,7 +688,7 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
               count: page.omitted.count,
               reason: page.omitted.reason,
               fromSeq: page.omitted.fromSeq,
-              ...(page.omitted.screen ? { screen: page.omitted.screen.lines } : {}),
+              ...(page.omitted.screen ? { screen: presentScreen(page.omitted.screen.lines) } : {}),
             },
             ...shaped,
           },

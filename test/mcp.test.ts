@@ -90,6 +90,41 @@ test('an agent can open a shell, run a command, and read the result', async (t) 
   assert.ok(payload.io.bytesRead > 0, 'and a byte watermark to distinguish quiet from unread');
 });
 
+test('a screen comes back without the padding it was written to', async (t) => {
+  const { client, host, close } = await connected();
+  t.after(() => {
+    host.disposeAll();
+    return close();
+  });
+
+  const opened = await call(client, 'open_session', { cols: 100, rows: 24 });
+  const sessionId = (opened.structuredContent as { sessionId: string }).sessionId;
+  await call(client, 'send_input', { sessionId, text: 'echo TRIMMED-ROWS', submit: true });
+
+  let payload: { screen: string[] } | null = null;
+  for (let i = 0; i < 200 && !payload; i++) {
+    await delay(50);
+    const read = await call(client, 'read_screen', { sessionId });
+    const screen = (read.structuredContent as { screen: string[] }).screen;
+    if (screen.some((row) => row.includes('TRIMMED-ROWS'))) payload = { screen };
+  }
+  assert.ok(payload, 'the output arrived');
+
+  // The grid is 100 columns and the pty pads every row to it, so a read cost
+  // 24 x 100 characters whether or not the program wrote them -- on the
+  // 140x40 grid in `feedbacks/edca2559`, 12,870 tokens across nine screens for
+  // 11% content. Trimming removes no fact: a row that was erased is in
+  // `segments`, a line that was written is in `text`.
+  assert.equal(payload.screen.length, 24, 'every row is still there, at its own index');
+  for (const [y, row] of payload.screen.entries()) {
+    assert.equal(row, row.replace(/ +$/, ''), `row ${y} carries no trailing padding`);
+  }
+  assert.ok(
+    payload.screen.some((row) => row.includes('TRIMMED-ROWS')),
+    'and the content is intact',
+  );
+});
+
 test('a read after a wait is the new state, not the one the send interrupted', async (t) => {
   const { client, host, close } = await connected();
   t.after(() => {

@@ -80,6 +80,13 @@ input, send a batch of input as one write, wait for it to stop changing, wait a 
 wait for a pattern to appear, read the screen, address the timeline, close it. It is a spike —
 the pending prompt and large pastes are not on it yet.
 
+Every screen it returns is handed over **trimmed of the padding the pty writes it to**: the
+grid is `cols` wide and each row is padded to it, so an untrimmed 140-column screen is 140
+characters a row whether or not the program wrote them — 12,870 tokens across the nine
+screen-bearing calls of one driven run, for 11% content. Rows keep their indices and their
+columns (only the end is cut), and nothing is lost: what was erased is in `segments`, what was
+written is in `text`.
+
 `history_read` is one tool over the timeline, not a pair. Paging through what happened and
 replaying the frames a group swallowed are the same operation at different settings: `from` and
 `to` take any address — a token, a seq, a timestamp, a byte offset, and the two ends need not
