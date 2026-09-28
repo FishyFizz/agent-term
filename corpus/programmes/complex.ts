@@ -5,8 +5,7 @@
  * design: journeys that change mode mid-stream, interleaving that defeats
  * spatial reasoning, and pathological volume.
  *
- * These are the regression suite for the failure modes recorded in
- * CLASSIFIER.md §4 and §6.
+ * These are the regression suite for those failure modes.
  */
 import type { Programme } from '../src/types.js';
 import { BURST_PAUSE_MS, FRAME_PAUSE_MS, INTERACTION_PAUSE_MS } from '../src/types.js';
@@ -17,8 +16,8 @@ const CRLF = '\r\n';
  * Success criterion 3: shell output → full-screen TUI → more shell output.
  *
  * The whole journey must be reconstructable in order, with each mode and each
- * screen state. Alt-screen enter/exit are what make this fall out structurally
- * (CLASSIFIER.md §3.4).
+ * screen state. Alt-screen enter/exit are what make this fall out
+ * structurally.
  */
 export const shellTuiShell: Programme = {
   id: 'complex.shell-tui-shell',
@@ -57,7 +56,7 @@ export const shellTuiShell: Programme = {
         from: m['tuiEnter'] ?? 0,
         to: m['tuiExit'] ?? 0,
         kind: 'drawing',
-        why: 'a full-screen TUI on the alt screen; its content is destroyed on exit, so capture while live is mandatory (L0.3)',
+        why: 'a full-screen TUI on the alt screen; its content is destroyed on exit, so capture while live is mandatory (history survives the process exiting)',
       },
       { from: m['shell2'] ?? 0, to: m['end'] ?? 0, kind: 'writing', why: 'shell output resumes after the TUI exits' },
     ];
@@ -115,7 +114,7 @@ export const interleaved: Programme = {
  * Resize while a TUI is running.
  *
  * A resize reflows every row, so it changes the entire screen — but it is a
- * structural event, not a repaint (CLASSIFIER.md §6). Classifying it as a
+ * structural event, not a repaint. Classifying it as a
  * drawing would be a false positive on an enormous scale.
  */
 export const resizeDuringTui: Programme = {
@@ -255,7 +254,7 @@ export const firehose: Programme = {
         from: m['start'] ?? 0,
         to: m['end'] ?? 0,
         kind: 'writing',
-        why: '2000 lines in one burst; segmentation must still yield ordered segments because boundaries are stamped with byte offsets, and the text log must keep lines that fell out of the grid (CLASSIFIER.md §5)',
+        why: '2000 lines in one burst; segmentation must still yield ordered segments because boundaries are stamped with byte offsets, and the text log must keep lines that fell out of the grid',
       },
     ];
   },
@@ -264,8 +263,8 @@ export const firehose: Programme = {
 /**
  * A progress bar that scrolls: the canonical disproof of spatial bands.
  *
- * Deliberately reproduced from CLASSIFIER.md §4 so the trace matches the
- * documented one exactly: draw at row 4, append (scrolls the bar to row 3),
+ * Deliberately reproduced so the trace matches the documented one exactly:
+ * draw at row 4, append (scrolls the bar to row 3),
  * redraw at row 4.
  */
 export const progressBarScroll: Programme = {
@@ -297,7 +296,7 @@ export const progressBarScroll: Programme = {
       //
       // It used to be `drawing`, on the grounds that the old bar and the new
       // one sit at different rows with a log line between them, so only the
-      // op stream links them (CLASSIFIER.md §4). That is true of the *program*
+      // op stream links them. That is true of the *program*
       // and false of the *screen*: the old bar was never replaced, it moved,
       // and a new bar appeared on the blank row the scroll opened. Nothing was
       // erased or overwritten, so the screen reports content arriving.
@@ -348,7 +347,7 @@ export const synchronizedOutput: Programme = {
         from: m['frames'] ?? 0,
         to: m['end'] ?? 0,
         kind: 'drawing',
-        why: 'whole-frame repaints; each synchronized block is atomic and must not be split into interleaved partial segments (CLASSIFIER.md §7.4)',
+        why: 'whole-frame repaints; each synchronized block is atomic and must not be split into interleaved partial segments',
       },
     ];
   },
@@ -358,7 +357,7 @@ export const synchronizedOutput: Programme = {
  * Writes on the alt screen and *then* starts drawing, in one session.
  *
  * The alt-screen prior and the structural evidence disagree here; the positive
- * evidence must win (CLASSIFIER.md §3.4: a prior can always be overridden).
+ * evidence must win (a prior can always be overridden).
  */
 export const altWriteThenDraw: Programme = {
   id: 'complex.alt-write-then-draw',
@@ -388,7 +387,7 @@ export const altWriteThenDraw: Programme = {
         from: m['append'] ?? 0,
         to: m['repaint'] ?? 0,
         kind: 'writing',
-        why: 'sequential append on the alt screen — the §3.4 counterexample; writing despite the alt screen',
+        why: 'sequential append on the alt screen — the counterexample; writing despite the alt screen',
       },
       {
         from: m['repaint'] ?? 0,
@@ -427,7 +426,7 @@ export const uncleanTuiExit: Programme = {
         from: m['start'] ?? 0,
         to: m['lastFrame'] ?? 0,
         kind: 'drawing',
-        why: 'alt-screen TUI output; the final state is only recoverable if it was captured while live (L0.3 capture urgency)',
+        why: 'alt-screen TUI output; the final state is only recoverable if it was captured while live (capture urgency)',
       },
     ];
   },

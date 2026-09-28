@@ -9,7 +9,7 @@
  *    output is fed to the emulator. What a real session sees.
  *
  * Both produce the same `Trace`, differing only in `feed` and in the bytes
- * themselves (ConPTY rewrites some sequences — see OPS.md).
+ * themselves (ConPTY rewrites some sequences).
  */
 import { Writable } from 'node:stream';
 import { Recorder } from './recorder.js';
@@ -238,7 +238,7 @@ export async function runPty(
   const raw = sink.raw;
   // In pty mode the programme ran in a child, so it could not call `mark`.
   // Derive marks the only honest way available: match the labelled text the
-  // programme emitted. See OPS.md "marks in pty mode".
+  // programme emitted.
   const marks: Record<string, number> = {};
   for (const name of knownMarks(programme)) {
     const idx = raw.indexOf(name);

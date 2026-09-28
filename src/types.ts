@@ -12,9 +12,9 @@ export type SessionId = string;
  * How raw pty output is grouped into groups — the units the classifier is
  * asked about. Not units of intent: the boundary is inferred from silence.
  *
- * The numbers are policy and belong to L1/L3; the fact that output *has*
- * boundaries belongs to L0, because where a boundary falls decides what the
- * classifier can see (CLASSIFIER.md §9.3). See `groups.ts` for the reasoning and
+ * The numbers are policy; that output *has* boundaries is not a policy
+ * choice, because where a boundary falls decides what the
+ * classifier can see. See `groups.ts` for the reasoning and
  * for what each field guards against.
  */
 export interface GroupPolicy {
@@ -47,7 +47,7 @@ export interface SessionOptions {
    * Group output into groups before classifying it.
    *
    * On by default, because where a delivery begins decides what the classifier
-   * can see (CLASSIFIER.md §9.3) and leaving it to the pty means letting a
+   * can see and leaving it to the pty means letting a
    * buffer decide. Pass `false` for what a session did before groups existed:
    * one classified update per raw pty delivery, which is the honest setting
    * for a caller that wants every byte boundary and is what the corpus's
@@ -55,8 +55,7 @@ export interface SessionOptions {
    *
    * The numbers are policy; absent means `DEFAULT_GROUP_POLICY`.
    *
-   * Off, the session reports `collapsed: null` rather than an invented `1`
-   * (GOAL.md L1.3).
+   * Off, the session reports `collapsed: null` rather than an invented `1`.
    */
   groupPolicy?: GroupPolicy | false;
 

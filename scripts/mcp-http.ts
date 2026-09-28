@@ -20,14 +20,14 @@
  * carry, and a restart needs no negotiation: the next request simply
  * initialises again. The alternative, stateful mode, would reject a stale
  * session id with a 404 and make the client rediscover that a restart
- * happened. `GOAL.md` L1.3's rule applies to transport state too — an absence
+ * happened. The same rule applies to transport state too — an absence
  * should be an absence, not a number to interpret.
  *
  * Bound to loopback with DNS-rebinding protection. This server runs arbitrary
  * commands for whoever asks; `createMcpExpressApp` defaults to 127.0.0.1 and
  * applies the middleware that stops a web page from reaching it by pointing a
- * hostname at it. Changing that default is a change to the safety posture
- * (GOAL.md L3.5), not a networking tweak.
+ * hostname at it. Changing that default is a change to the safety posture,
+ * not a networking tweak.
  */
 import type { Request, Response } from 'express';
 import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';

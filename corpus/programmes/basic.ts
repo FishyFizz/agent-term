@@ -1,8 +1,8 @@
 /**
  * Basic patterns — one terminal behaviour each, nothing mixed.
  *
- * These are the primitives the classifier's structural tests (CLASSIFIER.md
- * §3.3) are written against. If a basic case is misclassified, no composite
+ * These are the primitives the classifier's structural tests are written
+ * against. If a basic case is misclassified, no composite
  * case can be trusted.
  */
 import type { Programme } from '../src/types.js';
@@ -56,7 +56,7 @@ export const scrollWrite: Programme = {
         from: m['start'] ?? 0,
         to: m['end'] ?? 0,
         kind: 'writing',
-        why: 'every row changes, but only because of scroll; normalized against the scroll event it is N new lines at the bottom (CLASSIFIER.md §3.3)',
+        why: 'every row changes, but only because of scroll; normalized against the scroll event it is N new lines at the bottom',
       },
     ];
   },
@@ -119,7 +119,7 @@ export const crOverwrite: Programme = {
         from: m['overwrite'] ?? 0,
         to: m['end'] ?? 0,
         kind: 'drawing',
-        why: '\\r returns to column 0 and text lands on cells that were already non-blank; no erase op is emitted, so this must be caught by the screen model (CLASSIFIER.md §9 open item 2)',
+        why: '\\r returns to column 0 and text lands on cells that were already non-blank; no erase op is emitted, so this must be caught by the screen model',
       },
     ];
   },
@@ -128,7 +128,7 @@ export const crOverwrite: Programme = {
 /**
  * Writes sequentially *on the alternate screen*.
  *
- * The counterexample that killed "alt screen ⇒ drawing" (CLASSIFIER.md §3.4).
+ * The counterexample that killed "alt screen ⇒ drawing".
  * Must classify as writing despite `buffer.active.type === 'alternate'`.
  */
 export const altScreenWrite: Programme = {
@@ -154,7 +154,7 @@ export const altScreenWrite: Programme = {
         from: m['append'] ?? 0,
         to: m['end'] ?? 0,
         kind: 'writing',
-        why: 'pure sequential append; indistinguishable from `cat`. Alt screen is a prior and a capture-urgency flag, never a verdict (CLASSIFIER.md §3.4)',
+        why: 'pure sequential append; indistinguishable from `cat`. Alt screen is a prior and a capture-urgency flag, never a verdict',
       },
     ];
   },
@@ -183,7 +183,7 @@ export const spinner: Programme = {
         from: m['spin'] ?? 0,
         to: m['end'] ?? 0,
         kind: 'drawing',
-        why: 'same row rewritten 12 times; intermediate frames carry no information, so this collapses to the latest (CLASSIFIER.md §6)',
+        why: 'same row rewritten 12 times; intermediate frames carry no information, so this collapses to the latest',
       },
     ];
   },

@@ -1,9 +1,9 @@
 /**
- * The text log — CLASSIFIER.md §5's first sink.
+ * The text log — the classifier's first sink.
  *
- * These pin the measurements HISTORY.md records, because each one is a claim
+ * These pin the recorded measurements, because each one is a claim
  * the history design rests on: if the log stops being lossless past the
- * scrollback horizon, L0.3's "page back to any earlier part of that build"
+ * scrollback horizon, history's "page back to any earlier part of that build"
  * quietly stops being satisfiable, and nothing else would notice.
  *
  * They drive `ScreenModel.feed` rather than a bare `TextLog`, because capture
@@ -117,7 +117,7 @@ test('the first paint is text; a repaint of the same rows is not', async () => {
 });
 
 test('lines written on the alt screen are captured, and marked', async () => {
-  // L0.1's corollary: the alt screen is not a verdict, and a program can write
+  // A corollary: the alt screen is not a verdict, and a program can write
   // on it exactly as on the normal screen. That content is destroyed when the
   // program leaves the alt screen, so this sink is the only record of it.
   const screen = new ScreenModel(24, 5);

@@ -8,7 +8,7 @@
  * modes give the shell back when they are left.
  *
  * Timings and exact screen bytes are deliberately not asserted. The subject is
- * random by design, and ConPTY rewrites escape bytes (corpus/OPS.md), so the
+ * random by design, and ConPTY rewrites escape bytes, so the
  * assertions are on the emulator's screen and text log.
  */
 import assert from 'node:assert/strict';

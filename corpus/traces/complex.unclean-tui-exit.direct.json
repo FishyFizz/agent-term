@@ -13,7 +13,7 @@
       "from": 0,
       "to": 55,
       "kind": "drawing",
-      "why": "alt-screen TUI output; the final state is only recoverable if it was captured while live (L0.3 capture urgency)"
+      "why": "alt-screen TUI output; the final state is only recoverable if it was captured while live (capture urgency)"
     }
   ],
   "ops": [

@@ -39,7 +39,7 @@ export interface OutputMatch {
   atByte: number;
   /** The screen row, for a screen match. `null` for a text match. */
   row: number | null;
-  /** Which buffer it was on. Context, not a verdict (CLASSIFIER.md §3.4). */
+  /** Which buffer it was on. Context, not a verdict. */
   buffer: 'normal' | 'alternate';
 }
 

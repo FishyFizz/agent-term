@@ -12,7 +12,7 @@ export interface PtySessionEvents {
   /**
    * Chunks of output, in the order the pty produced them.
    *
-   * Bytes, not a string. L1.3 requires byte watermarks so a caller can
+   * Bytes, not a string. Byte watermarks are what let a caller
    * distinguish "quiet" from "not read yet", and a decoded string miscounts
    * bytes for non-ASCII output. The pty is spawned with `encoding: null` to
    * get raw buffers rather than lossily re-encoding a decoded string.
@@ -41,7 +41,7 @@ export interface PtyEventTarget {
 /**
  * One hosted terminal: a real pty with a process tree inside it.
  *
- * This is the L0.5 substrate and nothing more -- it owns the pty, moves bytes
+ * This is the pty substrate and nothing more -- it owns the pty, moves bytes
  * in and out, resizes, and reports exit. It deliberately does not interpret
  * what those bytes mean; classification and screen state sit above it.
  */
@@ -59,7 +59,7 @@ export class PtySession implements PtyEventTarget {
   private _cols: number;
   private _rows: number;
   /**
-   * Total bytes read from the pty. Monotonic, never reset. L1.3's watermark:
+   * Total bytes read from the pty. Monotonic, never reset. The read watermark:
    * comparing an earlier value against this one tells a caller whether
    * anything arrived since — the difference between "quiet" and "not read yet".
    */
@@ -70,7 +70,7 @@ export class PtySession implements PtyEventTarget {
    * The watermark a wait matches *after*: output a program produces in response
    * to input is by construction produced after this point, while whatever was
    * already on the screen is at or before it. Without it, a wait for a prompt
-   * would match the prompt that was already there (GOAL.md L1.3).
+   * would match the prompt that was already there.
    *
    * Stamped here rather than by a caller because this is the one place bytes go
    * in, so whoever writes -- the surface, a test, a script -- it cannot be
@@ -80,7 +80,7 @@ export class PtySession implements PtyEventTarget {
   /**
    * Total bytes written into the pty. Monotonic, never reset.
    *
-   * The counterpart to `bytesRead`, and L1.4's input watermark: comparing how
+   * The counterpart to `bytesRead`, and the input watermark: comparing how
    * much went *in* against how much has come *back out* is the only honest
    * statement available about whether a program has consumed what it was sent.
    * It does not say the program is waiting — only what the byte counts are.
@@ -104,7 +104,7 @@ export class PtySession implements PtyEventTarget {
       cwd: options.cwd ?? process.cwd(),
       env: options.env ?? sanitizeEnv(process.env),
       // Raw bytes. The default 'utf8' decodes to a string, which loses the
-      // byte counts L1.3's watermarks depend on.
+      // byte counts the watermarks depend on.
       encoding: null,
     });
 
@@ -186,7 +186,7 @@ export class PtySession implements PtyEventTarget {
    * much went in and has not been followed by anything coming out — which is
    * the most that a byte interface can honestly say about "is it waiting".
    * Whether the program is blocked on a prompt, busy, or has simply not
-   * flushed is not observable here (see `GOAL.md` L1.4): a shell running a
+   * flushed is not observable here: a shell running a
    * slow builtin and a shell sitting at a prompt look identical from outside.
    */
   get unconsumedBytes(): number | null {

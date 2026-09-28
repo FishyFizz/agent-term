@@ -1,7 +1,7 @@
 /**
  * The screen model: a hosted terminal's cell grid, fed by the pty.
  *
- * L0.2 — the screen is a structured model, never a byte stream. One
+ * The screen is a structured model, never a byte stream. One
  * `@xterm/headless` Terminal per session is the authority for what a human at
  * that terminal would see; everything above this (classification, history,
  * delivery) reads cells from here and never re-parses bytes.
@@ -83,7 +83,7 @@ export interface StyleRun {
  * A faithful capture of what is on the screen.
  *
  * Deliberately a plain, JSON-serializable structure: it crosses the MCP
- * boundary and is stored in history (L0.3), so it must not carry live
+ * boundary and is stored in history, so it must not carry live
  * references into the emulator.
  */
 export interface ScreenSnapshot {
@@ -99,7 +99,7 @@ export interface ScreenSnapshot {
   wide: number[][];
   cols: number;
   rows: number;
-  /** Which buffer is active. Alt screen is context, not a verdict (CLASSIFIER.md §3.4). */
+  /** Which buffer is active. Alt screen is context, not a verdict. */
   buffer: 'normal' | 'alternate';
   /** Cursor position within the viewport, in **columns**. */
   cursorX: number;
@@ -195,7 +195,7 @@ export class ScreenModel {
   /** The op stream: control operations, in order, with byte offsets. */
   readonly ops: EditRecord;
   /**
-   * The text log: completed lines, in order. CLASSIFIER.md §5's second sink,
+   * The text log: completed lines, in order. The second of the two sinks,
    * and the only record of lines that fell out of a bounded scrollback.
    */
   readonly text: TextLog;
@@ -216,7 +216,7 @@ export class ScreenModel {
       // The emulator reports one scroll per row moved, with the new viewport
       // position. Counted here rather than read from `viewportY`, which
       // saturates once the scrollback ring is full and then reports 0 while
-      // content keeps moving (HISTORY.md §3).
+      // content keeps moving.
       const delta = position > this._scrollPos ? position - this._scrollPos : 1;
       this._scrolled += delta;
       this._scrollPos = position;

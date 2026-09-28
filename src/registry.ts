@@ -10,7 +10,7 @@ import type { SessionId, SessionOptions } from './types.js';
  * collide with.
  *
  * It holds `TerminalSession`s rather than bare ptys. A registry of ptys was
- * the L0.5 substrate's own view, but everything above L0.5 needs the
+ * the pty substrate's own view, but everything above it needs the
  * classified session, so every caller was reassembling one by hand -- and
  * `TerminalSession` was not reachable from the registry at all.
  */

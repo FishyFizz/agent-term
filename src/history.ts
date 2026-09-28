@@ -1,5 +1,5 @@
 /**
- * L0.3 — history is a single interleaved timeline.
+ * History is a single interleaved timeline.
  *
  * One append-only timeline per session holds everything: all writing and all
  * screen states, in true chronological order. The agent can page back, seek to
@@ -39,7 +39,7 @@
  *
  * ## What is stored
  *
- * A record keeps the classified segments (CLASSIFIER.md §2 -- the list is what
+ * A record keeps the classified segments (the list is what
  * this timeline wanted), the completed lines of that delivery, and either a
  * grid delta or a keyframe, never both. A keyframe is stored when a delta would
  * not have been smaller, and always at the start of an epoch, so every epoch is
@@ -58,7 +58,7 @@ import type { TerminalSession } from './session.js';
 /**
  * An opaque address into a session's history.
  *
- * Opaque by contract (GOAL.md L3.2): callers pass it back, they do not parse
+ * Opaque by contract: callers pass it back, they do not parse
  * it. Retention may change what a position means underneath without breaking
  * anyone holding a token.
  */
@@ -155,7 +155,7 @@ export interface EpochInfo {
 /**
  * How a session ended, once it has.
  *
- * Recorded because L0.3 requires history to survive the process exiting: the
+ * Recorded because history must survive the process exiting: the
  * last state is not "still changing", and a reader paging to the end deserves
  * to know that rather than infer it from silence.
  */
@@ -173,7 +173,7 @@ export interface HistoryPage {
   from: HistoryToken;
   /** Pass as `from` to read the next window. `null` at the end of the timeline. */
   next: HistoryToken | null;
-  /** More records were available; the limit stopped the read. Reported, never silent (L1.1). */
+  /** More records were available; the limit stopped the read. Reported, never silent. */
   truncated: boolean;
   /** The page stopped because the next record is at a different grid size. */
   stoppedAtEpochEnd: boolean;
@@ -250,7 +250,7 @@ export interface HistoryReadOptions {
      * that keeps this honest: a delivery is the unit the timeline records, so
      * the answer is always "these deliveries in full, those not at all" — never
      * a half screen the caller would read as the state. What did not fit is
-     * *counted and reported*, not silently dropped (L1.1).
+     * *counted and reported*, not silently dropped.
      *
    * A single delivery larger than the whole budget is still returned in full,
    * and reported as such by `overBudget`. The alternative — truncating it —
@@ -762,7 +762,7 @@ export class SessionHistory {
       for (let i = 0; i < epoch.records.length && out.length < limit; i++) {
         const first = epoch.records[i]!;
         // Only from a group's first delivery: a group never straddles an epoch,
-        // because a resize forces one closed (HISTORY.md §2).
+        // because a resize forces one closed.
         if (i > 0 && epoch.records[i - 1]!.group === first.group) continue;
 
         const group: HistoryRecord[] = [];
@@ -815,8 +815,8 @@ export class SessionHistory {
    * A page is `limit` lines **rounded up to a record boundary**, because a
    * record is what a token addresses. Splitting one would leave the caller
    * resuming from `next` either repeating lines it was already given or
-   * skipping the ones it was not -- and skipping is the silent loss L1.1
-   * forbids. So a record longer than `limit` is returned whole.
+   * skipping the ones it was not -- and skipping is the silent loss the
+   * contract forbids. So a record longer than `limit` is returned whole.
    */
   textSince(address: HistoryPoint | undefined, limit = DEFAULT_LIMIT): TextPage {
     const found = address === undefined ? null : this.locate(address);
@@ -960,8 +960,7 @@ export class SessionHistory {
  *
  * Deliberately not part of `SessionRegistry`. Killing a session removes it from
  * the registry; it must not discard what that session did. The store is what
- * keeps a finished session's history readable afterwards, which is the whole of
- * L0.3's "history survives the process exiting".
+ * keeps a finished session's history readable afterwards.
  */
 export class HistoryStore {
   private readonly histories = new Map<SessionId, SessionHistory>();

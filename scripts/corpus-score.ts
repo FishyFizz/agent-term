@@ -9,7 +9,7 @@
  *
  * `drawOps` is the classifier's best case — one delivery per drawing op, so
  * every op is visible when it fires. The fixed-size chunkers are what a real
- * pty delivers. The gap between them is the open item in CLASSIFIER.md §9:
+ * pty delivers. The gap between them is the open item:
  * coalescing is a classification input, not merely a delivery policy.
  */
 import {

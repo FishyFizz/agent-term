@@ -90,7 +90,7 @@ async function replayIntoHistory(history: SessionHistory, trace: ReturnType<type
 test('every corpus trace reconstructs exactly through the timeline', async () => {
   // Both feeds. The property being checked -- a stored keyframe plus deltas
   // reconstructs the screen exactly -- has nothing to do with how the bytes
-  // arrived, and the pty feed is the one that rewrites them (corpus/OPS.md).
+  // arrived, and the pty feed is the one that rewrites them.
   const traces = loadTraces('both');
   assert.ok(traces.length >= 23, `expected the full corpus, got ${traces.length}`);
 
@@ -143,7 +143,7 @@ test('every corpus trace reconstructs exactly through the timeline', async () =>
 test('the corpus colours survive the timeline', async () => {
   // Both feeds. The property being checked -- a stored keyframe plus deltas
   // reconstructs the screen exactly -- has nothing to do with how the bytes
-  // arrived, and the pty feed is the one that rewrites them (corpus/OPS.md).
+  // arrived, and the pty feed is the one that rewrites them.
   const traces = loadTraces('both');
 
   const build = traces.find((t) => t.id === 'cli.build-log');

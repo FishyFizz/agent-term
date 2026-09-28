@@ -596,7 +596,7 @@ test('history survives the session being closed, and is still addressable', asyn
   };
   assert.ok(
     after.lines.some((l) => l.includes('SURVIVES-CLOSE')),
-    'closing is not forgetting (L0.3)',
+    'closing is not forgetting',
   );
 });
 
@@ -744,7 +744,7 @@ test('a group wait reports a repaint that wrote no line, and a read agrees', asy
 });
 
 /**
- * The exit code: recorded by the timeline since L0.3, and until now unreachable
+ * The exit code: recorded by the timeline, and until now unreachable
  * from the surface, so a driver that came back to a dead session could not ask
  * how it died.
  */

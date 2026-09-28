@@ -1,12 +1,12 @@
 /**
  * A hosted terminal session: pty + screen model + classifier, as one object.
  *
- * This is the L0.4 session with the L0.1/L0.2 machinery attached. It owns the
- * pty, feeds every byte to the emulator, and reports each change as ordered
- * segments of `writing` or `drawing`.
+ * This is a durable, independent session: the classifier and screen model
+ * attached. It owns the pty, feeds every byte to the emulator, and reports
+ * each change as ordered segments of `writing` or `drawing`.
  *
  * What it deliberately does not do: deliver, coalesce on a timer, or store
- * history. Those are L1/L3 and sit above this.
+ * history. Those sit above this.
  *
  * Output is classified as it arrives: the pty's `data` is wired straight to
  * `feed` in the constructor. Otherwise a caller could build a session, never
@@ -82,7 +82,7 @@ export interface SessionUpdate {
    * The screen grid alone is not a record of what was written: it holds the
    * viewport, so lines that scrolled out are in no snapshot. These are those
    * lines, and they are the only record of alt-screen content, which is
-   * destroyed on exit (CLASSIFIER.md §5).
+   * destroyed on exit.
    */
   text: TextLine[];
   /**
@@ -101,7 +101,7 @@ export interface SessionUpdate {
    * What was merged into this update, or `null` when nothing was.
    *
    * `null` is the honest value when the session is not grouping output into
-   * groups, or when this update came from a direct `feed` — GOAL.md L1.3: an
+   * groups, or when this update came from a direct `feed`: an
    * unknown is `null`, never a fabricated `1`.
    *
    * `chunks > 1` is the signal a consumer acts on: the screen it is looking at
@@ -183,14 +183,14 @@ export interface Delivery {
 }
 
 /**
- * L1.3 — the facts that distinguish "quiet" from "not read yet".
+ * The facts that distinguish "quiet" from "not read yet".
  *
  * `bytesRead` is a watermark: monotonic, never reset, so comparing an earlier
  * value against the current one says whether anything arrived since.
  *
  * `bytesPending` is bytes the pty handed us that the parser has not finished
  * with. `null` when the number is not knowable, and 0 only when it is genuinely
- * zero — GOAL.md L1.3: unknown values are `null`, never `0`, because conflating
+ * zero: unknown values are `null`, never `0`, because conflating
  * the two is a whole class of interaction bug.
  *
  * It is `null` rather than `0` when the parser has also been handed bytes that
@@ -214,10 +214,10 @@ export interface SessionIo {
    * busy computing, or has not flushed is **not observable here** — measured
    * on this machine, a shell running a slow builtin and a shell sitting at a
    * prompt are indistinguishable from outside (identical process state, no
-   * child process either way). See `GOAL.md` L1.4.
+   * child process either way).
    *
    * `null` before any input because "nothing written" and "we cannot say" are
-   * different facts (L1.3).
+   * different facts.
    */
   inputUnconsumed: number | null;
 }
@@ -265,7 +265,7 @@ export interface SessionState {
    * Bytes written into the pty that no output has followed. `null` before any
    * input; `0` once output has come back.
    *
-   * The L1.4 input watermark. It is the most a byte interface can say about
+   * The input watermark. It is the most a byte interface can say about
    * "is it still waiting" and it says nothing about *why*: a shell running a
    * slow builtin and a shell at a prompt cannot be told apart from outside,
    * which is why there is no `atPrompt` here.
@@ -310,7 +310,7 @@ export interface WaitResult {
    * makes the moment addressable: `history_read({from:{seq}})` reads on from
    * where the wait stopped. It is always present -- the timeout branch names it
    * too, rather than letting the shared loop's bare fallback omit it and leave
-   * a declared field silently missing (GOAL.md L1.3).
+   * a declared field silently missing.
    */
   seq: number;
   /** What was observed when the wait ended. */
@@ -363,7 +363,7 @@ export interface GroupWaitResult {
    * Whether this group contains output produced **after** the last input was
    * sent. `null` before any input.
    *
-   * This is the causal half of L1.4, and it is a fact rather than a verdict:
+   * This is the causal half of the input watermark -- a fact, not a verdict:
    * the group's byte span either starts after the input watermark or it does
    * not. It does **not** say the program was waiting, or that it finished, or
    * that this output is a *response* — only where the bytes sit relative to
@@ -438,7 +438,7 @@ export interface WaitForOutputOptions {
    *
    * Compiled by the caller because a pattern that will not compile is the
    * caller's mistake, not a fact about the session, and the surface turns it
-   * into a typed error before a wait exists (L1.5).
+   * into a typed error before a wait exists.
    */
   pattern: RegExp;
   /** Which sinks to match: screen rows, completed lines, or both. Default `both`. */
@@ -450,7 +450,7 @@ export interface WaitForOutputOptions {
    * A wait for output is nearly always a wait for a *reaction*, and a reaction
    * is by construction produced after the input that caused it; without a
    * baseline the prompt already on screen would match the instant the wait
-   * began, which is the bug this parameter exists to prevent (L1.3).
+   * began, which is the bug this parameter exists to prevent.
    */
   sinceByte?: number;
   /** Stop waiting after this long, in milliseconds. */
@@ -464,7 +464,7 @@ export interface WaitForOutputOptions {
  * anything, which is why there is no `idle` here: a match is visible the moment
  * it is on screen. It is still not a verdict -- the tty echoes what is typed,
  * so an echo is a match on new output like any other, and whether what matched
- * was the program answering is the caller's call (L1.2).
+ * was the program answering is the caller's call.
  */
 export type OutputWaitReason = 'matched' | 'exited' | 'timeout';
 
@@ -494,7 +494,7 @@ export interface OutputWaitResult {
    *
    * `null` rather than absent by design: a field that is sometimes missing is
    * silently read as "nothing", which is the `bytesPending: null` vs `0` class
-   * of bug (GOAL.md L1.3).
+   * of bug.
    */
   screen: ScreenSnapshot | null;
   /** What was observed when the wait ended. */
@@ -563,7 +563,7 @@ export class TerminalSession {
    *
    * A waiter is woken rather than polling: the alternatives are a timer on a
    * fixed step, which is a sleep by another name, and a caller inventing its
-   * own, which is what L1.2 exists to stop.
+   * own, which is what waiting on an observation exists to stop.
    */
   private readonly waiters: (() => void)[] = [];
   private _seq = 0;
@@ -601,13 +601,12 @@ export class TerminalSession {
     this.rowWrittenAt = new Array<number>(this.screen.rows).fill(0);
 
     // Grouping is the default: where a delivery begins decides what the
-    // classifier can see (CLASSIFIER.md §9.3), and the alternative is letting
+    // classifier can see, and the alternative is letting
     // the pty's buffer decide it. `false` is the opt-out.
     const policy = options.groupPolicy === false ? undefined : (options.groupPolicy ?? DEFAULT_GROUP_POLICY);
     if (policy) {
       // Grouped at the boundary the program drew rather than the one the pty's
-      // buffer happened to fill: `groups.ts` has the reasoning, and
-      // CLASSIFIER.md §9.3 has the measurement that makes it necessary.
+      // buffer happened to fill: `groups.ts` has the reasoning.
       this.groups = new GroupDetector(
         policy,
         (group) => {
@@ -644,7 +643,7 @@ export class TerminalSession {
     // in the queue would have to guess whether to wait.
     this.pty.on('exit', (info) => {
       // Flushed first, for the same reason as a resize and more urgently:
-      // alt-screen content is destroyed when the program leaves it (L0.1), so
+      // alt-screen content is destroyed when the program leaves it, so
       // the last live frame has to be classified before the exit is reported.
       this.groups?.flush();
       this.wake();
@@ -756,7 +755,7 @@ export class TerminalSession {
    * `group` may carry the group this chunk belongs to, in which case the update
    * reports what was merged. A caller feeding bytes directly gets
    * `collapsed: null`, which is correct: nothing was merged, and claiming `1`
-   * would say otherwise (GOAL.md L1.3).
+   * would say otherwise.
    */
   feed(chunk: Buffer, group?: Group): Promise<SessionUpdate> {
     this.pendings++;
@@ -800,7 +799,7 @@ export class TerminalSession {
         // the group is a projection over it. The hint is the emulator's own
         // scroll count, not the viewport difference -- `viewportY` saturates
         // once the scrollback ring is full and reports 0 while content keeps
-        // moving (HISTORY.md 3).
+        // moving.
         const seq = ++this._rawSeq;
         const toByte = this.screen.ops.bytesFed;
         // Stored as the delta rather than only as the screen, and read here as
@@ -862,7 +861,7 @@ export class TerminalSession {
         // Not zero by construction. Everything this update covers is already
         // parsed, so what is left is what arrived *behind* it: bytes that came
         // in while it was being written, still held by the group detector or
-        // queued behind this feed. That is the number L1.3 is asking for -- a
+        // queued behind this feed. That is the honest number here -- a
         // hardcoded 0 would make "nothing pending" unfalsifiable.
         io: {
           bytesRead: this.pty.bytesRead,
@@ -948,7 +947,7 @@ export class TerminalSession {
    * It resolves on observation rather than on a fixed step: a byte arriving, a
    * feed finishing and the process exiting all wake it, and otherwise it
    * sleeps exactly until the moment the answer could change. A caller never
-   * invents the interval, which is the whole of L1.2 -- guessing how long to
+   * invents the interval, which is the whole point -- guessing how long to
    * wait is how a driver silently succeeds at nothing.
    *
    * `idle` is not "finished". It says the quiet period was observed; whether
@@ -1005,8 +1004,8 @@ export class TerminalSession {
    *    therefore not a completed line (`text-log.ts`).
    *
    * Text has no catch-up, and the limit is worth naming: the session keeps no
-   * line history (`TextLog` drains as it goes) and retention is L3.4's
-   * problem, so a line is matched from the moment the wait begins. Rows do
+   * line history (`TextLog` drains as it goes) and retention is a deployment
+   * concern, so a line is matched from the moment the wait begins. Rows do
    * catch up, from the per-row watermark. Reading text that already went past
    * is history's group, not a wait's.
    *
@@ -1014,7 +1013,7 @@ export class TerminalSession {
    * typed, so an echo is new output and the row carrying it is new by every
    * definition above; a pattern that matches the echo is reported as a match,
    * with the text it matched. Whether that was the program answering or the
-   * terminal repeating is the caller's judgement, as everywhere else (L1.2).
+   * terminal repeating is the caller's judgement, as everywhere else.
    */
   async waitForOutput(options: WaitForOutputOptions): Promise<OutputWaitResult> {
     const surface: MatchSurface = options.surface ?? 'both';
@@ -1342,7 +1341,7 @@ export class TerminalSession {
    *
    * `null` before any input, because "no input has been sent" and "this output
    * did not follow it" are different facts and `null`/`0` conflation is the
-   * bug L1.3 exists to prevent.
+   * bug this exists to prevent.
    *
    * Compares byte watermarks, not time: the input watermark is stamped on the
    * way in and every byte read carries its own offset, so this is arithmetic on
@@ -1535,7 +1534,7 @@ export class TerminalSession {
    *
    * A pending group is flushed first, because a group may not straddle a boundary
    * that freezes history: everything before a resize belongs to the old epoch
-   * at the old size (HISTORY.md §2). The group is closed but its bytes are still
+   * at the old size. The group is closed but its bytes are still
    * fed through the queue, so they may land after the resize applies -- which
    * is the case `history.ts` already handles by deriving epochs from the size
    * a record reports rather than trusting the resize event.

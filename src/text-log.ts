@@ -1,7 +1,7 @@
 /**
  * The text log: every line the screen gained, in order.
  *
- * CLASSIFIER.md §5 — the emulator feeds two sinks, and this is the first of
+ * The emulator feeds two sinks, and this is the first of
  * them. The screen grid is a *state*; a program emitting 10k lines overflows
  * any bounded scrollback, so the grid cannot be the record of what was written.
  * Success criterion 1 ("page back to any earlier part of that build") is
@@ -40,8 +40,8 @@
  * pending: a caller that never judged gets text rather than silence, because
  * losing a line is the failure this log exists to prevent.
  *
- * Byte stamps are delivery-coarse for the same reason `Op.byteOffset` is
- * (CLASSIFIER.md §9.3): `noteBytes` is called once per feed, before the write,
+ * Byte stamps are delivery-coarse for the same reason `Op.byteOffset` is:
+ * `noteBytes` is called once per feed, before the write,
  * so every line completed by one delivery shares that delivery's offset. That
  * is an upper bound on resolution, not a precision the sink invents.
  */

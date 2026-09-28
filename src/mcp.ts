@@ -11,8 +11,8 @@
  * The shape of a result matters more than the number of tools. A read returns
  * what a human at the screen would say: the screen, what changed on it, and
  * how much output the change stands for. It does not return escape sequences
- * and it does not ask the agent to guess a mode (L0.1). Where a value is not
- * knowable it is `null`, never 0 (L1.3).
+ * and it does not ask the agent to guess a mode. Where a value is not
+ * knowable it is `null`, never 0.
  *
  * A write reports `written`: the bytes as they were handed to the terminal, in
  * a form that can be compared with what was meant. A transport between an agent
@@ -25,12 +25,12 @@
  * how long it has been idle, whether what it produced has been read through.
  * It does not report "settled". Whether a live program will produce more
  * output is not provable at a byte interface, and a value claiming otherwise
- * would be a judgement dressed as an observation (GOAL.md L1.2). The waits are
+ * would be a judgement dressed as an observation. The waits are
  * the same: each says which of its own reasons stopped it — `idle`, `exited` or
  * `timeout`; `matched`, `exited` or `timeout` — and leaves what that means to
  * the caller, who knows what it is driving.
  *
- * Errors are typed and actionable rather than opaque (L1.5): a caller gets a
+ * Errors are typed and actionable rather than opaque: a caller gets a
  * code it can branch on, not a stack trace.
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -262,7 +262,7 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
           })),
           // `null` when no step consulted it -- a text-only batch made no
           // decision that depended on the mode, and `false` would answer a
-          // question that was never asked (L1.3).
+          // question that was never asked.
           modes:
             composed.applicationCursorKeys === null
               ? null
@@ -462,7 +462,7 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
         'the merged deliveries reached `maxChunks`; `flush`: a resize, an exit or a dispose ' +
         'closed it. It does **not** say whether the program is still writing or whether more ' +
         'output is coming: at a byte interface that is not provable, and a claim either way ' +
-        'would be a judgement dressed as an observation (GOAL.md L1.2). ' +
+        'would be a judgement dressed as an observation. ' +
         '**A group is bytes, and bytes are not always a visible change.** A group of a few ' +
         'hundred bytes can leave every row identical — a cursor moving, a highlight redrawn ' +
         'on itself, a menu painted over itself. `text` and `segments` are what tell those ' +
@@ -529,7 +529,7 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
         'may cross a resize; paging with only `from` never does, and every result reports ' +
         'the grid size its records were produced at. This is how `collapsed.intermediates` ' +
         'from `read_screen` is followed up: read the group\'s span with `screen: true` to see ' +
-        'the states it merged. History stays readable after `close_session` (L0.3). ' +
+        'the states it merged. History stays readable after `close_session`. ' +
         'Returns `next` to resume, `truncated` when the limit stopped the read, and ' +
         '`stoppedAtEpochEnd` when the grid changed. **`ended` is how the process finished** ' +
         '— `{at, exitCode, signal}`, or `null` while it is still running. `exitCode` is ' +
@@ -715,8 +715,8 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
     {
       title: 'Close a session',
       description:
-        'End a session and kill its process tree. Its history stays readable afterwards ' +
-        '(L0.3), so closing is not forgetting.',
+        'End a session and kill its process tree. Its history stays readable afterwards, ' +
+        'so closing is not forgetting.',
       inputSchema: { sessionId: z.string() },
     },
     async ({ sessionId }) => {

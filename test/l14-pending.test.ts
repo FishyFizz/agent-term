@@ -49,7 +49,7 @@ test('before any input the input watermark is null, not zero', async (t) => {
   const { session } = harness();
   t.after(() => session.dispose());
 
-  // L1.3: "nothing written" and "cannot say" are different facts. A 0 here
+  // "nothing written" and "cannot say" are different facts. A 0 here
   // would be read as "it consumed everything", which is a claim.
   assert.equal(session.state().inputUnconsumed, null);
 });

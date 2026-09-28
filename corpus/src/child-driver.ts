@@ -35,7 +35,7 @@ const io: ProgrammeIo = {
   out: process.stdout,
   mark: () => {
     // In a child process there is nowhere to send marks; `runPty` recovers
-    // them from the emitted text instead. See OPS.md, "marks in pty mode".
+    // them from the emitted text instead.
   },
   offset: () => offset,
   wait: (ms) => new Promise((r) => setTimeout(r, ms)),

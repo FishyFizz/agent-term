@@ -14,7 +14,7 @@ const CRLF = '\r\n';
  * The npm/cargo shape: log lines appended above, a progress bar repainted at
  * the bottom.
  *
- * This is the trace that killed spatial band decomposition (CLASSIFIER.md §4).
+ * This is the trace that killed spatial band decomposition.
  * Draw, append, redraw: the old bar and the new bar end up at *different rows*
  * with a log line between them, so no spatial clustering can link them. The
  * verdict must come from the op stream, in time order.
@@ -57,8 +57,8 @@ export const progressBar: Programme = {
       // No expectation for the cycles after that, for the same reason as
       // `complex.progress-bar-scroll` and `complex.interleaved`. Each cycle is
       // append-then-repaint: the log line arrives and the bar is erased and
-      // redrawn, as separate segments in time rather than bands in space
-      // (CLASSIFIER.md 4). That is two kinds over one span, which a single
+      // redrawn, as separate segments in time rather than bands in space.
+      // That is two kinds over one span, which a single
       // verdict cannot express -- asserting `drawing` here meant asserting a
       // claim about the program that the screen does not make on its own.
       //
@@ -239,7 +239,8 @@ export const confirmPrompt: Programme = {
     await io.wait(INTERACTION_PAUSE_MS);
     io.mark('prompt');
     io.out.write('Continue? [y/N] ');
-    // No newline: the program is blocked. This is L1.4's pending prompt.
+    // No newline: the program is blocked. This is the input watermark's
+    // pending prompt.
     io.onInput((data) => {
       if (data.includes('y')) {
         io.out.write(`y${CRLF}deleted 12 files${CRLF}`);
@@ -256,7 +257,7 @@ export const confirmPrompt: Programme = {
         from: m['prompt'] ?? 0,
         to: m['end'] ?? 0,
         kind: 'writing',
-        why: 'the prompt is written without a newline and the program then blocks; nothing is erased or redrawn, so it is still append-only text — the interesting property is that output *stops*, which is L1.4, not a classification question',
+        why: 'the prompt is written without a newline and the program then blocks; nothing is erased or redrawn, so it is still append-only text — the interesting property is that output *stops*, which is the input watermark, not a classification question',
       },
     ];
   },

@@ -1,7 +1,7 @@
 /**
  * End-to-end check of the pty substrate against a real shell.
  *
- * Deliberately not a unit test: L0.5 claims the terminal is honest, and the
+ * Deliberately not a unit test: the pty substrate must be honest, and the
  * only way to check that is to run a real program in it. Asserts against
  * observable behaviour, never against a sleep.
  *
@@ -44,7 +44,7 @@ async function main(): Promise<void> {
   const args = isWindows ? ['-NoLogo', '-NoProfile'] : [];
   const marker = 'AGENTTERM-SMOKE-OK';
 
-  // L0.5 is the pty substrate on its own: no emulator, no classifier. The
+  // This is the pty substrate on its own: no emulator, no classifier. The
   // registry hands back a full TerminalSession, which is the layer above what
   // this script is checking, so spawn the pty directly and leave the registry
   // to the accounting check at the end.
@@ -63,7 +63,7 @@ async function main(): Promise<void> {
   );
   check('shell produced a prompt', promptSeen);
 
-  // L1.3: the watermark is a byte count, and it must be a real byte count --
+  // The watermark is a byte count, and it must be a real byte count --
   // a decoded string would undercount non-ASCII output.
   const watermarkAfterPrompt = session.bytesRead;
   check('watermark counts bytes, not characters',
@@ -71,7 +71,7 @@ async function main(): Promise<void> {
     `bytesRead=${watermarkAfterPrompt} concat=${Buffer.concat(chunks).length}`);
   check('data events deliver Buffers', chunks.length > 0 && Buffer.isBuffer(chunks[0]));
 
-  // L0.5: a real program runs and its output comes back.
+  // A real program runs and its output comes back.
   chunks.length = 0;
   session.write(`echo ${marker}\r\n`);
   const echoed = await waitFor(() => seen().includes(marker), {
@@ -157,7 +157,7 @@ async function main(): Promise<void> {
   check('registry remove is idempotent', registry.remove(managed.id) === false);
   check('registry empty after removal', registry.size() === 0);
 
-  // Two sessions at once must not interfere: L0.4 independence.
+  // Two sessions at once must not interfere: sessions are independent.
   const a = registry.create({ command, args });
   const b = registry.create({ command, args });
   const aChunks: Buffer[] = [];

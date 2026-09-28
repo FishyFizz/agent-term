@@ -5,13 +5,13 @@
  * sequences, not off what the program appears to have intended: a human at
  * the terminal sees a screen, and the agent is meant to see the same thing.
  * The op stream is how output is *replayed* and how a caller reads raw bytes
- * when the screen model is under suspicion (L2); it is not an input to the
+ * when the screen model is under suspicion; it is not an input to the
  * verdict, because an op's meaning depends on what the program meant by it
- * and that is semantics, which GOAL.md puts out of scope.
+ * and that is semantics, which is out of scope.
  *
  * The tests are **structural and threshold-free**: did content arrive, was it
  * replaced in place, did it move, did the surface change. Never "more than
- * N% changed". A tuned classifier needs tuning per program, and GOAL.md's
+ * N% changed". A tuned classifier needs tuning per program, and the project's
  * success criteria are all "without special-casing any program".
  *
  * There is deliberately no abstention. Nothing here declines to answer, and
@@ -19,14 +19,14 @@
  * the screen says it did not happen. What replaces doubt is *volume* — an
  * update that collapsed many deliveries and changed little is reported as
  * having collapsed many deliveries, and a caller that cares can read the
- * intermediates. See CLASSIFIER.md §3.5.
+ * intermediates.
  */
 import type { ScreenModel } from './screen.js';
 import type { ScreenSnapshot } from './screen.js';
 
 export type Verdict = 'writing' | 'drawing';
 
-/** Why a verdict was reached. Attached to every segment (L0.1: a bug you can't see is a bug you can't fix). */
+/** Why a verdict was reached. Attached to every segment (a bug you can't see is a bug you can't fix). */
 export interface Evidence {
   /** The segment erased cells outside the scrolled region. */
   erased: boolean;
@@ -36,7 +36,7 @@ export interface Evidence {
   reachedBack: boolean;
   /** Rows scrolled during the segment, already factored out. */
   scrolledBy: number;
-  /** The segment ran on the alternate buffer. A prior, not a verdict (§3.4). */
+  /** The segment ran on the alternate buffer. A prior, not a verdict. */
   altScreen: boolean;
 }
 
@@ -120,7 +120,7 @@ export function classify(params: {
  *
  * Different kinds are never merged -- that boundary is the whole point. A
  * sequence of deliveries that alternates stays a sequence, because "this
- * happened, then that" is the comprehensible answer (CLASSIFIER.md §2).
+ * happened, then that" is the comprehensible answer.
  *
  * Exported because replaying a corpus trace has the same need: a trace is
  * delivered in chunks, so classifying produces one batch per chunk and the
@@ -153,7 +153,7 @@ export function coalesce(segments: readonly Segment[]): Segment[] {
 /**
  * The verdict the screen supports.
  *
- * Every update gets exactly one: L0.1 says the server reports every change,
+ * Every update gets exactly one: the server reports every change,
  * so an update that changed nothing visible still produces a segment rather
  * than nothing.
  *
@@ -164,7 +164,7 @@ export function coalesce(segments: readonly Segment[]): Segment[] {
  * The decision is the same question `reachedBack` asks the other way round,
  * so a drawing always carries positive evidence: something was erased,
  * overwritten, or reached. Nothing here abstains, reports doubt, or declines
- * -- see the file header and CLASSIFIER.md §3.5.
+ * -- see the file header.
  */
 function inferSegment(
   before: Frame,
@@ -176,7 +176,7 @@ function inferSegment(
 ): Segment {
   const { erased, overwrote, reachedBack } = facts;
 
-  // A bare carriage-return overwrite emits no op at all (CLASSIFIER.md §9.2),
+  // A bare carriage-return overwrite emits no op at all,
   // and a spinner is one followed by text, repeated. Judging those by "did
   // anything change anywhere" classifies a repaint as writing whenever a
   // repainted row happens to differ, which is most of them.

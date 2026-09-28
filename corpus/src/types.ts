@@ -7,7 +7,7 @@
  *
  * Everything here is produced by feeding the bytes through `ScreenModel`,
  * which only ever reads the emulator. No field is derived by scanning the raw
- * bytes; that would be a second parser and CLASSIFIER.md §1 forbids it.
+ * bytes; that would be a second parser, which is forbidden.
  *
  * The `Op` shape is the repo's one op vocabulary (src/edit-record.ts), not a
  * corpus-local copy: a trace is replayed through the same classifier that
@@ -183,7 +183,7 @@ export interface Programme {
  * Pauses a programme puts between its own writes.
  *
  * These are not decoration. The classifier's verdict depends on where
- * deliveries begin (CLASSIFIER.md §9.3), so a pause is what makes two acts
+ * deliveries begin, so a pause is what makes two acts
  * two acts. Recorded with the bytes, a pause is the only signal a group
  * boundary can be recovered from — and a corpus whose pauses are all 15ms
  * long, or all absent, cannot distinguish a burst from a sequence at all.

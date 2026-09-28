@@ -1,7 +1,7 @@
 /**
- * Classification (L0.1, CLASSIFIER.md §3.3).
+ * Classification.
  *
- * Each test is one of the cases from GOAL.md's success criteria, driven
+ * Each test is one of the cases from the success criteria, driven
  * through the real emulator: a build log, a TUI, a pager, a REPL, a progress
  * bar. The claim under test is that the server -- not the agent -- decides,
  * and that it decides from structure rather than from a tuned threshold.
@@ -46,7 +46,7 @@ test('a scrolling build log is writing', async () => {
 });
 
 test('taking over the screen is a surface change, not a repaint', async () => {
-  // CLASSIFIER.md §3.4: the alt screen is a prior and a capture-urgency flag,
+  // The alt screen is a prior and a capture-urgency flag,
   // never a verdict. Entering it replaces the whole visible grid, which reads
   // as "erased" -- but nothing was erased, another surface came in front.
   //
@@ -97,7 +97,7 @@ test('appending more lines than the grid can retain is still writing', async () 
 });
 
 test('a bare CR overwrite is drawing even with no control op', async () => {
-  // CLASSIFIER.md §9 open item: `\r` + overwrite emits no CSI. The screen
+  // Open item: `\r` + overwrite emits no CSI. The screen
   // model must catch it, or a progress line that never redraws with CUP is
   // silently misclassified as writing.
   //
@@ -137,7 +137,7 @@ test('the npm trace: draw, append, redraw yields ordered segments', async () => 
 
 test('a mixture appears across deliveries, in order, not inside one', async () => {
   // One segment per delivery: a segment cannot claim a finer range than the
-  // thing it was measured over. So "may be both" (L0.1) is a fact about a
+  // thing it was measured over. So "may be both" is a fact about a
   // *sequence* of deliveries, not about one of them.
   //
   // The old form asserted both kinds inside a single update, which only held

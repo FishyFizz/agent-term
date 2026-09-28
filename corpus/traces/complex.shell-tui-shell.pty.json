@@ -19,7 +19,7 @@
       "from": 0,
       "to": 0,
       "kind": "drawing",
-      "why": "a full-screen TUI on the alt screen; its content is destroyed on exit, so capture while live is mandatory (L0.3)"
+      "why": "a full-screen TUI on the alt screen; its content is destroyed on exit, so capture while live is mandatory (history survives the process exiting)"
     },
     {
       "from": 0,

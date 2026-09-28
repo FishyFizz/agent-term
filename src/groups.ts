@@ -1,8 +1,8 @@
 /**
  * Group boundaries — where one run of output ends and the next begins.
  *
- * CLASSIFIER.md §9.3 measured that the verdict depends on where deliveries
- * begin: the same corpus scores 20/23 replayed per drawing op and 17/23
+ * The verdict depends on where deliveries begin: the same corpus scores 20/23
+ * replayed per drawing op and 17/23
  * replayed in 64-byte chunks. A chunk boundary lands wherever the pty buffer
  * filled, which has nothing to do with what the program meant, so the
  * classifier is being asked its question at boundaries the program never drew.
@@ -23,20 +23,20 @@
  *     arriving as hundreds of updates.
  *  2. **A classification input.** `feed` classifies the whole span, from the
  *     frame before it to the frame after, which is the only way a repaint is
- *     legible as one thing. Where the boundary lands *changes the verdict*
- *     (§9.3) — which is why this lives in `src/` and why grouping is on by
+ *     legible as one thing. Where the boundary lands *changes the verdict*,
+ *     which is why this lives in `src/` and why grouping is on by
  *     default.
  *
  * Point 2 is why the name cannot be merely neutral about *packing*: a caller
  * who reads "group" as "just a batching detail" will misread what the
  * classifier was asked. What the name stops claiming is *intent*.
  *
- * The caps exist for the pathological case GOAL.md calls out: a program that
+ * The caps exist for the pathological case: a program that
  * never goes quiet. Without them a firehose holds one group open forever, and
  * the thing meant to provide bounded delivery would be the thing violating it.
  *
- * The numbers are policy, and this module takes them as arguments: L0 owns the
- * fact that output has boundaries, L1/L3 owns how long a quiet period is.
+ * The numbers are policy, and this module takes them as arguments: that
+ * output has boundaries is a fact; how long a quiet period lasts is policy.
  */
 import type { GroupPolicy } from './types.js';
 
@@ -44,13 +44,13 @@ import type { GroupPolicy } from './types.js';
  * The policy a session uses when it is not given one.
  *
  * Grouping is the default because where a delivery begins decides what the
- * classifier can see (CLASSIFIER.md §9.3), and the alternative is to let a
+ * classifier can see, and the alternative is to let a
  * pty buffer decide that. Measured on the corpus: every threshold from 20ms to
  * 70ms separates the two pauses a real programme makes — 6ms within an act,
  * 80–120ms between acts — and scores identically across that range. 50ms sits
  * in the middle of it.
  *
- * The caps exist for the pathological case GOAL.md calls out: a program that
+ * The caps exist for the pathological case: a program that
  * never goes quiet. Without them a firehose holds one group open forever, and
  * the thing meant to provide bounded delivery would be the thing violating it.
  * They are set well above what any corpus programme writes, so they do not
@@ -76,8 +76,8 @@ export const DEFAULT_GROUP_POLICY: GroupPolicy = {
  *
  * What a caller may be tempted to read into `bytes` and `chunks` — "the
  * program is still writing, more is coming" — is not provable here. Whether
- * more output will arrive is L1.2's question and has no answer at a byte
- * interface: it may emit at any future moment for reasons internal to it.
+ * more output will arrive has no answer at a byte interface: it may emit
+ * at any future moment for reasons internal to it.
  * The reason says how *this group* ended, which is all it measured.
  */
 export type GroupCloseReason =
@@ -247,9 +247,9 @@ export class FakeClock implements GroupClock {
  *
  * `flush` exists because a boundary that only ever opens on silence is too
  * late where it matters most. A resize and an exit both destroy state the
- * classifier needs to see as a whole: history freezes an epoch at a resize
- * (HISTORY.md §2), and alt-screen content is gone once the program leaves it
- * (L0.1). Both force the pending group out first, in the same order the bytes
+ * classifier needs to see as a whole: history freezes an epoch at a resize,
+ * and alt-screen content is gone once the program leaves it.
+ * Both force the pending group out first, in the same order the bytes
  * arrived.
  */
 export class GroupDetector {

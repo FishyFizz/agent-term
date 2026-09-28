@@ -13,7 +13,7 @@
       "from": 11,
       "to": 59,
       "kind": "writing",
-      "why": "pure sequential append; indistinguishable from `cat`. Alt screen is a prior and a capture-urgency flag, never a verdict (CLASSIFIER.md §3.4)"
+      "why": "pure sequential append; indistinguishable from `cat`. Alt screen is a prior and a capture-urgency flag, never a verdict"
     }
   ],
   "ops": [

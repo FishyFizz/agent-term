@@ -1,10 +1,10 @@
 /**
  * The edit record: everything the emulator saw that was not printable text.
  *
- * CLASSIFIER.md §3.1 — the op stream supplies *where the segment boundaries
+ * The op stream supplies *where the segment boundaries
  * are*; the screen model supplies *what each segment did*. Neither alone is
  * enough: a screen diff cannot recover boundaries once a scroll has moved
- * everything (§4), and an op alone says a cursor moved, not whether content
+ * everything, and an op alone says a cursor moved, not whether content
  * was destroyed.
  *
  * It is a second view of the same parser that produces the screen, not a
@@ -19,8 +19,8 @@
  *    response: a linefeed, a scroll, a resize, a buffer switch, a title
  *    change. No program wrote them; they are inferred from the state change.
  *
- * The classifier does not read this file. The verdict comes from the screen
- * (CLASSIFIER.md 3.1); the op stream is what output is replayed from, what
+ * The classifier does not read this file. The verdict comes from the screen;
+ * the op stream is what output is replayed from, what
  * boundaries are found from, and what a caller reads when the screen model is
  * under suspicion. The corpus asserts on these ops, because a trace that
  * claims "20 lines were appended" has to be able to count them.
@@ -74,7 +74,7 @@ export type OpSource = 'csi' | 'esc' | 'event';
  * One op, with the state that makes it interpretable.
  *
  * `byteOffset` is the count of pty bytes consumed *before* this op, so a
- * segment boundary can be located in the byte stream and in history (L0.3)
+ * segment boundary can be located in the byte stream and in history
  * even when a whole coalescing window arrives at once.
  */
 export interface Op {
@@ -120,7 +120,7 @@ export const OP = {
    * An alt-screen enter/exit: a buffer switch, which is a timeline boundary.
    *
    * It draws nothing and erases nothing, but content on the alt screen is
-   * destroyed when the program leaves it (L0.3), so the boundary has to be
+   * destroyed when the program leaves it, so the boundary has to be
    * visible in the stream.
    */
   isAltScreenSwitch: (op: Op): boolean =>

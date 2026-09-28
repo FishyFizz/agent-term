@@ -8,12 +8,12 @@
  *    byte the programme emitted is seen, exactly as emitted.
  *  - **pty**: it is run inside a real node-pty session and the pty's output is
  *    fed to the emulator. This is what a real session would see — and on
- *    Windows it is *not* the same bytes (see OPS.md "ConPTY rewrites").
+ *    Windows it is *not* the same bytes (ConPTY rewrites some sequences).
  *
  * Both feeds produce the same `Trace` shape, so the classifier can be validated
  * against the idealised stream and then against the real one.
  *
- * Design rules this follows, from CLASSIFIER.md §3.1:
+ * Design rules this follows:
  *  - one parser, one truth: everything recorded comes out of the emulator, not
  *    from a second scan of the bytes;
  *  - control ops are intercepted with `return false` so the emulator still

@@ -59,8 +59,7 @@ export class SessionHost {
    * The last update a session produced, or `undefined` if none has yet.
    *
    * `undefined` is not an empty screen: a session that has produced no output
-   * has no update, and saying so is different from describing a blank one
-   * (GOAL.md L1.3).
+   * has no update, and saying so is different from describing a blank one.
    */
   lastUpdate(id: SessionId): SessionUpdate | undefined {
     return this.latestUpdate.get(id);
@@ -74,7 +73,7 @@ export class SessionHost {
   /**
    * Kill and remove a live session.
    *
-   * Its history is deliberately untouched. L0.3 requires history to survive the
+   * Its history is deliberately untouched: history has to survive the
    * process exiting and stay queryable after the fact, so ending a session is
    * the moment the record matters most, not the moment to drop it.
    */

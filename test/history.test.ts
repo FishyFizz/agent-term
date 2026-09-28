@@ -1,5 +1,5 @@
 /**
- * L0.3 — the interleaved timeline, and the resize rule it is built around.
+ * The interleaved timeline, and the resize rule it is built around.
  *
  * These drive the timeline directly, the same way a replay does, so they can
  * build the exact shapes that matter -- a resize with no output, a delivery
@@ -238,7 +238,7 @@ test('text is paged from the beginning, in order, and bounded', () => {
     some.lines.map((l) => l.text),
     ['one', 'two'],
   );
-  assert.equal(some.truncated, true, 'truncation is reported, never silent (L1.1)');
+  assert.equal(some.truncated, true, 'truncation is reported, never silent');
 
   // And the token the page hands back resumes where it stopped -- at or after
   // the record it addresses, the same inclusive reading `read()` uses.
@@ -252,7 +252,7 @@ test('text is paged from the beginning, in order, and bounded', () => {
 test('a text page loses nothing and repeats nothing when it pages on', () => {
   // A token addresses a *record*, so a page that stopped inside one could only
   // be resumed by repeating the lines it already returned or by skipping them.
-  // Both are wrong; skipping is the silent loss L1.1 forbids. The record is
+  // Both are wrong; skipping is the silent loss the contract forbids. The record is
   // therefore the unit: a page is `limit` lines rounded up to one, which is
   // what makes the second record here come back whole rather than halved.
   const history = new SessionHistory('s');

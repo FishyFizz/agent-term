@@ -1,10 +1,10 @@
 /**
- * L0.2 — the screen is a faithful structured model, never a byte stream.
+ * The screen is a faithful structured model, never a byte stream.
  *
  * These run against the real emulator with hand-written escape sequences, so
  * they are unit tests rather than end-to-end ones: the claim under test is
  * "our model of the grid is correct", and the differential conformance the
- * survey recommends (PRIOR-ART.md, "Decisions taken from this survey") is what
+ * survey recommends is what
  * extends that to "faithful".
  */
 import { test } from 'node:test';
@@ -78,7 +78,7 @@ test('alt screen is entered, has no scrollback, and restores on exit', async () 
   assert.equal(s.snapshot().buffer, 'alternate', 'alt screen active');
   assert.equal(s.snapshot().hasScrollback, false, 'alt buffer has no scrollback');
 
-  // CLASSIFIER.md §3.4: writing on the alt screen is still just writing.
+  // Writing on the alt screen is still just writing.
   await s.feed('A1\r\nA2\r\nA3\r\nA4\r\nA5\r\nA6\r\nA7');
   const alt = s.snapshot();
   assert.equal(alt.buffer, 'alternate');

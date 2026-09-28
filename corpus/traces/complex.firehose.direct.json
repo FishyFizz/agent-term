@@ -13,7 +13,7 @@
       "from": 0,
       "to": 38893,
       "kind": "writing",
-      "why": "2000 lines in one burst; segmentation must still yield ordered segments because boundaries are stamped with byte offsets, and the text log must keep lines that fell out of the grid (CLASSIFIER.md §5)"
+      "why": "2000 lines in one burst; segmentation must still yield ordered segments because boundaries are stamped with byte offsets, and the text log must keep lines that fell out of the grid"
     }
   ],
   "ops": [

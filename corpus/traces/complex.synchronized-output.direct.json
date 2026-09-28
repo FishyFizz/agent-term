@@ -13,7 +13,7 @@
       "from": 107,
       "to": 306,
       "kind": "drawing",
-      "why": "whole-frame repaints; each synchronized block is atomic and must not be split into interleaved partial segments (CLASSIFIER.md §7.4)"
+      "why": "whole-frame repaints; each synchronized block is atomic and must not be split into interleaved partial segments"
     }
   ],
   "ops": [

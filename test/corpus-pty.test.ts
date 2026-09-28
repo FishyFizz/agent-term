@@ -1,7 +1,7 @@
 /**
  * The pty traces — the half of the corpus nothing used to read.
  *
- * Every programme is recorded twice (`corpus/README.md`): once `direct`, its
+ * Every programme is recorded twice: once `direct`, its
  * bytes captured and fed to the emulator unaltered, and once through a real
  * child process behind ConPTY. Only the `direct` half was ever scored, because
  * the corpus's expectations are byte ranges taken from the programme's own

@@ -1,8 +1,8 @@
 /**
  * The classifier measured against the corpus.
  *
- * This is the regression suite L0.1 was supposed to have before the classifier
- * existed (CLASSIFIER.md §10). It does not assert a perfect score: it asserts
+ * This is the regression suite the classification contract was supposed to have before the classifier
+ * existed. It does not assert a perfect score: it asserts
  * the current score, so a regression fails loudly and an improvement has to be
  * recorded deliberately.
  *
@@ -30,8 +30,7 @@ const GROUP_GAP_MS = 50;
  * Scores are printed so a change is visible. They are measurements of a
  * label set, not a specification: a programme's `why` records what is
  * interesting about it, and the verdict beside it is a claim about the screen
- * that a reader is free to dispute. Raising one is not automatically progress
- * -- see the rule in CLASSIFIER.md §11.
+ * that a reader is free to dispute. Raising one is not automatically progress.
  */
 const EXPECTED = {
   /**
@@ -51,8 +50,8 @@ const EXPECTED = {
    * there, not adjusted -- `progress-bar-scroll`, `interleaved`, and
    * `progress-bar` -- each asserting a single verdict over a span the screen
    * shows two kinds on. Raising this number further is not possible without
-   * either inventing expectations or making the classifier guess, and §11 says
-   * not to do either.
+   * either inventing expectations or making the classifier guess, and the rule
+   * is not to do either.
    */
   groups: 23,
 };

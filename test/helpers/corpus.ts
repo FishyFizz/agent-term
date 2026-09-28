@@ -1,13 +1,13 @@
 /**
  * Measure the classifier against the corpus.
  *
- * The corpus (`corpus/`, in-tree) is the regression suite for L0.1: 23
+ * The corpus (`corpus/`, in-tree) is the regression suite for classification: 23
  * programmes, 46 recorded traces, each with expected verdicts over byte
  * ranges. This replays each trace's `raw` bytes through the real screen model
  * and classifier and scores the result.
  *
  * Only `direct` traces are scored. On a pty feed ConPTY rewrites escape
- * sequences (corpus/OPS.md), so the same programme's expectations do not hold;
+ * sequences, so the same programme's expectations do not hold;
  * those traces say whether reality diverges, not whether the logic is right.
  *
  * The `Trace` shape is the corpus's own (corpus/src/types.ts): the corpus owns
@@ -44,7 +44,7 @@ export function loadTraces(feed: 'direct' | 'pty' | 'both' = 'direct'): Trace[] 
  * visible if the content being overwritten was already on screen when some
  * delivery began. Replaying a whole trace as one delivery starts from an empty
  * screen, so nothing is ever overwritten and every repaint looks like a first
- * paint -- including the bare `\r` overwrite in CLASSIFIER.md §9.2, which
+ * paint -- including the bare `\r` overwrite, which
  * emits no control op at all.
  *
  * Chunks, not single bytes: at one byte per delivery the `\r` and the text
@@ -94,7 +94,7 @@ export async function classifyTraceStreaming(
  * The other end of the scale from `splitOnDrawOps`: no knowledge of the stream
  * at all, which is closer to what a real pty delivers -- a chunk boundary lands
  * wherever the buffer filled. Scoring against it is what makes the cost of
- * delivery granularity visible rather than implied (CLASSIFIER.md §9.3).
+ * delivery granularity visible rather than implied.
  */
 export function fixedChunks(size: number): (raw: string) => string[] {
   return (raw) => {
@@ -111,7 +111,7 @@ export function fixedChunks(size: number): (raw: string) => string[] {
  * by an arbitrary size (`fixedChunks`). This one cuts it by time, using the
  * arrivals the recorder stamped when the bytes came in — so a replay can be
  * grouped the way the programme produced it rather than the way a buffer
- * filled. That gap is the whole of CLASSIFIER.md §9.3: same corpus, same
+ * filled. That gap is the whole point: same corpus, same
  * classifier, different answer.
  *
  * Traces are ASCII, so an arrival's byte offset indexes `raw` directly.
@@ -123,7 +123,7 @@ export function groupChunks(trace: Trace, gapMs: number): string[] {
 
   // A group may not straddle a resize, for the same reason the live detector
   // flushes on one (`session.ts`) and for the same reason history splits
-  // epochs there (HISTORY.md §2): inside one group the width is fixed, so a
+  // epochs there: inside one group the width is fixed, so a
   // row-run delta means one thing and a captured line's wrapping is
   // unambiguous. Across a resize neither is true, and a frame diff spanning
   // two grid sizes describes a terminal that never existed.
@@ -132,7 +132,7 @@ export function groupChunks(trace: Trace, gapMs: number): string[] {
 
   // An alt-screen switch is a boundary for the same reason, and a stronger
   // one: entering the alternate buffer replaces the whole visible grid, and
-  // leaving it destroys what was on it (L0.1). A frame diff reaching across
+  // leaving it destroys what was on it. A frame diff reaching across
   // that compares two different surfaces and reports the swap as a repaint of
   // everything.
   const switches = [...new Set(trace.ops.filter(OP.isAltScreenSwitch).map((o) => o.byteOffset))].sort(
@@ -307,7 +307,7 @@ export interface CaseResult {
 }
 
 /**
- * Cases where the corpus disagrees with CLASSIFIER.md, or with itself.
+ * Cases where the corpus disagrees with the classifier, or with itself.
  *
  * Listed rather than silently resolved: a corpus that is wrong about one case
  * is still a corpus, but a harness that quietly picks a side makes the
@@ -315,14 +315,14 @@ export interface CaseResult {
  */
 export const CONFLICTS: Record<string, { ruling: 'writing' | 'drawing'; reason: string }> = {
   // Same structure as `basic.alt-screen-write` -- enter alt, home, four
-  // sequential lines -- but the two expect opposite verdicts. CLASSIFIER.md
-  // §3.4 rules this case directly, with a verified trace: writing on the alt
+  // sequential lines -- but the two expect opposite verdicts. The classifier
+  // rules this case directly, with a verified trace: writing on the alt
   // screen is observationally identical to writing on the normal screen, so
-  // the alt screen cannot be a verdict. §3.4 wins; this expectation is wrong.
+  // the alt screen cannot be a verdict. That rule wins; this expectation is wrong.
   'complex.unclean-tui-exit': {
     ruling: 'writing',
     reason:
-      'CLASSIFIER.md §3.4: alt screen is a prior and a capture-urgency flag, never a verdict. Identical in structure to basic.alt-screen-write, which expects writing.',
+      'Alt screen is a prior and a capture-urgency flag, never a verdict. Identical in structure to basic.alt-screen-write, which expects writing.',
   },
 };
 

@@ -19,7 +19,7 @@
       "from": 14,
       "to": 43,
       "kind": "drawing",
-      "why": "\\r returns to column 0 and text lands on cells that were already non-blank; no erase op is emitted, so this must be caught by the screen model (CLASSIFIER.md §9 open item 2)"
+      "why": "\\r returns to column 0 and text lands on cells that were already non-blank; no erase op is emitted, so this must be caught by the screen model"
     }
   ],
   "ops": [

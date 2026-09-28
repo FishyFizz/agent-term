@@ -19,7 +19,7 @@
       "from": 27,
       "to": 43,
       "kind": "writing",
-      "why": "the prompt is written without a newline and the program then blocks; nothing is erased or redrawn, so it is still append-only text — the interesting property is that output *stops*, which is L1.4, not a classification question"
+      "why": "the prompt is written without a newline and the program then blocks; nothing is erased or redrawn, so it is still append-only text — the interesting property is that output *stops*, which is the input watermark, not a classification question"
     }
   ],
   "ops": [

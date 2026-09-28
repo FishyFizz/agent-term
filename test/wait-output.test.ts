@@ -228,6 +228,6 @@ test('a match does not carry a screen: the match is the answer', async (t) => {
   });
   assert.equal(result.reason, 'matched');
   // Explicitly null, never absent: a field whose presence varies by reason
-  // gets read as "nothing" in the branch that does not expect it (L1.3).
+  // gets read as "nothing" in the branch that does not expect it.
   assert.equal(result.screen, null, 'so the two are told apart by value, not by shape');
 });

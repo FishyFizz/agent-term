@@ -1,8 +1,8 @@
 /**
- * The edit record (CLASSIFIER.md §3.1) — control ops in order, with byte
+ * The edit record — control ops in order, with byte
  * offsets, from the same parser that produces the screen.
  *
- * The decisive case is the npm trace from §4: draw → append → redraw. A
+ * The decisive case is the npm trace: draw → append → redraw. A
  * screen diff cannot recover that ordering once output has scrolled; the op
  * stream can, because the boundary comes from the program's own operations.
  */
@@ -110,7 +110,7 @@ test('save/restore cursor and reset are recorded', async () => {
 });
 
 test('the npm trace: draw, append, redraw is recoverable in order', async () => {
-  // CLASSIFIER.md §4. A bar is drawn on the last row, a log line is appended
+  // A bar is drawn on the last row, a log line is appended
   // (which scrolls), then the bar is redrawn. Spatially the two bars are on
   // different rows with the new line between them, so no row-based diff can
   // tell "the status line moved" from "two unrelated lines changed". The op
@@ -136,7 +136,7 @@ test('the npm trace: draw, append, redraw is recoverable in order', async () => 
   assert.deepEqual(append, [], 'appending emits no control ops at all');
   assert.deepEqual(redraw, ['CUP', 'EL'], 'redrawing is CUP + erase again');
 
-  // The point of §4: the append scrolled, so the old bar moved up a row and
+  // The point: the append scrolled, so the old bar moved up a row and
   // the new bar appeared below it. Both bars are on screen at once, at
   // different rows, with the new log line between them -- and nothing in a
   // row-based diff links row 3's past self to row 4's present self. The op
@@ -185,7 +185,7 @@ test('structural events are recorded alongside the sequences', async () => {
     s.ops.recorded.filter((o) => OP.isEvent(o.name)).map((o) => o.name),
     ['LINEFEED', 'SCROLL', 'BUFFERCHANGE', 'SCROLL', 'BUFFERCHANGE'],
   );
-  // And a buffer enter/exit is the boundary it segments on (L0.3).
+  // And a buffer enter/exit is the boundary it segments on.
   assert.equal(
     s.ops.recorded.filter((o) => OP.isAltScreenSwitch(o)).length,
     2,

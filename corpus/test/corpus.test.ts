@@ -105,7 +105,7 @@ test('the alt-screen writing counterexample really is on the alternate buffer', 
   );
 });
 
-test('the progress-bar scroll trace reproduces the CLASSIFIER.md §4 disproof', () => {
+test('the progress-bar scroll trace reproduces the spatial-band disproof', () => {
   const trace = loadTrace('complex.progress-bar-scroll', 'direct');
   // The documented sequence: draw, append (scroll), erase+redraw.
   const ops = names(trace.ops);

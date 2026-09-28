@@ -4,8 +4,8 @@
  * Storing a full screen per draw is the wrong shape for a terminal. A TUI
  * repainting a status bar at 60fps would retain a whole grid per frame, and a
  * 120x40 session at 60fps is roughly 17 MB/minute of state for changes that are
- * usually a few cells. GOAL.md calls continuous repaint the pathological case
- * (criterion 5), so it is the case this exists to bound.
+ * usually a few cells. Continuous repaint is the pathological case
+ * this exists to bound.
  *
  * A delta carries what changed in **text** and in **appearance**. Text is
  * spliced by glyph; appearance rides as a per-row payload (`GridRow`). They are
@@ -15,7 +15,7 @@
  * this would get subtly wrong. `screen.ts` owns the two coordinates; this file
  * only moves them.
  *
- * Verified against `@xterm/headless` v6.0.0 (HISTORY.md):
+ * Verified against `@xterm/headless` v6.0.0:
  *
  *  - A naive row diff is useless for a scrolling log: one new line in a 6-row
  *    grid differs in 5 of 6 rows, because the content shifted.

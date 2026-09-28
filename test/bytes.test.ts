@@ -1,11 +1,11 @@
 /**
- * L1.3 — the read watermark is a *byte* count.
+ * The read watermark is a *byte* count.
  *
  * The defect this guards: `node-pty` defaults to `encoding: 'utf8'`, which
  * decodes output to a string before handing it over. Taking `.length` of that
  * string counts UTF-16 code units, so any non-ASCII output is undercounted,
- * and every byte offset the classifier stamps (CLASSIFIER.md §3.1) and every
- * watermark the agent compares (L1.3) drifts.
+ * and every byte offset the classifier stamps and every
+ * watermark the agent compares drifts.
  *
  * Runs a real program so the bytes come from a real pty, not a fixture.
  */

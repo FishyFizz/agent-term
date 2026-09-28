@@ -92,7 +92,7 @@ test('a real shell session reports its output as ordered writing segments', asyn
     for (const line of u.screen.lines) assert.equal(line.length, 100, 'row is full width');
   }
 
-  // L1.3: the watermark is present and monotonic.
+  // The watermark is present and monotonic.
   assert.ok(updates.at(-1)!.io.bytesRead > 0, 'bytes watermark advanced');
   for (let i = 1; i < updates.length; i++) {
     assert.ok(updates[i]!.io.bytesRead >= updates[i - 1]!.io.bytesRead, 'watermark monotonic');
@@ -187,7 +187,7 @@ test('idle is measured from the last byte, and is unknown before there is one', 
   t.after(() => session.dispose());
 
   // Nothing has arrived, so "idle for how long" has no answer -- and not 0
-  // either: the program may still be starting. L1.3: an unknown is null.
+  // either: the program may still be starting. An unknown is null.
   assert.equal(session.idleMs(), null, 'unknown before the first byte');
 
   session.pty.write('echo idle-probe\r');
