@@ -105,6 +105,46 @@ test('the baseline decides, so a group from before the input cannot satisfy it',
   );
 });
 
+test('a group that closed before the wait began is still the answer', async (t) => {
+  const { session, updates } = open(MENU_SCRIPT);
+  t.after(() => session.dispose());
+
+  // Let the act complete first, then ask about it. That is the round trip an
+  // agent has between sending a key and waiting on it -- seconds, not
+  // milliseconds -- so the program has finished repainting long before the
+  // wait is issued. Measured in `feedbacks/edca2559`: two of three group waits
+  // slept their whole deadline over an act `read_screen` returned on the next
+  // call, because listening for the *next* group cannot hear one that already
+  // closed.
+  assert.ok(await waitFor(() => updates.length > 0), 'an act completed');
+
+  const result = await session.waitForGroup({ timeoutMs: 10000 });
+  assert.equal(result.reason, 'group', 'the act that already happened is the answer');
+  assert.ok(
+    result.waitedMs < 1000,
+    `and it did not sleep to the deadline (waited ${result.waitedMs}ms)`,
+  );
+  assert.ok(result.screen, 'carrying the screen, so no second call is needed');
+});
+
+test('the catch-up still respects the baseline it is given', async (t) => {
+  const { session, updates } = open(MENU_SCRIPT);
+  t.after(() => session.dispose());
+
+  // The catch-up must not become a way to be handed the same act forever: it
+  // is the same `seq > sinceSeq` test the live listener makes, so naming the
+  // state just seen rules it out.
+  const first = await session.waitForGroup({ timeoutMs: 10000 });
+  assert.equal(first.reason, 'group');
+  assert.ok(await waitFor(() => updates.at(-1)!.seq > first.seq), 'a later act closed');
+
+  const again = await session.waitForGroup({ sinceSeq: first.seq, timeoutMs: 10000 });
+  assert.ok(
+    again.reason !== 'group' || again.seq > first.seq,
+    'a group already seen is not offered again',
+  );
+});
+
 test('without grouping every update is its own group, so the wait still ends', async (t) => {
   const { session } = open(MENU_SCRIPT, false);
   t.after(() => session.dispose());

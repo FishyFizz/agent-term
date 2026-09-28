@@ -521,6 +521,17 @@ export class TerminalSession {
   private _rawSeq = 0;
   /** The state the session was last typed at. See `send`. */
   private _lastInputSeq = 0;
+  /**
+   * The last update this session delivered, or `null` before the first.
+   *
+   * Kept so a wait can catch up on an act that already happened. Between a send
+   * and a wait there is a round trip, and for an agent that round trip is not
+   * milliseconds: a program can finish an act inside it, and a waiter that only
+   * listens for the *next* one would sleep to its deadline while the answer sat
+   * in this field. `waitForOutput` reads the current screen to catch up; a
+   * group is not a screen, so the group itself has to be kept.
+   */
+  private _lastUpdate: SessionUpdate | null = null;
   private queue: Promise<void> = Promise.resolve();
   private pendings = 0;
   /**
@@ -566,6 +577,18 @@ export class TerminalSession {
         return;
       }
       void this.feed(chunk).then(this.deliver);
+    });
+    // The state input was typed at, stamped where the bytes go in. Taken from
+    // the pty's event rather than written into `send`, because `pty.write` is
+    // not a private path: a test or a script writes through it directly, and a
+    // baseline only `send` maintained was left at 0 for those -- which the
+    // group wait's catch-up then read as "nothing has been typed", offering the
+    // group that closed *before* the input. That is the same forgetting the
+    // pty's own byte watermark avoids by stamping at the write (`pty.ts`), and
+    // `waitForGroup` defaults its baseline to this exactly as `waitForOutput`
+    // defaults to that one.
+    this.pty.on('input', () => {
+      this._lastInputSeq = this._rawSeq;
     });
     // Queued, not fired directly: the last bytes of a session are delivered
     // before it exits, and a caller told "it exited" while an update is still
@@ -620,16 +643,11 @@ export class TerminalSession {
   }
 
   /**
-   * Send input, and remember the state it was typed at.
-   *
-   * The seq watermark belongs here rather than on the pty, because `_rawSeq`
-   * is incremented in `feed` and only the session knows it. `waitForGroup`
-   * defaults its baseline to it, exactly as `waitForOutput` defaults to the
-   * pty's byte watermark: without a baseline, a group that closed *before* this
-   * input was sent would satisfy the wait.
+   * Send input. The state it was typed at is stamped by the pty's `input`
+   * event, which fires for every write and not only for this one -- see the
+   * subscription in the constructor.
    */
   send(input: string): void {
-    this._lastInputSeq = this._rawSeq;
     this.pty.write(input);
   }
 
@@ -644,13 +662,14 @@ export class TerminalSession {
     return this.groups !== undefined;
   }
 
-  /** The state input was last typed at. See `send`. */
+  /** The state input was last typed at, whoever wrote it. */
   get lastInputSeq(): number {
     return this._lastInputSeq;
   }
 
-  /** Hand one update to every listener. */
+  /** Hand one update to every listener, and keep it for a wait to catch up on. */
   private readonly deliver = (update: SessionUpdate): void => {
+    this._lastUpdate = update;
     for (const listener of this.listeners) listener(update);
   };
 
@@ -1029,6 +1048,17 @@ export class TerminalSession {
    * before the input was sent, which is the bug `waitForOutput`'s `sinceByte`
    * exists to prevent.
    *
+   * The other half of that baseline is that a group which closed **after** it
+   * must still be offered, even though it closed before this call. The window
+   * is not small: the caller's round trip between sending input and waiting on
+   * it is the latency of a model, so a program that repaints in 70ms has
+   * finished its act long before the wait is issued. Listening for the next
+   * group alone would sleep to the deadline with the answer already in hand --
+   * measured in `feedbacks/edca2559`, where two of three group waits timed out
+   * for 20s and 8s over an act that `read_screen` returned immediately after.
+   * So `_lastUpdate` is read once, after subscribing, and the same `seq >
+   * sinceSeq` test decides it.
+   *
    * Every close reason is reported, because they do not mean the same thing:
    * `bytes` and `chunks` are caps cutting a group open **while the program is
    * still writing**, and `gap` is the only one that means the program went
@@ -1061,6 +1091,18 @@ export class TerminalSession {
       disposed = true;
       this.wake();
     });
+
+    // The catch-up: an act that closed after the baseline but *before* this
+    // call subscribed is the answer to the question just asked, and it is the
+    // common case for an agent, whose round trip between a send and a wait is
+    // seconds rather than milliseconds. Nothing will wake the listener above
+    // for a group that has already closed, so it is read here -- after the
+    // subscription, never before, so a group landing in between is not lost.
+    // `seq > sinceSeq` is the same baseline test the listener makes, so a group
+    // the caller has already seen is still not offered again.
+    if (!box.found && this._lastUpdate && this._lastUpdate.seq > sinceSeq) {
+      box.found = this._lastUpdate;
+    }
 
     try {
       // Awaited inside the `try`, not returned straight out of it: the
@@ -1444,6 +1486,12 @@ export class TerminalSession {
    * kill to remember here.
    */
   dispose(): void {
+    // Dropped, not kept: a disposed session will never produce another act, so
+    // its last one is not "the next group" for any wait that follows. Exit is
+    // deliberately not treated this way -- a program that produced a group and
+    // then exited did produce that group, and `wait` asks `found` before it
+    // asks whether the session ended.
+    this._lastUpdate = null;
     // Before anything is cleared, so a waiter can be told the session is gone
     // rather than sitting out its deadline and looking like a timeout.
     for (const listener of this.disposeListeners.splice(0)) listener();

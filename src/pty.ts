@@ -20,6 +20,16 @@ export interface PtySessionEvents {
   data: (chunk: Buffer) => void;
   /** The process exited. Emitted at most once. */
   exit: (info: PtyExitInfo) => void;
+  /**
+   * Input was written into the pty, after both watermarks moved.
+   *
+   * For a layer above that has to stamp a watermark of its own at the moment of
+   * the write -- the session's `seq`, which the byte counters here know nothing
+   * about. It is emitted from `write` rather than left to the caller for the
+   * same reason `_lastInputByte` is stamped here: this is the one place bytes
+   * go in, so whoever writes -- the surface, a test, a script -- cannot forget.
+   */
+  input: () => void;
 }
 
 /** Strongly typed surface over `EventEmitter` for the events above. */
@@ -157,6 +167,9 @@ export class PtySession implements PtyEventTarget {
     if (!this._alive) return;
     this._lastInputByte = this._bytesRead;
     this._bytesWritten += Buffer.byteLength(input, 'utf8');
+    // Before the bytes are handed over: a listener is stamping the moment of
+    // the write, and the counters above are what define that moment.
+    this.emitter.emit('input');
     this.pty.write(input);
   }
 
