@@ -129,7 +129,9 @@ run of output did. **The group wait returns the change with it** — `segments`,
 the same report a read gives for that state — so `send` → `wait_for_group` is a whole loop in
 two calls. `segments` is the part a screen cannot show you: `text: []` beside a non-empty
 `segments` is a repaint that completed no line, which is a cursor moving or a highlight
-following it rather than output that stopped.
+following it rather than output that stopped. `changedRows` is the row-level half of the same
+report — the rows that differ from the state before the act, so a moved highlight is two rows
+rather than a byte span over a region and a by-eye diff of two forty-row dumps.
 
 The baseline it waits from is a floor rather than a starting gun: an act that closed *after*
 it is returned even if it closed before the wait was issued, so the round trip between a send

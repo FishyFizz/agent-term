@@ -137,9 +137,9 @@ signal you can name.
 **`wait_for_group {sinceSeq?, timeoutMs}`** — blocks until the program finishes **one act of
 output**. This is the wait a full-screen TUI needs. Returns `reason` (`group`, `disposed`,
 `exited`, `timeout`) and, on a group, the act whole: `seq`, `group`, `collapsed`, `screen`,
-and the same `segments`/`text`/`io` a read reports for that state — **so a group wait is not
-a prelude to a read.** On `exited`/`timeout`/`disposed` no act arrived: those three are
-`null`, and `screen` is what the terminal looks like at that moment.
+and the same `segments`/`changedRows`/`text`/`io` a read reports for that state — **so a group
+wait is not a prelude to a read.** On `exited`/`timeout`/`disposed` no act arrived: those three
+are `null`, and `screen` is what the terminal looks like at that moment.
 
 - A repainting menu has no stable text to anchor a pattern on, and idle answers "it went
   quiet" without saying whether a repaint happened at all. A group ends where the run
@@ -151,6 +151,15 @@ a prelude to a read.** On `exited`/`timeout`/`disposed` no act arrived: those th
   it, a menu drawn over itself. A cursor move can leave every row identical, so comparing
   the two screens calls it "nothing happened"; the fields do not. That is the difference
   between a key that did something invisible and a key that was ignored.
+- **`changedRows` is the row-level half of `segments`, and the one to read when the change
+  is a glyph rather than a line.** It names the rows of `screen` that differ from before the
+  act — a highlight moving is one or two rows, where the byte span covers a whole region and
+  two screens compared by eye report nothing at all. **Empty `changedRows` beside a non-empty
+  `segments` means the act touched no row**: a cursor moving, or a write into cells that
+  already held those glyphs. Only indices are given, because the rows themselves are in
+  `screen` and the ones they replaced are one `history_read` away — read
+  `screen[y]` for each `y` in `changedRows` and you have the new state of every row that
+  moved, without comparing anything.
 - **`collapsed.reason` says how it ended, and the four do not mean the same thing**: `gap`
   no bytes arrived for `gapMs`; `bytes`/`chunks` are the caps being reached, cutting a group open
   **while it is still writing**, so more output is coming; `flush` is a resize or exit.
@@ -193,6 +202,11 @@ the end is cut. Nothing is lost by it: a row that was erased or overwritten is i
 - `segments` — what changed, as spans of byte range, each flagged `erased`,
   `overwrote`, `reachedBack`, `scrolledBy`, `altScreen`. The server has already
   decided whether a change is appended text or a redrawn surface; you do not have to.
+- `changedRows` — which rows of `screen` differ from before this update, as row
+  indices. The row-level half of `segments`: read `screen[y]` for each `y` and you have
+  the new content of every row that moved, with no comparison of two screens and no
+  guessing which of forty rows to look at. Scroll-aware, so a log moving up reports the
+  rows that truly changed rather than every row that shifted.
 - `text` — the lines this update completed, in order. This is the record of what was
   *written*, including lines that have already scrolled off the screen. **Empty `text`
   beside a non-empty `segments` means the update repainted and wrote no line.**
@@ -245,10 +259,10 @@ is a claim about the program.** Cross that line only with evidence you assembled
 
 | You want to know | What the server gives you | What you must add |
 |---|---|---|
-| Did my input do anything? | `written`, `afterInput`, the wait's `text` and `segments` | `written` proves what was sent, never that the program read it. `afterInput: true` beside a non-empty `segments` is output that followed your write — `text` shows the line it wrote, a `text: []` there shows one it only redrew. |
+| Did my input do anything? | `written`, `afterInput`, the wait's `text`, `segments` and `changedRows` | `written` proves what was sent, never that the program read it. `afterInput: true` beside a non-empty `segments` is output that followed your write — `text` shows the line it wrote, a `text: []` there shows one it only redrew, and `changedRows` says which rows the redraw landed on. |
 | Is the program waiting for me? | **nothing** — it is not observable | See below. Do not look for `atPrompt`; it does not exist, by measurement. |
 | Is it done? | `reason: idle/exited/timeout`, `state.drained` | Nothing proves "done" while it runs (L1.2). `exited` + `drained` is the only closed set. Otherwise: name a signal the program prints, or accept a confidence interval. |
-| Did this repaint mean anything? | `text` and `segments` from the wait, `collapsed.chunks`, `seq` | `text: []` with a non-empty `segments` is a repaint that wrote no line; `collapsed.chunks > 1` means states were swallowed — read the span with `history_read`. |
+| Did this repaint mean anything? | `text`, `segments` and `changedRows` from the wait, `collapsed.chunks`, `seq` | `text: []` with a non-empty `segments` is a repaint that wrote no line; `changedRows` names the rows it landed on, which a glyph flip shows and a screen-to-screen comparison hides; `collapsed.chunks > 1` means states were swallowed — read the span with `history_read`. |
 
 ### "Is it waiting for me?" — not observable, and what to do instead
 

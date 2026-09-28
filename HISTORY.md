@@ -281,6 +281,17 @@ reason is now the state the returned screen is at. Neither change adds a verdict
 address are facts about the timeline, and §7's rule — the measurement is reported, the meaning is
 the caller's — is untouched.
 
+**And the report is now finer-grained on the one axis a byte span cannot reach: rows.** The run's
+driver asked for a row-level diff, and the classifier was already computing one — `diffFacts`
+walks every row to decide `erased`/`overwrote`/`reachedBack` and threw the indices away. They are
+kept now, as `changedRows`: which rows of the screen differ from before the act. It is the
+presentation granularity §7 exists to get right, and it costs nothing to add because the walk was
+happening. The reason it matters is the same as `text: []` beside a non-empty `segments`: a
+highlight moving is a byte span over a region and two screens that a by-eye comparison calls
+identical, and it is one or two row numbers when the classifier is asked. Indices and not content,
+because the live rows are in `screen` and the ones they replaced are a `history_read` away —
+shipping both sides would put a second screen in every update to save a call that is rarely made.
+
 ## 8. Out of scope here
 
 - **Retention and pruning** — `L3.4`. The seam is in place: deltas make pruning snapshots inside

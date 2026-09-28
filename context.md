@@ -60,7 +60,7 @@ README.md          user-facing status + dev commands
 context.md         THIS FILE
 
 src/               ~5,000 lines of implementation (see §4)
-test/              ~5,900 lines, 250 tests
+test/              ~5,800 lines, 252 tests
 scripts/           entry points: mcp-stdio, mcp-http, smoke, life, corpus-score
 corpus/            23 terminal programmes + 46 recorded traces (regression suite)
 fixtures/life/     "lifelike" interactive subject — a black-box driving exercise
@@ -125,17 +125,17 @@ module exists and the failure it prevents.
 | `screen.ts` | 447 | **The screen model.** `ScreenModel` wraps the emulator; owns the cell grid, the op stream (`EditRecord`), and the `TextLog`. `snapshot()` returns a deep copy carrying its own `cols`/`rows`. Owns the two coordinates (glyph index vs column) and is the only place they are reconciled. |
 | `edit-record.ts` | 286 | The op stream: control ops (`csi`/`esc`/`event`) each stamped with byte offset, cursor position, params, alt-screen flag, and `at` (ms). Used for **replay, boundaries, and the raw escape hatch — never as input to the verdict.** |
 | `text-log.ts` | 178 | The second sink. Append-only `TextLine[]`, each carrying `{byte, buffer, text, row}`. |
-| `classify.ts` | 357 | **The classifier.** `classify({before, after, fromByte, toByte, scrolledBy})` → segments. `frameOf`, `rowDiff`, `coalesce`. Must read like CLASSIFIER.md §3.1: four observations, one walk, **no thresholds**. |
+| `classify.ts` | 387 | **The classifier.** `classify({before, after, fromByte, toByte, scrolledBy})` → segments + `changedRows`. `frameOf`, `rowDiff`, `coalesce`. Must read like CLASSIFIER.md §3.1: four observations, one walk, **no thresholds**. |
 | `delta.ts` | 293 | `gridDelta(before, after, hint)` / `applyDelta`. Encodes a screen change as `{scrollBy, runs, rows}`. Searches the shift and **verifies** it rather than trusting the emulator. |
 | `groups.ts` | 356 | **Group boundaries** — where one run of output ends. Inferred from silence, so it is a
    measured boundary, not a declared one; it is also a classification input (§9.3). `DEFAULT_GROUP_POLICY = {gapMs: 50, maxBytes: 64KB, maxChunks: 256}`. `GroupDetector`, `groupByGap`, `FakeClock`. |
 | `history.ts` | 982 | **The timeline.** `SessionHistory` (epochs, records, `read`, `screenAt`, `deliveries`, `groups`, `textSince`, `tokenAt`) and `HistoryStore`. |
-| `session.ts` | 1554 | **The L0.4 session**: pty + screen + classifier as one object. `TerminalSession`: `feed`, `waitForIdle`, `waitForOutput`, `waitForGroup` (all three over one private `wait` skeleton), `state`, `resize`, `onUpdate`/`onDelivery`/`onExit`/`onResize`/`onDispose`, `dispose`. |
+| `session.ts` | 1584 | **The L0.4 session**: pty + screen + classifier as one object. `TerminalSession`: `feed`, `waitForIdle`, `waitForOutput`, `waitForGroup` (all three over one private `wait` skeleton), `state`, `resize`, `onUpdate`/`onDelivery`/`onExit`/`onResize`/`onDispose`, `dispose`. |
 | `registry.ts` | 53 | `SessionRegistry` — live sessions by id. Deliberately **history-agnostic**: dropping a live session must not discard what it did. |
 | `host.ts` | 89 | **The composition root.** `SessionHost.open()` creates a session *and starts recording it* in one call, because two calls would let a caller forget the second and get a working terminal with silently empty history. |
 | `keys.ts` | 480 | Named keys + `composeSteps`. The key table, mode-dependent encoding (`CSI B` vs `SS3 B`), `escapeBytes`, `KeyInputError`. |
 | `match.ts` | 84 | `wait_for_output` matching: `matchRow`, `matchLine`, `trimRow`. |
-| `mcp.ts` | 696 | **The MCP surface** — 9 tools. See §7. |
+| `mcp.ts` | 730 | **The MCP surface** — 9 tools. See §7. |
 | `types.ts` | 90 | `SessionId`, `GroupPolicy`, `SessionOptions`, `DEFAULT_COLS/ROWS` (80/24), `assertGridSize` (shared so a pty and an emulator can never disagree about a size). |
 | `env.ts` | 25 | `sanitizeEnv`, `defaultShell`. |
 
@@ -326,8 +326,8 @@ definition is context the agent pays for on every turn.)
 | `send_sequence` | Write several inputs in **one write**: steps of `{text}`, `{key}` or `{byte}`, in order. Reports `written` and per-step bytes. |
 | `wait_for_idle` | `{sessionId, idleMs, timeoutMs}` → reason: `idle` \| `exited` \| `timeout`, plus `seq`. Returns no screen. |
 | `wait_for_output` | `{sessionId, pattern, surface?, sinceByte?, timeoutMs}` → reason: `matched` \| `exited` \| `timeout`, plus `match` `{surface, text, atByte, row, buffer}` and `seq`. **On a non-match, `screen` carries the rows** it ended on, and `seq` names that state. |
-| `wait_for_group` | `{sessionId, sinceSeq?, timeoutMs}` → reason: `group` \| `disposed` \| `exited` \| `timeout`. **On a group it carries the act whole** — `seq`, `group`, `collapsed`, `screen`, and the same `segments`/`text`/`io` a read reports for that state — so a wait is not a prelude to a read. On the other three, `seq` is the state the returned `screen` is at. See below. |
-| `read_screen` | `{sessionId}` → `screen`, `segments`, `text`, `collapsed`, `io`, `state`. `update: null` when nothing has arrived yet. A `wait_for_group` already returned this same report for the state it ended at. **`screen` is trimmed of trailing blanks**, row indices and columns intact (§7). |
+| `wait_for_group` | `{sessionId, sinceSeq?, timeoutMs}` → reason: `group` \| `disposed` \| `exited` \| `timeout`. **On a group it carries the act whole** — `seq`, `group`, `collapsed`, `screen`, and the same `segments`/`changedRows`/`text`/`io` a read reports for that state — so a wait is not a prelude to a read. On the other three, `seq` is the state the returned `screen` is at. See below. |
+| `read_screen` | `{sessionId}` → `screen`, `segments`, `changedRows`, `text`, `collapsed`, `io`, `state`. `update: null` when nothing has arrived yet. A `wait_for_group` already returned this same report for the state it ended at. **`screen` is trimmed of trailing blanks**, row indices and columns intact (§7). |
 | `history_read` | Address the timeline. `{sessionId, from?, to?, limit?, level?, screen?}` → …, plus `ended` (`{at, exitCode, signal}`, `null` while it runs) — see below. |
 | `close_session` | End the session, kill the process tree. **History stays readable afterwards** — closing is not forgetting. |
 
@@ -441,7 +441,7 @@ is for a human.
 
 ```
 { seq, group, screen: string[], segments: [{kind, fromByte, toByte, erased, overwrote,
-    reachedBack, scrolledBy, altScreen}], text: string[], collapsed, io }
+    reachedBack, scrolledBy, altScreen}], changedRows: number[], text: string[], collapsed, io }
 ```
 
 **`seq` is the number of the state being shown** — one number for the whole timeline,
@@ -454,6 +454,17 @@ of these and occupies no number of its own, so the sequence never skips.
 `history.groups()` reports and what every record in its span shares; `seq` is the single
 state the update ended at. Joining the two is the mistake to avoid: a group spanning 1..4
 has `seq: 4`, so matching its records against `seq` matches only the last one.
+
+**`changedRows` is the row-level half of `segments`, and it is free.** `diffFacts` already
+walks every row to decide `erased`/`overwrote`/`reachedBack`; it now keeps the indices it was
+stepping over. The flags cannot carry them — `erased` says a row was damaged *somewhere* — and
+the byte span cannot either: "bytes 6199–7573 were redrawn" does not say a glyph flipped. That
+is what a caller driving a TUI asks after every keypress, and it is the case no pattern can
+anchor on. Indices only, not content: the rows are already in `screen` and the ones they
+replaced are one `history_read` away, so shipping both sides would cost a second screen per
+update for a fact the caller can reach. Scroll-aware (`rowDiff` maps an after-row back through
+`scrolledBy`), so a build log moving up reports the row the new line landed on rather than all
+twenty-four that shifted.
 
 **`screen` is trimmed of trailing blanks before it is sent.** The grid is `cols` wide and
 `screen.ts` pads every row to it — deliberately, because a row is genuinely `cols` glyphs in
@@ -737,7 +748,7 @@ without loss is not worth adding.
 ```bash
 npm install
 npm run typecheck     # src, test, scripts, corpus, fixtures — one project
-npm run test          # 250 tests (includes corpus/test/corpus.test.ts)
+npm run test          # 252 tests (includes corpus/test/corpus.test.ts)
 npm run smoke         # end-to-end against a real shell
 npm run corpus        # score the classifier across replay granularities
 
@@ -793,23 +804,25 @@ single verdict over a span the screen shows two kinds on.
 
 - `npm run typecheck` — **clean, exit 0**.
 - `npm test` — pinned to `--test-concurrency=2` (a real pty per test file; running them all at
-  once corrupts the heap under node-pty). The intended total is **249** (244 before this job,
-  plus the 5 it added), but a full run *reports* fewer and the number moves between runs:
+  once corrupts the heap under node-pty). The intended total is **252** (244 before this job,
+  plus the 8 it added), but a full run *reports* fewer and the number moves between runs:
   `test/wait-group.test.ts` and `test/life.test.ts` hit the `AttachConsole` crash at teardown and
   their later tests never report (§12). Measured the three ways that make the count
-  reproducible: everything but those two files is **234/234**, `life.test.ts` alone reports
+  reproducible: everything but those two files is **237/237**, `life.test.ts` alone reports
   3 of its 7, `wait-group.test.ts` alone reports 7 of its 8. Both files carry **no assertion
   failure** at any count — the crash is the file-level error and nothing else. Both figures are
   from Node v26.8.1 on Windows 11.
-- `test/mcp.test.ts` — **20 tests, 20 pass**; `test/wait-output.test.ts` **9/9**;
-  `test/l14-pending.test.ts` **5/5**; `test/session.test.ts` and `test/wait-group.test.ts`
-  green apart from the crash above.
-- `npm run corpus` — not re-run in this job; the classifier was not touched, so the scores
-  below stand as previously verified.
-- Git: branch `main`, HEAD `774a9d9` *"fix: a wait that ends on a screen names the state that
-  screen is at."* Two commits this job (the catch-up; the addressable timeout), plus one
-  committing the previous job's wait-carries-the-change work, which had been left in the tree.
-  The working tree carries this job's docs, uncommitted.
+- `test/mcp.test.ts` — **20 tests, 20 pass**; `test/classify.test.ts` **13/13**;
+  `test/wait-output.test.ts` **9/9**; `test/l14-pending.test.ts` **5/5**;
+  `test/session.test.ts` and `test/wait-group.test.ts` green apart from the crash above.
+- `npm run corpus` — not re-run in this job. The classifier's *judgements* are untouched
+  (`changedRows` is a second read of the same row walk, and no flag it computes changed), so
+  the scores below stand; but the walk itself was restructured, so a re-run is worth doing
+  before the next classifier change rather than never.
+- Git: branch `main`, HEAD `7265140` *"perf: a screen is returned trimmed of the padding it was
+  written to."* Four commits this job — the catch-up, the addressable timeout, the skill
+  corrections and the payload — plus one committing the previous job's wait-carries-the-change
+  work, which had been left in the tree. The row diff and this block are uncommitted here.
 
 **This job — the wait stops losing round trips.** Motivated by a driven run recorded in
 `feedbacks/edca2559`: 18 MCP calls over 165s, of which **43s was three waits sitting out a
@@ -835,9 +848,24 @@ aimed right and still cost calls:
   and the driver re-read to get one, twice. `seq` on every non-group reason is now the state the
   returned screen is at, and all three waits carry one.
 
+- **A screen carried 77% padding.** The pty pads every row to `cols`, and `presentScreen()` now
+  trims it at the presentation boundary: 51,480 characters across the run's nine screen-bearing
+  calls, of which 11,701 held anything — about 9,900 tokens for one run, paid again on every
+  later turn. Not in `screen.ts` (rows are indexed by *column* there) and not by dropping rows
+  (indices and columns stay exact).
+- **The report is row-level now, not only byte-level.** `changedRows` names the rows of the
+  screen that differ from before the act — the driver's own ask, and free, because `diffFacts`
+  was already walking those rows to compute `erased`/`overwrote`/`reachedBack` and discarding
+  the indices.
+
 Also fixed: `get seq()` returned `_seq`, the count of *classified updates*, while every number a
 caller can address is a raw state — grouping makes the two diverge, so the one number reachable
 without holding an update was on a scale nothing else used.
+
+Checked and **not** changed: `read_screen` puts the screen in a `content` block and again in
+`structuredContent`, which looks like double the payload. The run's transcript records the tool
+result as the structured content alone, so the model saw one copy — a duplicate that costs
+nothing to remove is still not worth a change that could break a client reading either one.
 
 **Previous job — the wait carries the change.** Motivated by a driven run recorded in `feedbacks/1/`:
 17 MCP calls over 117s of wall clock, of which **116s was the driving model's own think time

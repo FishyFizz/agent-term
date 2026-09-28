@@ -16,22 +16,20 @@ import type { Segment } from '../src/classify.js';
 async function update(
   s: ScreenModel,
   bytes: string,
-): Promise<{ segments: Segment[]; screen: ScreenModel }> {
+): Promise<{ segments: Segment[]; changedRows: number[]; screen: ScreenModel }> {
   const before = frameOf(s);
   const fromByte = s.ops.bytesFed;
   const facts = await s.feed(bytes);
   const after = frameOf(s, facts.after);
   const from = { ...before };
-  return {
-    segments: classify({
-      before: from,
-      after,
-      fromByte,
-      toByte: s.ops.bytesFed,
-      scrolledBy: facts.scrolledRows,
-    }).segments,
-    screen: s,
-  };
+  const classified = classify({
+    before: from,
+    after,
+    fromByte,
+    toByte: s.ops.bytesFed,
+    scrolledBy: facts.scrolledRows,
+  });
+  return { segments: classified.segments, changedRows: classified.changedRows, screen: s };
 }
 
 const kinds = (segments: Segment[]) => segments.map((x) => x.kind);
@@ -167,6 +165,32 @@ test('segments carry byte ranges that tile the update', async () => {
   const last = r.segments[r.segments.length - 1]!;
   assert.equal(first.fromByte, 6, 'starts where the previous update ended');
   assert.equal(last.toByte, r.segments[0]!.fromByte + 'a\r\n\x1b[5;1H[##]\x1b[Kb'.length);
+});
+
+test('a moved highlight reports the rows it moved, not the bytes it took', async () => {
+  // The case a byte span cannot answer and a screen-to-screen comparison gets
+  // wrong: the segment covers the region the repaint wrote, and the caller's
+  // actual question is "which rows look different". One glyph moving is one or
+  // two rows whether the program repainted a cell or the whole screen.
+  const s = new ScreenModel(20, 5);
+  await update(s, '> alpha\r\n  beta\r\n  gamma\r\n');
+
+  // Repaint rows 0 and 1 with the highlight one line down: row 0 loses the
+  // marker, row 1 gains it, row 2 is never touched.
+  const r = await update(s, '\x1b[1;1H  alpha\x1b[2;1H> beta');
+  assert.deepEqual(r.changedRows, [0, 1], 'exactly the two rows that differ');
+  assert.ok(r.segments.length > 0, 'while the segment spans the write it took');
+});
+
+test('a cursor move that changes no cell reports no changed row', async () => {
+  const s = new ScreenModel(20, 5);
+  await update(s, 'hello\r\n');
+
+  // Moving the cursor is an act that touches the grid, so it produces a
+  // segment -- but it lands on no row, which is exactly what an empty
+  // `changedRows` beside a non-empty `segments` says.
+  const r = await update(s, '\x1b[1;1H');
+  assert.deepEqual(r.changedRows, [], 'no cell moved, so no row changed');
 });
 
 test('typing into a shell with no output produces no phantom drawing', async () => {

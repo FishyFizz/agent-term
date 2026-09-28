@@ -50,6 +50,20 @@ export interface Segment {
 
 export interface ClassifiedUpdate {
   segments: Segment[];
+  /**
+   * Rows of the *after* frame that differ from their counterpart in `before`.
+   *
+   * The segment says a redraw happened and over which bytes; this says which
+   * rows it landed on, which is the question a caller driving a TUI is actually
+   * asking and the one a byte span cannot answer -- "bytes 6199-7573 were
+   * redrawn" does not say that one glyph flipped. Indices, not content: the
+   * rows themselves are in the screen the update carries, and the ones they
+   * replaced are one `history_read` away.
+   *
+   * Scroll-aware, so a build log moving up reports only the rows that truly
+   * changed rather than every row that shifted (see `rowDiff`).
+   */
+  changedRows: number[];
   /** Bytes consumed by this update. */
   fromByte: number;
   toByte: number;
@@ -84,7 +98,17 @@ export function classify(params: {
   scrolledBy?: number;
 }): ClassifiedUpdate {
   const { before, after, fromByte, toByte, scrolledBy } = params;
-  return { segments: [inferSegment(before, after, fromByte, toByte, scrolledBy)], fromByte, toByte };
+  // Resolved once and passed in: the scroll estimate and the row walk are the
+  // same facts whether they are read for the verdict or for the row list, and
+  // computing them twice could let the two disagree.
+  const scrolled = scrollDelta(before, after, scrolledBy);
+  const facts = diffFacts(before, after, scrolled);
+  return {
+    segments: [inferSegment(before, after, fromByte, toByte, scrolled, facts)],
+    changedRows: facts.rows,
+    fromByte,
+    toByte,
+  };
 }
 
 /**
@@ -147,10 +171,10 @@ function inferSegment(
   after: Frame,
   fromByte: number,
   toByte: number,
-  reportedScroll?: number,
+  scrolledBy: number,
+  facts: { erased: boolean; overwrote: boolean; reachedBack: boolean },
 ): Segment {
-  const scrolledBy = scrollDelta(before, after, reportedScroll);
-  const { erased, overwrote, reachedBack } = diffFacts(before, after, scrolledBy);
+  const { erased, overwrote, reachedBack } = facts;
 
   // A bare carriage-return overwrite emits no op at all (CLASSIFIER.md §9.2),
   // and a spinner is one followed by text, repeated. Judging those by "did
@@ -240,11 +264,16 @@ function diffFacts(
   before: Frame,
   after: Frame,
   scrolledBy: number,
-): { erased: boolean; overwrote: boolean; reachedBack: boolean } {
+): { erased: boolean; overwrote: boolean; reachedBack: boolean; rows: number[] } {
   const rows = Math.min(before.lines.length, after.lines.length);
   let erased = false;
   let overwrote = false;
   let reachedBack = false;
+  // Which rows of `after` differ from their counterpart. The walk is already
+  // happening for the three flags above, so collecting the indices costs
+  // nothing -- and it is the fact the flags cannot carry: `erased` says a row
+  // was damaged somewhere, never where.
+  const changed: number[] = [];
 
   // The append row, in `before` coordinates. Scrolling is already accounted
   // for by mapping an after-row back to `y + scrolledBy`, so comparing against
@@ -254,6 +283,7 @@ function diffFacts(
   for (let y = 0; y < rows; y++) {
     const row = rowDiff(before.lines, after.lines, scrolledBy, y);
     if (!row.changed) continue;
+    changed.push(y);
 
     // A row shifted off the top has no `before` counterpart to reach back into.
     const prevIdx = y + scrolledBy;
@@ -263,7 +293,7 @@ function diffFacts(
     if (row.overwrote) overwrote = true;
   }
 
-  return { erased, overwrote, reachedBack };
+  return { erased, overwrote, reachedBack, rows: changed };
 }
 
 function blanked(prev: string, next: string): boolean {

@@ -710,6 +710,7 @@ test('a group wait reports a repaint that wrote no line, and a read agrees', asy
     afterInput: boolean | null;
     text: string[] | null;
     segments: Array<{ kind: string; overwrote: boolean; reachedBack: boolean }> | null;
+    changedRows: number[] | null;
     io: { bytesRead: number } | null;
   };
 
@@ -720,6 +721,11 @@ test('a group wait reports a repaint that wrote no line, and a read agrees', asy
   assert.equal(group.segments![0]!.kind, 'drawing', 'a redrawn surface, not appended text');
   assert.equal(group.segments![0]!.overwrote, true, 'written over cells that were not blank');
   assert.equal(group.segments![0]!.reachedBack, true, 'above where the cursor was writing');
+  // The subject rewrote one row and left every other row alone, so the row list
+  // is the whole account of what changed -- where the segment above is a byte
+  // span and `text` is empty. One glyph, one row, and the caller does not have
+  // to diff two screens to find it.
+  assert.deepEqual(group.changedRows, [0], 'and names the one row it rewrote');
   assert.ok(group.io && group.io.bytesRead > 0, 'and the bytes are counted, so "nothing happened" is refutable');
 
   // The parity that makes the wait a substitute for the read rather than a
@@ -729,10 +735,12 @@ test('a group wait reports a repaint that wrote no line, and a read agrees', asy
     seq: number;
     text: string[];
     segments: unknown[];
+    changedRows: number[];
   };
   assert.equal(read.seq, group.seq, 'no output arrived in between, so this is the same state');
   assert.deepEqual(read.text, group.text, 'a read and a wait of one state report the same text');
   assert.deepEqual(read.segments, group.segments, 'and the same segments');
+  assert.deepEqual(read.changedRows, group.changedRows, 'and the same changed rows');
 });
 
 /**

@@ -110,6 +110,7 @@ function present(update: SessionUpdate) {
     seq: update.seq,
     screen: presentScreen(update.screen.lines),
     segments: presentSegments(update.segments),
+    changedRows: update.changedRows,
     text: presentText(update.text),
     collapsed: update.collapsed,
     io: update.io,
@@ -280,7 +281,11 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
         'stands for. Returns the last classified update, or null when nothing has arrived ' +
         'yet — which is not the same as an empty screen. **A `wait_for_group` already returned ' +
         'this same report for the state it ended at**, so a read taken straight after one is ' +
-        'the same answer again unless output arrived since. Also reports `state`: whether ' +
+        'the same answer again unless output arrived since. **`changedRows` names the rows ' +
+        'that differ from before this update** — the row-level half of `segments`, and the ' +
+        'one to read when what changed is a glyph rather than a line: a byte span says a ' +
+        'region was redrawn, the row list says which rows actually look different. Empty ' +
+        'with a non-empty `segments` means the update touched no row. Also reports `state`: whether ' +
         'the session is running, how long it has been idle, and whether what it produced ' +
         'has been read through. **`state.inputUnconsumed` is how many bytes you sent that ' +
         'no output has followed** — `null` before any input, `0` once something came back. ' +
@@ -438,10 +443,15 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
         'unit you care about is your call. ' +
         'Returns `reason`: `group`, `exited`, `disposed`, or `timeout`. **On a group the wait ' +
         'carries the change itself** — `seq`, `group`, `collapsed`, `screen`, and the ' +
-        '`segments`, `text` and `io` a read would report for the same state — so a wait is ' +
-        'not a prelude to a read. `segments` is the part the screen cannot show you: a group ' +
-        'with `text: []` beside a non-empty `segments` repainted without writing a line, ' +
-        'which is a cursor moving or a highlight following it, not output that stopped. ' +
+        '`segments`, `text`, `changedRows` and `io` a read would report for the same state — ' +
+        'so a wait is not a prelude to a read. `segments` is the part the screen cannot show ' +
+        'you: a group with `text: []` beside a non-empty `segments` repainted without writing ' +
+        'a line, which is a cursor moving or a highlight following it, not output that ' +
+        'stopped. **`changedRows` names the rows of `screen` that differ from before the ' +
+        'group**, which is the row-level half of `segments`: a byte span says a region was ' +
+        'redrawn, the row list says a glyph flipped, and it is what to read instead of ' +
+        'diffing two screens by eye. Empty beside a non-empty `segments` means the act ' +
+        'touched no row at all. ' +
         '**`afterInput` says whether the group you got contains ' +
         'bytes produced after your last write** — `null` before any input. `false` means the ' +
         'wait ended on output that was already in flight, so sending more now would be ' +

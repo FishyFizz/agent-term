@@ -60,6 +60,21 @@ export interface SessionUpdate {
   fromByte: number;
   toByte: number;
   segments: Segment[];
+  /**
+   * Rows of this update's screen that differ from the state before it.
+   *
+   * The row-level half of `segments`, and the one that answers "did my input
+   * change the UI?" for a keystroke that wrote no line: a highlight moving is
+   * one or two rows here and a byte span covering a whole region there. Empty
+   * when nothing on the grid changed, which with a non-empty `segments` means
+   * a repaint that landed on no row at all -- a cursor move, or a write into
+   * cells that already held those glyphs.
+   *
+   * Indices only. The content is in `screen`, and `history_read` has the frame
+   * they replaced; shipping both sides here would cost a second screen per
+   * update for a fact the caller can already reach.
+   */
+  changedRows: number[];
   io: SessionIo;
   /**
    * Completed lines produced by this delivery, in order.
@@ -394,6 +409,16 @@ export interface GroupWaitResult {
    * stopped", and the screen looks the same either way.
    */
   segments: Segment[] | null;
+  /**
+   * Rows of the screen this group changed, or `null` when no group arrived.
+   *
+   * `segments` says a redraw happened and over which bytes; this says which
+   * rows it landed on. It is the answer to "did my key do anything" when the
+   * act wrote no line: a highlight moving is one or two rows, where the byte
+   * span covers a whole region and a screen-to-screen comparison covers
+   * nothing. Empty beside a non-empty `segments` means the act touched no row.
+   */
+  changedRows: number[] | null;
   /** The byte watermark this group reached, or `null` when no group arrived. */
   io: SessionIo | null;
   /** The screen as it was when the wait ended, or `null` on `disposed`. */
@@ -828,6 +853,7 @@ export class TerminalSession {
         fromByte,
         toByte: classified.toByte,
         segments: classified.segments,
+        changedRows: classified.changedRows,
         text,
         // The viewport delta is exactly the scroll until the scrollback ring
         // saturates; past that it is useless, and the encoder falls back to
@@ -1153,6 +1179,7 @@ export class TerminalSession {
               collapsed: found.collapsed,
               text: found.text,
               segments: found.segments,
+              changedRows: found.changedRows,
               io: found.io,
               screen: found.screen,
               state,
@@ -1171,6 +1198,7 @@ export class TerminalSession {
               collapsed: null,
               text: null,
               segments: null,
+              changedRows: null,
               io: null,
               screen: null,
               state,
@@ -1187,6 +1215,7 @@ export class TerminalSession {
           collapsed: null,
           text: null,
           segments: null,
+          changedRows: null,
           io: null,
           screen: this.screen.snapshot(),
           state,
@@ -1208,6 +1237,7 @@ export class TerminalSession {
           collapsed: null,
           text: null,
           segments: null,
+          changedRows: null,
           io: null,
           screen: this.screen.snapshot(),
           state,
