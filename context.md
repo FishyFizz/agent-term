@@ -815,14 +815,14 @@ single verdict over a span the screen shows two kinds on.
 - `test/mcp.test.ts` — **20 tests, 20 pass**; `test/classify.test.ts` **13/13**;
   `test/wait-output.test.ts` **9/9**; `test/l14-pending.test.ts` **5/5**;
   `test/session.test.ts` and `test/wait-group.test.ts` green apart from the crash above.
-- `npm run corpus` — not re-run in this job. The classifier's *judgements* are untouched
-  (`changedRows` is a second read of the same row walk, and no flag it computes changed), so
-  the scores below stand; but the walk itself was restructured, so a re-run is worth doing
-  before the next classifier change rather than never.
-- Git: branch `main`, HEAD `7265140` *"perf: a screen is returned trimmed of the padding it was
-  written to."* Four commits this job — the catch-up, the addressable timeout, the skill
-  corrections and the payload — plus one committing the previous job's wait-carries-the-change
-  work, which had been left in the tree. The row diff and this block are uncommitted here.
+- `npm run corpus` — **re-run and unchanged**: `groups50` 23/23, `drawOps` 20/23, `fixed64`
+  17/23, `fixed256` 12/23, `whole` 11/23, each with the same failing set as the table in §6.
+  The walk in `diffFacts` moved but no judgement it feeds did.
+- Git: branch `main`, HEAD `a7522df` *"feat: an update names the rows it changed, not only the
+  bytes it wrote."* Five commits this job — the catch-up, the addressable timeout, the skill
+  corrections, the payload and the row diff — plus one committing the previous job's
+  wait-carries-the-change work, which had been left in the tree. This block is the working
+  tree's only uncommitted change.
 
 **This job — the wait stops losing round trips.** Motivated by a driven run recorded in
 `feedbacks/edca2559`: 18 MCP calls over 165s, of which **43s was three waits sitting out a
