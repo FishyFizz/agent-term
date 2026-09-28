@@ -203,20 +203,6 @@ function inferSegment(
 }
 
 /**
- * The structural questions, answered against the two frames.
- *
- * `scrolledBy` rows have already been factored out, so a scrolling build log
- * is not mistaken for a repaint.
- *
- * One walk answers all three, because they are the same comparison asked three
- * ways. `reachedBack` is also the answer to "did the change continue from
- * where output was being appended?", asked the other way round: an append
- * continues at the cursor and only ever touches that row and, via scrolling,
- * rows below it. There is deliberately no "the cursor moved backwards" test --
- * a trailing carriage return after appended text leaves the cursor at column 0
- * with the text intact, which every build log does.
- */
-/**
  * What one row did between two frames, scroll-normalised.
  *
  * The single row comparison in the repo. `diffFacts` reads it in aggregate to
@@ -260,6 +246,20 @@ export function rowDiff(
   return { changed: true, erased: blanked(prev, next), overwrote: overwroteNonBlank(prev, next) };
 }
 
+/**
+ * The structural questions, answered against the two frames.
+ *
+ * `scrolledBy` rows have already been factored out, so a scrolling build log
+ * is not mistaken for a repaint.
+ *
+ * One walk answers all three, because they are the same comparison asked three
+ * ways. `reachedBack` is also the answer to "did the change continue from
+ * where output was being appended?", asked the other way round: an append
+ * continues at the cursor and only ever touches that row and, via scrolling,
+ * rows below it. There is deliberately no "the cursor moved backwards" test --
+ * a trailing carriage return after appended text leaves the cursor at column 0
+ * with the text intact, which every build log does.
+ */
 function diffFacts(
   before: Frame,
   after: Frame,

@@ -191,9 +191,7 @@ export class PtySession implements PtyEventTarget {
    */
   get unconsumedBytes(): number | null {
     if (this._bytesWritten === 0) return null;
-    return this._bytesWritten > 0 && this._lastInputByte === this._bytesRead
-      ? this._bytesWritten
-      : 0;
+    return this._lastInputByte === this._bytesRead ? this._bytesWritten : 0;
   }
 
   /** Resize the pty; the program inside is told via SIGWINCH / ConPTY. */

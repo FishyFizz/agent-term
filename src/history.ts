@@ -633,11 +633,16 @@ export class SessionHistory {
 
     // Cost a record at the shape it will be returned in. `screen` is the
     // expensive one and dominates, which is exactly why the budget exists.
-    const costOf = (r: HistoryRecord): number => {
+    //
+    // `at` is the record's index in the *epoch*, not in `window`; the two differ
+    // by `start.index`. Passed in because the caller holds it (see the identity
+    // the `records` walk below relies on), where `indexOf` would be a linear
+    // scan per record to re-derive a number already in hand.
+    const costOf = (r: HistoryRecord, at: number): number => {
       if (level === 'text') return r.text.reduce((n, l) => n + l.text.length, 0);
       if (options.screen === true) {
-        const at = this.screenInEpoch(epoch, epoch.records.indexOf(r));
-        if (at) return at.lines.reduce((n, row) => n + row.length, 0);
+        const screen = this.screenInEpoch(epoch, at);
+        if (screen) return screen.lines.reduce((n, row) => n + row.length, 0);
       }
       return r.text.reduce((n, l) => n + l.text.length, 0);
     };
@@ -650,7 +655,7 @@ export class SessionHistory {
       let spent = 0;
       let take = window.length;
       for (let i = window.length - 1; i >= 0; i--) {
-        const cost = costOf(window[i]!);
+        const cost = costOf(window[i]!, start.index + i);
         // A single delivery larger than the whole budget still comes back in
         // full: truncating it would make the one thing asked for unreadable.
         // This only applies to the newest one — once something fits, the cut
@@ -664,11 +669,15 @@ export class SessionHistory {
         take = i;
       }
       if (take > 0) {
-        const cut = window[take - 1]!;
+        const cutAt = take - 1;
+        const cut = window[cutAt]!;
         omitted = {
           count: take,
           reason: 'budget',
-          screen: this.screenInEpoch(epoch, epoch.records.indexOf(cut)) ?? null,
+          // `window` is a contiguous run from `start.index`, so `window[i]` is
+          // `epoch.records[start.index + i]` -- the identity the `records` walk
+          // below uses, and the reason neither end scans the epoch to find it.
+          screen: this.screenInEpoch(epoch, start.index + cutAt) ?? null,
           fromSeq: cut.seq,
         };
         records = window.slice(take);

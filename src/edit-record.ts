@@ -112,8 +112,6 @@ const EVENT_OPS: ReadonlySet<OpName> = new Set<OpName>([
  * classifier, so the corpus can ask the same questions the classifier does.
  */
 export const OP = {
-  /** A DEC private mode change: shape or behaviour, not content. */
-  isModeChange: (n: OpName): boolean => n === 'DECSET' || n === 'DECRST' || n === 'RIS',
   /** A structural event, fired by the emulator rather than written. */
   isEvent: (n: OpName): boolean => EVENT_OPS.has(n),
   /**

@@ -777,6 +777,13 @@ export class TerminalSession {
       let afterSnap = groupStartSnap;
       let after = groupStart;
 
+      // The number this update is filed under, named once. `_seq` counts
+      // updates and is incremented once, after the deliveries below are
+      // emitted, so it is still the previous update at both places that need
+      // this number; the delivery stamps and the update stamp have to agree on
+      // which group they are describing, and this is the one copy they share.
+      const groupNumber = this._seq + 1;
+
       for (const part of parts) {
         // One witness, and it belongs to the model: `feed` takes the frames,
         // counts the ops and the scroll, judges the text, and hands all of it
@@ -809,7 +816,7 @@ export class TerminalSession {
         this.noteWritten(grid, toByte);
         const delivery: Delivery = {
           seq,
-          group: group ? this._seq + 1 : seq,
+          group: group ? groupNumber : seq,
           at: Date.now(),
           fromByte: partFromByte,
           toByte,
@@ -826,6 +833,17 @@ export class TerminalSession {
       }
 
       this._seq++;
+      // The state this update ends at: the last raw delivery it covered, or --
+      // when there was no group to cover them -- the head of the stream. Named
+      // once because it is `seq` and, ungrouped, the group number too.
+      //
+      // The numbering is the raw delivery's, which is the numbering the
+      // timeline and `history_read` address: a group that swallowed 1..7
+      // reports 7, and everything between stays addressable. The previous
+      // counter counted *updates*, which skipped the frames a group collapsed
+      // -- the one number an agent holds was not one it could address history
+      // with.
+      const endsAt = rawTo === 0 ? this._rawSeq : rawTo;
       const classified = classify({
         before: groupStart,
         after,
@@ -836,18 +854,11 @@ export class TerminalSession {
 
       return {
         sessionId: this.id,
-        // The state this update ends at, in the same numbering the timeline
-        // records with: `rawTo` is the last raw delivery it covers, so a group
-        // that swallowed 1..7 reports 7, and everything between is still
-        // addressable. The previous update counter (`_seq`) counted *updates*,
-        // which skipped the frames a group collapsed -- the one number an agent
-        // holds was not one it could address history with.
-        seq: rawTo === 0 ? this._rawSeq : rawTo,
-        // The group this update was shown as — the same number the deliveries it
-        // merged were stamped with (`delivery.group`), which was computed *before*
-        // the increment below and so is `this._seq` afterwards, not one more.
-        // Ungrouped, each delivery is its own group and the two numbers coincide.
-        group: group ? this._seq : rawTo === 0 ? this._rawSeq : rawTo,
+        seq: endsAt,
+        // The group this update was shown as: the same number the deliveries it
+        // merged were stamped with (`delivery.group`). Ungrouped, each delivery
+        // is its own group and the two numbers coincide.
+        group: group ? groupNumber : endsAt,
         at: Date.now(),
         fromByte,
         toByte: classified.toByte,
@@ -955,19 +966,28 @@ export class TerminalSession {
    * the result deliberately does not claim it.
    */
   async waitForIdle(options: WaitOptions): Promise<WaitResult> {
+    // All three reasons this wait can end on carry the same fields, so the
+    // object is built in one place: the branches differ only in which reason
+    // they name, and writing that object out three times is how the fields
+    // drift apart between them.
+    const ended = (reason: WaitReason, state: SessionState): Omit<WaitResult, 'waitedMs'> => ({
+      reason,
+      state,
+      seq: this.seq,
+    });
     return this.wait<Omit<WaitResult, 'waitedMs'>>({
       timeoutMs: options.timeoutMs,
       found: (state) =>
         state.drained === true && state.idleMs !== null && state.idleMs >= options.idleMs
-          ? { reason: 'idle', state, seq: this.seq }
+          ? ended('idle', state)
           : null,
       // Nothing more can arrive once the process is gone and its output has
       // been parsed, so sitting out a quiet period would no longer be evidence
       // of anything. Ending here rather than waiting for one.
-      onExit: (state) => ({ reason: 'exited', state, seq: this.seq }),
+      onExit: (state) => ended('exited', state),
       // Named rather than left to `wait`'s bare fallback, which builds a
       // `timeout` with no fields beyond the reason and the state.
-      onTimeout: (state) => ({ reason: 'timeout', state, seq: this.seq }),
+      onTimeout: (state) => ended('timeout', state),
       // Not drained, there is no moment to compute: only the pipeline knows
       // when it will finish, so this waits on the change rather than on a
       // clock. Drained, it waits exactly until the quiet period would elapse.
@@ -1036,6 +1056,33 @@ export class TerminalSession {
       }
     });
 
+    // The result has two shapes and only two, which is the rule `screen`
+    // documents: a match is the answer when there is one, and the screen is the
+    // answer when there is not. Building them here rather than at each of the
+    // three branches is what keeps that rule true -- a fourth branch added
+    // later gets it for free instead of re-deciding which fields to carry.
+    const outcome = {
+      matched: (match: OutputMatch, state: SessionState): Omit<OutputWaitResult, 'waitedMs'> => ({
+        reason: 'matched',
+        match,
+        screen: null,
+        state,
+        sinceByte,
+        seq: this.seq,
+      }),
+      endedOn: (
+        reason: 'exited' | 'timeout',
+        state: SessionState,
+      ): Omit<OutputWaitResult, 'waitedMs'> => ({
+        reason,
+        match: null,
+        screen: this.screen.snapshot(),
+        state,
+        sinceByte,
+        seq: this.seq,
+      }),
+    };
+
     try {
       // Awaited inside the `try`, not returned straight out of it: the
       // `finally` below unsubscribes, and returning an unresolved promise would
@@ -1047,29 +1094,12 @@ export class TerminalSession {
 
       return await this.wait<Omit<OutputWaitResult, 'waitedMs'>>({
         timeoutMs: options.timeoutMs,
-        found: (state) =>
-          hit
-            ? { reason: 'matched', match: hit, screen: null, state, sinceByte, seq: this.seq }
-            : null,
+        found: (state) => (hit ? outcome.matched(hit, state) : null),
         // Nothing more can arrive and nothing matched, so waiting longer cannot
         // change the answer -- the same early end as `waitForIdle`, for the
         // same reason: the quiet period would no longer be evidence.
-        onExit: (state) => ({
-          reason: 'exited',
-          match: null,
-          screen: this.screen.snapshot(),
-          state,
-          sinceByte,
-          seq: this.seq,
-        }),
-        onTimeout: (state) => ({
-          reason: 'timeout',
-          match: null,
-          screen: this.screen.snapshot(),
-          state,
-          sinceByte,
-          seq: this.seq,
-        }),
+        onExit: (state) => outcome.endedOn('exited', state),
+        onTimeout: (state) => outcome.endedOn('timeout', state),
       });
     } finally {
       off();
@@ -1160,6 +1190,30 @@ export class TerminalSession {
       box.found = this._lastUpdate;
     }
 
+    // The three ways to end without a group carry the same twelve fields and
+    // differ in exactly two: the reason, and whether there is a screen to show
+    // -- `disposed` has none, since the listeners are gone with the model that
+    // would have produced one. Built in one place so a field added later cannot
+    // reach two of the three and quietly miss the third.
+    const noGroup = (
+      reason: Exclude<GroupWaitReason, 'group'>,
+      screen: ScreenSnapshot | null,
+      state: SessionState,
+    ): Omit<GroupWaitResult, 'waitedMs'> => ({
+      reason,
+      afterInput: null,
+      seq: this.seq,
+      group: null,
+      collapsed: null,
+      text: null,
+      segments: null,
+      changedRows: null,
+      io: null,
+      screen,
+      state,
+      sinceSeq,
+    });
+
     try {
       // Awaited inside the `try`, not returned straight out of it: the
       // `finally` below unsubscribes, and a `return` of an unresolved promise
@@ -1189,37 +1243,11 @@ export class TerminalSession {
           // Ending here with a reason rather than letting the deadline run out,
           // which would look like a timeout the caller has to interpret.
           if (disposed) {
-            return {
-              reason: 'disposed',
-              afterInput: null,
-              seq: this.seq,
-              group: null,
-              collapsed: null,
-              text: null,
-              segments: null,
-              changedRows: null,
-              io: null,
-              screen: null,
-              state,
-              sinceSeq,
-            };
+            return noGroup('disposed', null, state);
           }
           return null;
         },
-        onExit: (state) => ({
-          reason: 'exited',
-          afterInput: null,
-          seq: this.seq,
-          group: null,
-          collapsed: null,
-          text: null,
-          segments: null,
-          changedRows: null,
-          io: null,
-          screen: this.screen.snapshot(),
-          state,
-          sinceSeq,
-        }),
+        onExit: (state) => noGroup('exited', this.screen.snapshot(), state),
         // Nothing arrived and no group is coming. The wait reports the screen it
         // is looking at *and* the state that screen is at -- `seq` is the
         // current state, not `sinceSeq`, because `sinceSeq` labels a different
@@ -1228,20 +1256,7 @@ export class TerminalSession {
         // `feedbacks/edca2559`: a timeout at `seq: 33` beside a screen 4 states
         // newer, and a driver that re-read to get an addressable screen the
         // response had already handed it.
-        onTimeout: (state) => ({
-          reason: 'timeout',
-          afterInput: null,
-          seq: this.seq,
-          group: null,
-          collapsed: null,
-          text: null,
-          segments: null,
-          changedRows: null,
-          io: null,
-          screen: this.screen.snapshot(),
-          state,
-          sinceSeq,
-        }),
+        onTimeout: (state) => noGroup('timeout', this.screen.snapshot(), state),
       });
     } finally {
       off();

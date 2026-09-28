@@ -129,6 +129,19 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
 
   const session = (id: string) => host.session(id);
 
+  // One address space, for both ends of a read. Declared once because that is
+  // the fact the two parameters share -- the ends "need not be the same kind"
+  // but they are the same *kinds*, and two copies of the union are two
+  // definitions of what an address is. A kind added to one and not the other
+  // would be a range that cannot be expressed.
+  const address = z.union([
+    z.string(),
+    z.object({ token: z.string() }),
+    z.object({ seq: z.number().int().nonnegative() }),
+    z.object({ at: z.number().int().nonnegative() }),
+    z.object({ byte: z.number().int().nonnegative() }),
+  ]);
+
   server.registerTool(
     'open_session',
     {
@@ -538,24 +551,10 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
         'report. `state.exit` on a read is the same fact without the timeline.',
       inputSchema: {
         sessionId: z.string(),
-        from: z
-          .union([
-            z.string(),
-            z.object({ token: z.string() }),
-            z.object({ seq: z.number().int().nonnegative() }),
-            z.object({ at: z.number().int().nonnegative() }),
-            z.object({ byte: z.number().int().nonnegative() }),
-          ])
+        from: address
           .optional()
           .describe('Where to start: a token, or {seq}, {at} (ms) or {byte}. Default: the beginning.'),
-        to: z
-          .union([
-            z.string(),
-            z.object({ token: z.string() }),
-            z.object({ seq: z.number().int().nonnegative() }),
-            z.object({ at: z.number().int().nonnegative() }),
-            z.object({ byte: z.number().int().nonnegative() }),
-          ])
+        to: address
           .optional()
           .describe('Where to stop, same address space. Default: read on from `from`.'),
         limit: z.number().int().positive().optional().describe('Cap on records, groups or lines. Default 50.'),
