@@ -23,10 +23,16 @@ are driving.
 3. **`send_sequence`** — writes several inputs in one call: `{text}`, `{key}` or `{byte}`,
    in order. Use it for any keystroke that has no character — arrows, Tab, Escape, Ctrl-C —
    and for "type this, then press Enter".
-4. **Wait. Do not read immediately.** A read taken straight after a send returns the
-   state from *before* the send was processed. This is the most common way a driver
-   silently accomplishes nothing.
-5. **`read_screen`** — what is on the screen now, what changed, and the session state.
+4. **Wait — and take the change from the wait.** A read taken straight after a send
+   returns the state from *before* the send was processed; this is the most common way a
+   driver silently accomplishes nothing. **`wait_for_group` blocks until the program
+   finishes one act of output and returns that act** — the screen, what changed on it
+   (`segments`, `text`), and the session state — so `send` → `wait_for_group` is the whole
+   loop in two calls. Reach for `wait_for_idle` only when "nothing arrived for a while" is
+   the fact you want; it returns no screen, so seeing anything costs a second call.
+5. **`read_screen`** — the last classified update and the state. For the same state that is
+   what a group wait just handed you, so use it when you want the screen *without* waiting,
+   or when output arrived after your wait ended.
 6. **`close_session`** — ends the process tree. History stays readable afterwards.
 
 ## Keys
@@ -58,6 +64,13 @@ normally and `SS3 B` when the program has enabled application cursor keys. That 
 program that never advertises readiness can still get the wrong byte — the mode it set has
 not been parsed yet. Wait for output from the program before sending it keys.
 
+**A key that only counts twice in quick succession has to go in one batch.** Two
+`{key: "ctrl+c"}` steps in one call arrive as one write, which is what a program waiting for
+a double press is measuring. Sent as two calls they are a model round trip apart — seconds —
+so the program sees two single presses and the gesture does nothing, which reads exactly like
+a key that was ignored. Measured in a driving run: two `ctrl+c` calls 21s apart, a screen that
+did not change, and six further calls spent establishing that nothing had happened.
+
 **Nothing waits inside a batch.** It is a sequence of writes at one instant, not a script
 with reactions. Send, then wait, then read — keep that loop in your own control.
 
@@ -68,8 +81,10 @@ screen will tell you that as directly.
 
 ## Waiting
 
-Two waits. They answer different questions, and both are bounded — you never supply
-a polling interval, and you should never sleep instead.
+Three waits, answering different questions. All are bounded — you never supply a polling
+interval, and you should never sleep instead. **`wait_for_group` is the default for a
+full-screen program**: it is the only wait that returns the change with the verdict, so it
+ends a loop rather than starting a second call.
 
 **`wait_for_idle {idleMs, timeoutMs}`** — blocks until the pty has been quiet for
 `idleMs` *and* everything it produced has been parsed. Returns `reason`:
@@ -108,11 +123,21 @@ wait-then-eyeball whenever the program has a readiness signal you can name.
 
 **`wait_for_group {sinceSeq?, timeoutMs}`** — blocks until the program finishes **one act of
 output**. This is the wait a full-screen TUI needs. Returns `reason` (`group`, `disposed`,
-`exited`, `timeout`) and, on a group, `seq`, `group`, `collapsed` and `screen` together.
+`exited`, `timeout`) and, on a group, the act whole: `seq`, `group`, `collapsed`, `screen`,
+and the same `segments`/`text`/`io` a read reports for that state — **so a group wait is not
+a prelude to a read.** On `exited`/`timeout`/`disposed` no act arrived: those three are
+`null`, and `screen` is what the terminal looks like at that moment.
 
 - A repainting menu has no stable text to anchor a pattern on, and idle answers "it went
   quiet" without saying whether a repaint happened at all. A group ends where the run
   of output did — which is measured, not interpreted (see §From facts to a use case).
+- **`text` and `segments` are the part a screen cannot show you.** `text` is the lines the
+  act completed; `segments` is what its bytes did to the grid — appended text or a redrawn
+  surface, and whether they erased or overwrote. **`text: []` beside a non-empty `segments`
+  is an act that repainted without writing a line**: a cursor moving, a highlight following
+  it, a menu drawn over itself. A cursor move can leave every row identical, so comparing
+  the two screens calls it "nothing happened"; the fields do not. That is the difference
+  between a key that did something invisible and a key that was ignored.
 - **`collapsed.reason` says how it ended, and the four do not mean the same thing**: `gap`
   no bytes arrived for `gapMs`; `bytes`/`chunks` are the caps being reached, cutting a group open
   **while it is still writing**, so more output is coming; `flush` is a resize or exit.
@@ -121,11 +146,11 @@ output**. This is the wait a full-screen TUI needs. Returns `reason` (`group`, `
 - `sinceSeq` defaults to the state you last typed at, so a group that closed *before* your
   input cannot satisfy the wait. Pass the `seq` you last saw to continue from there — a
   firehose produces a stream of groups, so loop on it.
-- **`collapsed.grid` is `null` on a resize or an alt-screen switch**, which are the largest
-  changes there are, not the smallest. Do not read `grid: null` as "nothing happened".
 
 For example, a menu that repaints on every keypress: send `down`, then
-`wait_for_group {timeoutMs: 5000}`. That resolves on the repaint, not on a guess about time.
+`wait_for_group {timeoutMs: 5000}`. That resolves on the repaint, not on a guess about time,
+and hands you the repaint — `text: []` with a `drawing` segment — so there is nothing left to
+read.
 
 Or a REPL that prints `>>> ` when it is ready: after sending a line, wait for
 `{pattern: "^>>>$", timeoutMs: 20000}`. That resolves on the *next* prompt, not the one
@@ -133,19 +158,25 @@ you were already looking at.
 
 ## Reading
 
-`read_screen` returns `screen` (the rows as they are now), `state`, and — once output
-has arrived — the last classified update:
+`read_screen` returns `screen` (the rows as of the last classified update — not a fresh
+snapshot, so `state.bytesPending > 0` means bytes have arrived that it does not show yet),
+`state`, and, once output has arrived, that update's change report. **A `wait_for_group`
+returned this same report for the state it ended at**, so reading straight after one is the
+same answer again unless output arrived since.
 
 - `segments` — what changed, as spans of byte range, each flagged `erased`,
   `overwrote`, `reachedBack`, `scrolledBy`, `altScreen`. The server has already
   decided whether a change is appended text or a redrawn surface; you do not have to.
 - `text` — the lines this update completed, in order. This is the record of what was
-  *written*, including lines that have already scrolled off the screen.
+  *written*, including lines that have already scrolled off the screen. **Empty `text`
+  beside a non-empty `segments` means the update repainted and wrote no line.**
 - `collapsed` — present when output was grouped. `intermediates: true` means the
   screen you are looking at is the net effect of several deliveries, and **states
   existed that you were not shown**. Those states are not lost: take
   `collapsed.rawFrom`/`rawTo` and read them with
   `history_read({from:{seq:rawFrom}, to:{seq:rawTo}, screen:true})`.
+- `io` — `bytesRead`, a monotonic watermark you can compare against a later read, and
+  `bytesPending`.
 
 ### `seq` — one number for the whole timeline
 
@@ -162,8 +193,6 @@ history with:
 **`seq` and `group` are not the same number**, and mixing them silently narrows what you
 see: a group spanning 1..4 has `seq: 4`, so looking its records up by `seq` finds only
 the last one. `group` is what every record in the span shares.
-- `io` — `bytesRead`, a monotonic watermark you can compare against a later read, and
-  `bytesPending`.
 
 `state` rides on every read: `running`, `idleMs` (`null` before the first byte),
 `drained`, `bytesPending`, `exit`. It is how you tell "output has finished" from "the
@@ -184,10 +213,10 @@ is a claim about the program.** Cross that line only with evidence you assembled
 
 | You want to know | What the server gives you | What you must add |
 |---|---|---|
-| Did my input do anything? | `written`, `state.inputUnconsumed`, `afterInput` | Compare the screen before and after. `written` proves what was sent, never that the program read it. |
+| Did my input do anything? | `written`, `afterInput`, the wait's `text` and `segments` | `written` proves what was sent, never that the program read it. `afterInput: true` beside a non-empty `segments` is output that followed your write — `text` shows the line it wrote, a `text: []` there shows one it only redrew. |
 | Is the program waiting for me? | **nothing** — it is not observable | See below. Do not look for `atPrompt`; it does not exist, by measurement. |
 | Is it done? | `reason: idle/exited/timeout`, `state.drained` | Nothing proves "done" while it runs (L1.2). `exited` + `drained` is the only closed set. Otherwise: name a signal the program prints, or accept a confidence interval. |
-| Did this repaint mean anything? | `collapsed.chunks`, `seq`, the screen | Read the span with `history_read`; a highlight that moved and moved back nets to no visible change, and only the count says anything happened. |
+| Did this repaint mean anything? | `text` and `segments` from the wait, `collapsed.chunks`, `seq` | `text: []` with a non-empty `segments` is a repaint that wrote no line; `collapsed.chunks > 1` means states were swallowed — read the span with `history_read`. |
 
 ### "Is it waiting for me?" — not observable, and what to do instead
 
@@ -223,10 +252,10 @@ instead is two facts:**
 1. **State the observation, then the inference, separately.** "The wait returned
    `gap` after 40ms and the screen shows `beta` selected" is two sentences for a reason.
    Collapsing them into "it selected beta" hides the one thing you could be wrong about.
-2. **A null is not a zero.** `grid: null` means *no grid delta exists* — which includes a
-   resize and an alt-screen switch, some of the largest changes there are, and a change
-   that touched only the cursor. `collapsed: null` means nothing was merged. Neither means
-   "nothing happened".
+2. **A null is not a zero.** `collapsed: null` means nothing was merged. `text: []` does not
+   mean nothing happened — it means nothing was *written*; `segments` is where a repaint
+   shows up. `state.bytesPending` is `null` when the number is not knowable, and `0` only
+   when it is genuinely zero.
 3. **`reason` describes the wait, not the program.** `gap` = no bytes for `gapMs`;
    `bytes`/`chunks` = a cap was reached; `flush` = resize/exit/dispose forced it. None of
    them says the program is still working, is idle, or will produce more.
@@ -240,14 +269,17 @@ instead is two facts:**
 ### Example: a full-screen menu
 
 ```
-send_sequence {key: down}             → written: the bytes
-wait_for_group {timeoutMs: 5000}      → reason: group, collapsed.reason: gap, seq: 12, screen
-read the screen                       → the highlight moved to row 2
+send_sequence {key: down}          → written: the bytes
+wait_for_group {timeoutMs: 5000}   → reason: group   collapsed.reason: gap   seq: 12
+                                     text: []        segments: [{…}]
+                                     screen: the rows, with the highlight on row 2
 ```
 
-Facts: bytes written; a group closed after a gap at state 12; the screen shows row 2
-highlighted. **Inference (yours):** the arrow key moved the selection. The server never
-claimed that, and could not — it saw bytes out and a repaint back.
+Two calls, nothing left to read — the wait carried the act. Facts: bytes written; a group
+closed after a gap at state 12; those bytes changed the grid and **completed no line**
+(`text: []`, with a segment covering them). **Inference (yours):** the arrow key moved the
+selection. The server never claimed that, and could not — it saw bytes out and a repaint
+back.
 
 ## Errors
 
@@ -282,15 +314,16 @@ is for a human and says what to fix.
 
 ## Habits that make a run legible
 
-- Send one thing, wait for a signal you can name, then read. Keep that order.
+- Send one thing, wait for it, and take the change from the wait. Keep that order.
 - **Name keys; do not craft escape bytes as text.** A raw `ESC` typed as text is exactly
   what a transport drops, and a lone `ESC` is ambiguous to a reader besides. If
   `send_sequence` does not know the key you need, `{byte}` is the fallback — and if that
   is outside `0x01`–`0x7f`, use `{text}` and send the character.
 - Report the facts you observed — what you sent, what the wait returned, what the
   screen showed — rather than a conclusion the observations do not support.
-- When a wait times out, read the screen and say what you saw instead of retrying
-  blindly. A timeout is information.
+- When a wait times out, say what it ended on instead of retrying blindly. A timeout is
+  information, and `wait_for_output` and `wait_for_group` already carry the screen they
+  timed out at — only `wait_for_idle` leaves you needing a read.
 - Prefer an explicit anchored pattern over a long `idleMs`: a guess about time is a
   guess, a pattern is an observation.
 - Keep the `bytesRead` watermark from a read when you expect to compare it with a

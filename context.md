@@ -130,12 +130,12 @@ module exists and the failure it prevents.
 | `groups.ts` | 356 | **Group boundaries** — where one run of output ends. Inferred from silence, so it is a
    measured boundary, not a declared one; it is also a classification input (§9.3). `DEFAULT_GROUP_POLICY = {gapMs: 50, maxBytes: 64KB, maxChunks: 256}`. `GroupDetector`, `groupByGap`, `FakeClock`. |
 | `history.ts` | 982 | **The timeline.** `SessionHistory` (epochs, records, `read`, `screenAt`, `deliveries`, `groups`, `textSince`, `tokenAt`) and `HistoryStore`. |
-| `session.ts` | 1427 | **The L0.4 session**: pty + screen + classifier as one object. `TerminalSession`: `feed`, `waitForIdle`, `waitForOutput`, `waitForGroup` (all three over one private `wait` skeleton), `state`, `resize`, `onUpdate`/`onDelivery`/`onExit`/`onResize`/`onDispose`, `dispose`. |
+| `session.ts` | 1460 | **The L0.4 session**: pty + screen + classifier as one object. `TerminalSession`: `feed`, `waitForIdle`, `waitForOutput`, `waitForGroup` (all three over one private `wait` skeleton), `state`, `resize`, `onUpdate`/`onDelivery`/`onExit`/`onResize`/`onDispose`, `dispose`. |
 | `registry.ts` | 53 | `SessionRegistry` — live sessions by id. Deliberately **history-agnostic**: dropping a live session must not discard what it did. |
 | `host.ts` | 89 | **The composition root.** `SessionHost.open()` creates a session *and starts recording it* in one call, because two calls would let a caller forget the second and get a working terminal with silently empty history. |
 | `keys.ts` | 480 | Named keys + `composeSteps`. The key table, mode-dependent encoding (`CSI B` vs `SS3 B`), `escapeBytes`, `KeyInputError`. |
 | `match.ts` | 84 | `wait_for_output` matching: `matchRow`, `matchLine`, `trimRow`. |
-| `mcp.ts` | 656 | **The MCP surface** — 9 tools. See §7. |
+| `mcp.ts` | 696 | **The MCP surface** — 9 tools. See §7. |
 | `types.ts` | 90 | `SessionId`, `GroupPolicy`, `SessionOptions`, `DEFAULT_COLS/ROWS` (80/24), `assertGridSize` (shared so a pty and an emulator can never disagree about a size). |
 | `env.ts` | 25 | `sanitizeEnv`, `defaultShell`. |
 
@@ -326,9 +326,9 @@ definition is context the agent pays for on every turn.)
 | `send_sequence` | Write several inputs in **one write**: steps of `{text}`, `{key}` or `{byte}`, in order. Reports `written` and per-step bytes. |
 | `wait_for_idle` | `{sessionId, idleMs, timeoutMs}` → reason: `idle` \| `exited` \| `timeout`. |
 | `wait_for_output` | `{sessionId, pattern, surface?, sinceByte?, timeoutMs}` → reason: `matched` \| `exited` \| `timeout`, plus `match` `{surface, text, atByte, row, buffer}`. **On a non-match, `screen` carries the rows** it ended on. |
-| `wait_for_group` | `{sessionId, sinceSeq?, timeoutMs}` → reason: `group` \| `disposed` \| `exited` \| `timeout`. See below. |
-| `read_screen` | `{sessionId}` → `screen`, `segments`, `text`, `collapsed`, `io`, `state`. `update: null` when nothing has arrived yet. |
-| `history_read` | Address the timeline. `{sessionId, from?, to?, limit?, level?, screen?}` — see below. |
+| `wait_for_group` | `{sessionId, sinceSeq?, timeoutMs}` → reason: `group` \| `disposed` \| `exited` \| `timeout`. **On a group it carries the act whole** — `seq`, `group`, `collapsed`, `screen`, and the same `segments`/`text`/`io` a read reports for that state — so a wait is not a prelude to a read. See below. |
+| `read_screen` | `{sessionId}` → `screen`, `segments`, `text`, `collapsed`, `io`, `state`. `update: null` when nothing has arrived yet. A `wait_for_group` already returned this same report for the state it ended at. |
+| `history_read` | Address the timeline. `{sessionId, from?, to?, limit?, level?, screen?}` → …, plus `ended` (`{at, exitCode, signal}`, `null` while it runs) — see below. |
 | `close_session` | End the session, kill the process tree. **History stays readable afterwards** — closing is not forgetting. |
 
 ### `wait_for_group` — the wait a TUI needs
@@ -343,6 +343,19 @@ is positive and content-agnostic: it ends when the program's own act ends.
 fallback, not the truth". So this is not *more* correct than idle; it is better aimed, ending
 on the unit the classifier already computes.
 
+**The wait carries the change, not only the screen.** A group result includes `segments`, `text`
+and `io` — the same report `read_screen` returns for that state — so `send` → `wait_for_group` is
+a complete loop in two calls, and a read after it is the same answer again unless output arrived
+since. This was added after a driven run (`feedbacks/1/`) whose every send was followed by a
+`wait_for_idle` and then a `read_screen`: three calls for what the group wait already had, and
+`wait_for_idle` returns no screen at all, so the third call was unavoidable in that pairing.
+
+- **What `segments` adds is the part a screen cannot show.** `text: []` beside a non-empty
+  `segments` is an act that repainted and completed no line — a cursor moving, a highlight
+  following it, a menu drawn over itself. Comparing two screens calls a cursor move "nothing
+  happened"; the fields do not. Measured: in the run above, two `ctrl+c` calls 21s apart left the
+  screen byte-identical while `segments` reported `drawing`/`erased`/`overwrote` and `text` was
+  empty — **the answer was in the payload and the payload buried it.**
 - **Hangs on `onUpdate`, not on the group's close.** At close time nothing exists yet: the
   detector's callback is `feed(group.bytes, group).then(deliver)`, and `feed` is async and
   queued. A waiter woken there would have to read again to see what the group was — the round
@@ -363,12 +376,18 @@ on the unit the classifier already computes.
 - **A session opened without grouping still ends the wait**: with no detector there is no
   boundary to group to, so each update is a group of one and `collapsed` is `null`.
 
-**`collapsed.grid` being `null` does not mean nothing changed.** `gridDelta` returns `null`
-across a resize or a buffer switch (`delta.ts:100-101`), and `resize()` flushes the group
-first — so the resize group is `reason:'flush'` with `grid:null`, the largest change there is.
-It is also `null` when the only change was the cursor, which is not part of a delta at all
-(`HistoryRecord.cursor`). **Three distinct meanings, one value**: no delta exists, and whether
-anything happened is decided by comparing screens or reading `seq`, never by reading `grid`.
+**There is no `collapsed.grid`, and no `grid` on the surface at all — do not look for one.**
+The grid delta lives on the update (`SessionUpdate.grid`), not on `CollapsedInfo`, and `present()`
+in `mcp.ts` does not expose it. Earlier revisions of this file and `PLAN.md` referred to
+`collapsed.grid`; the field never existed. What the surface exposes instead is `segments` and
+`text`, and **those are what decide whether anything happened.**
+
+The delta itself is still worth knowing about, because three distinct facts produce the same
+absent value: `gridDelta` returns `null` across a resize or a buffer switch (`delta.ts:100-101`),
+and `resize()` flushes the group first — so a resize closes its group as `reason:'flush'` with no
+delta, the largest change there is. It is also absent when the only change was the cursor, which
+is not part of a delta at all (`HistoryRecord.cursor`). Reading `null` as "nothing changed" is
+wrong in all three cases; read `segments` and `text`.
 
 ### Why `group` and not `job`
 
@@ -761,17 +780,36 @@ single verdict over a span the screen shows two kinds on.
 **Verified by real runs in this session:**
 
 - `npm run typecheck` — **clean, exit 0**.
-- `npm test` — **242 tests**, pinned to `--test-concurrency=2` (a real pty per test
-  file; running them all at once corrupts the heap under node-pty).
-- Corpus subset alone (`corpus/test/corpus.test.ts`) — **39 tests, 39 pass**.
-- `npm run corpus` — see the table below.
-- Git: branch `main`, HEAD `f874c49` *"feat: the pending prompt is not observable, so ship the
-  two facts that are"*. Working tree **clean** at the start of the maintenance pass; the pass
-  itself is uncommitted (see below).
-- The last four commits added `send_sequence` + named keys, `history_read` (one tool over the
-  timeline), the unified sequence number, `wait_for_group`, and a screen on failed waits.
+- `test/mcp.test.ts` — **20 tests, 20 pass**, two of them new in this job.
+- `npm test` — pinned to `--test-concurrency=2` (a real pty per test file; running them all at
+  once corrupts the heap under node-pty). The intended total is **244** (242 verified earlier,
+  plus the 2 this job added), but a full run *reports* fewer and the number moves between runs:
+  `test/wait-group.test.ts` and `test/life.test.ts` hit the `AttachConsole` crash at teardown and
+  their later tests never report (§12). **Confirmed against a clean HEAD with `git stash`: both
+  files fail identically there**, so it is not a change in the working tree. Both figures are
+  from Node v26.8.1 on Windows 11.
+- `npm run corpus` — not re-run in this job; the classifier was not touched, so the scores
+  below stand as previously verified.
+- Git: branch `main`, HEAD `e8e9ddd` *"Added test workspace for claude code and transcript
+  stripper."* The working tree carries this job's seven files, uncommitted.
 
-**Maintenance pass (this session, no new behaviour):** the `job` -> `group` rename was finished
+**This job — the wait carries the change.** Motivated by a driven run recorded in `feedbacks/1/`:
+17 MCP calls over 117s of wall clock, of which **116s was the driving model's own think time
+between calls — the server contributed none of it**, and 10 of the 17 calls were a
+`wait_for_idle` + `read_screen` pair after every send. `wait_for_group` already returned the
+screen, so it now returns the same change report a read does (`segments`, `text`, `io`), which
+makes `send` → `wait_for_group` a complete loop in two calls. `history_read` now returns `ended`
+(`{at, exitCode, signal}`) — recorded since L0.3 and never reachable from the surface. Two doc
+claims were deleted as false rather than reworded: `collapsed.grid` on `wait_for_group` in
+`src/mcp.ts` and in two places in the skill (the field has never existed — see §7), and the
+skill's "Two waits" heading while three waits have shipped. `send_sequence`'s description now
+says that a key which only counts twice in quick succession belongs in **one** batch: the run
+above sent two `ctrl+c` 21s apart because each cost a round trip, and a program measuring a double
+press sees two single presses there — it exited to `/exit` instead, after six calls spent
+establishing that the two `ctrl+c` had changed nothing. **That the answer was already in the
+payload is the point**: `segments` said `drawing`/`erased`/`overwrote` while `text` was empty.
+
+**Maintenance pass (a previous session, no new behaviour):** the `job` -> `group` rename was finished
 in the code — the primitive is `Group`, not `Job`, and `jobChunks` is `groupChunks` — and the
 three waits were collapsed onto one `wait()` skeleton in `session.ts`. Two things to know about
 the latter: `found` is asked *before* the exit check because a session can exit having already
@@ -802,14 +840,17 @@ deltas. Those run on the pty half too — the feed where things actually go wron
 - **L0 complete**: L0.1–L0.5. Real pty → faithful screen model → edit record → text log →
   classification → session → registry. `host.ts` composes session + recording in one call.
 - **L1 partly built**: named keys + composed batches (`send_sequence`, `src/keys.ts`);
-  `waitForIdle`; `waitForOutput`; real `bytesPending`; `SessionState`.
+  `waitForIdle`; `waitForOutput`; `waitForGroup` — which also carries the change report a read
+  gives for the same state (`segments`, `text`, `io`); `history_read` returning `ended`; real
+  `bytesPending`; `SessionState`.
 - **A first MCP surface** (9 tools). A spike: **the pending prompt and large pastes are not on
   it yet.** History paging and intermediate playback *are* — as one `history_read`.
 
 ### What is NOT built
 
-- L1.4 large pastes and a composed write-wait-respond call; L1.5 honest errors beyond the four
-  coded ones. **The pending prompt is not one of these — it is not implementable.** Measured:
+- L1.4 large pastes and a composed write-wait-respond call — a group wait carrying the change is
+  **not** that: nothing waits inside a write, and the reaction is still the caller's own call;
+  L1.5 honest errors beyond the four coded ones. **The pending prompt is not one of these — it is not implementable.** Measured:
   process state, child presence, echo probing and the node-pty API all fail to distinguish a
   shell at a prompt from one busy on a builtin. What shipped instead is objective:
   `state.inputUnconsumed` (a byte count) and `wait_for_group().afterInput` (placement).

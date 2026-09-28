@@ -361,6 +361,27 @@ export interface GroupWaitResult {
   group: number | null;
   /** What the group merged, or `null`. `chunks > 1` means states were swallowed. */
   collapsed: CollapsedInfo | null;
+  /**
+   * The completed lines this group produced, or `null` when no group arrived.
+   *
+   * The same lines a read reports for the same state, carried here so a wait
+   * and a read of one state agree instead of describing it twice.
+   */
+  text: TextLine[] | null;
+  /**
+   * What the group wrote and drew, or `null` when no group arrived.
+   *
+   * The same verdict the classifier reached for a read, and it is on the wait
+   * because that verdict -- appended text against a redrawn surface -- is what
+   * a caller driving a full-screen program needs and cannot recover from the
+   * screen alone. **`text` empty beside a non-empty `segments` is a group that
+   * repainted without writing a line**: a cursor moving, a highlight following
+   * it, a menu drawn over itself. That is a different fact from "output
+   * stopped", and the screen looks the same either way.
+   */
+  segments: Segment[] | null;
+  /** The byte watermark this group reached, or `null` when no group arrived. */
+  io: SessionIo | null;
   /** The screen as it was when the wait ended, or `null` on `disposed`. */
   screen: ScreenSnapshot | null;
   /** What was observed when the wait ended. */
@@ -1057,6 +1078,9 @@ export class TerminalSession {
               seq: found.seq,
               group: found.group,
               collapsed: found.collapsed,
+              text: found.text,
+              segments: found.segments,
+              io: found.io,
               screen: found.screen,
               state,
               sinceSeq,
@@ -1072,6 +1096,9 @@ export class TerminalSession {
               seq: sinceSeq,
               group: null,
               collapsed: null,
+              text: null,
+              segments: null,
+              io: null,
               screen: null,
               state,
               sinceSeq,
@@ -1085,6 +1112,9 @@ export class TerminalSession {
           seq: sinceSeq,
           group: null,
           collapsed: null,
+          text: null,
+          segments: null,
+          io: null,
           screen: this.screen.snapshot(),
           state,
           sinceSeq,
@@ -1098,6 +1128,9 @@ export class TerminalSession {
           seq: sinceSeq,
           group: null,
           collapsed: null,
+          text: null,
+          segments: null,
+          io: null,
           screen: this.screen.snapshot(),
           state,
           sinceSeq,

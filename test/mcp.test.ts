@@ -600,11 +600,17 @@ test('a group wait returns the act whole, and its swallowed states are reachable
     group: number | null;
     collapsed: { chunks: number; rawFrom: number; reason: string } | null;
     screen: string[] | null;
+    text: string[] | null;
+    segments: Array<{ kind: string }> | null;
+    io: { bytesRead: number } | null;
   };
 
   assert.equal(group.reason, 'group', 'the wait ended on a group');
   assert.ok(group.screen, 'and carried the screen, so no second read is needed');
   assert.ok(group.seq > 0, 'ending at a state');
+  assert.ok(group.segments && group.segments.length > 0, 'and what changed on it, not only the screen');
+  assert.ok(group.text && group.text.length > 0, 'and the lines the act completed');
+  assert.ok(group.io && group.io.bytesRead > 0, 'and the byte watermark the group reached');
 
   // The number it reports is one the timeline addresses, so a group that
   // swallowed states hands back a span that can be played.
@@ -624,4 +630,125 @@ test('a group wait returns the act whole, and its swallowed states are reachable
       assert.ok(record.screen, 'with the screen it had');
     }
   }
+});
+
+/**
+ * The case this iteration exists for: a key that does something invisible.
+ *
+ * A repaint that completes no line is exactly what a screen cannot describe,
+ * and it is why a driver sent a key, waited, then read — two calls to learn
+ * something `read_screen` had already computed. The subject paints a row, then
+ * repaints that row over itself when it receives a byte: output follows the
+ * input, no line is completed, and the classifier's verdict is the only witness
+ * that anything happened at all.
+ */
+test('a group wait reports a repaint that wrote no line, and a read agrees', async (t) => {
+  const { client, host, close } = await connected();
+  t.after(() => {
+    host.disposeAll();
+    return close();
+  });
+
+  // Raw mode is a measured requirement here, not decoration: without it the
+  // console echoes the byte back and the echo is output of its own, which would
+  // make the group under test partly the terminal's doing.
+  const subject =
+    'try{process.stdin.setRawMode(true)}catch(e){};' +
+    "process.stdout.write('STATIC\\r\\n');" +
+    "process.stdin.once('data',()=>{process.stdout.write('\\x1b[1A\\x1b[2KREPAINTED')});" +
+    'setInterval(()=>{},1000);';
+  const opened = await call(client, 'open_session', {
+    command: process.execPath,
+    args: ['-e', subject],
+  });
+  const sessionId = (opened.structuredContent as { sessionId: string }).sessionId;
+  await call(client, 'wait_for_output', { sessionId, pattern: '^STATIC$', timeoutMs: 10000 });
+
+  // The byte the repaint is the answer to, so the group cannot close before the
+  // wait begins and the timing is the program's rather than the scheduler's.
+  await call(client, 'send_input', { sessionId, text: 'x' });
+
+  const waited = await call(client, 'wait_for_group', { sessionId, timeoutMs: 10000 });
+  const group = waited.structuredContent as {
+    reason: string;
+    seq: number;
+    afterInput: boolean | null;
+    text: string[] | null;
+    segments: Array<{ kind: string; overwrote: boolean; reachedBack: boolean }> | null;
+    io: { bytesRead: number } | null;
+  };
+
+  assert.equal(group.reason, 'group', 'the wait ended on the repaint');
+  assert.equal(group.afterInput, true, 'on output produced after the write');
+  assert.deepEqual(group.text, [], 'a repaint that completed no line reports no text');
+  assert.ok(group.segments && group.segments.length > 0, 'what its bytes did is reported instead');
+  assert.equal(group.segments![0]!.kind, 'drawing', 'a redrawn surface, not appended text');
+  assert.equal(group.segments![0]!.overwrote, true, 'written over cells that were not blank');
+  assert.equal(group.segments![0]!.reachedBack, true, 'above where the cursor was writing');
+  assert.ok(group.io && group.io.bytesRead > 0, 'and the bytes are counted, so "nothing happened" is refutable');
+
+  // The parity that makes the wait a substitute for the read rather than a
+  // prelude to it. The subject is quiet afterwards, so both calls are looking
+  // at the same state and have to agree about it field for field.
+  const read = (await call(client, 'read_screen', { sessionId })).structuredContent as {
+    seq: number;
+    text: string[];
+    segments: unknown[];
+  };
+  assert.equal(read.seq, group.seq, 'no output arrived in between, so this is the same state');
+  assert.deepEqual(read.text, group.text, 'a read and a wait of one state report the same text');
+  assert.deepEqual(read.segments, group.segments, 'and the same segments');
+});
+
+/**
+ * The exit code: recorded by the timeline since L0.3, and until now unreachable
+ * from the surface, so a driver that came back to a dead session could not ask
+ * how it died.
+ */
+test('history says how the process finished, and a driven close is not an exit', async (t) => {
+  const { client, host, close } = await connected();
+  t.after(() => {
+    host.disposeAll();
+    return close();
+  });
+
+  const opened = await call(client, 'open_session', {
+    command: process.execPath,
+    args: ['-e', "process.stdout.write('BYE-3\\r\\n');process.exit(3);"],
+  });
+  const sessionId = (opened.structuredContent as { sessionId: string }).sessionId;
+
+  // A quiet period that cannot be reached, so the exit is what ends the wait:
+  // with a reachable one, `idle` is found first and the exit is never reported.
+  const waited = await call(client, 'wait_for_idle', { sessionId, idleMs: 60000, timeoutMs: 15000 });
+  assert.equal((waited.structuredContent as { reason: string }).reason, 'exited', 'the process is gone');
+
+  const paged = (await call(client, 'history_read', { sessionId, level: 'text' })).structuredContent as {
+    ended: { at: number; exitCode: number | null; signal: number | null } | null;
+    epoch: { fromSeq: number | null; toSeq: number | null };
+  };
+  assert.ok(paged.ended, 'the end is recorded, and now it is reachable');
+  assert.equal(paged.ended!.exitCode, 3, 'with the code the process exited on');
+  assert.equal(paged.ended!.signal, null, 'and no signal, because none ended it');
+  assert.ok(paged.ended!.at > 0, 'and when it happened');
+
+  // A span reports it too: the end is a fact about the timeline, not the page.
+  const span = (await call(client, 'history_read', {
+    sessionId,
+    from: { seq: paged.epoch.fromSeq ?? 1 },
+    to: { seq: paged.epoch.toSeq ?? 1 },
+  })).structuredContent as { span: boolean; ended: { exitCode: number | null } | null };
+  assert.equal(span.span, true, 'a `to` reads a span');
+  assert.equal(span.ended?.exitCode, 3, 'and the span carries the end as well');
+
+  // The asymmetry worth knowing, asserted so it cannot drift in silence:
+  // closing disposes the pty without an exit event, so there is no code to
+  // report. `null` here is not "still running" -- it is "not recorded".
+  const second = (await call(client, 'open_session', {})).structuredContent as { sessionId: string };
+  await call(client, 'close_session', { sessionId: second.sessionId });
+  const after = (await call(client, 'history_read', {
+    sessionId: second.sessionId,
+    level: 'text',
+  })).structuredContent as { ended: unknown };
+  assert.equal(after.ended, null, 'a driven close records no exit code');
 });

@@ -246,6 +246,18 @@ The wait resolves on observation: a byte arriving, a feed finishing, an exit. No
 there is no moment to compute — only the pipeline knows when it will finish — so it waits on
 the change rather than on a clock.
 
+**The wait returns the change, and that is presentation, not a verdict.** A group wait carries
+the `segments` and `text` of the state it ended at — the same report a read gives for that state —
+so a driver that waited has no reason to read afterwards. It adds no judgement to the
+measurement: `segments` is the classifier's verdict about the grid, `text` is the lines the act
+completed, and whether either means the program is ready is still the caller's question, which is
+the only one §7 has ever answered. What it removes is a round trip, which is the thing that
+actually costs: in the run that motivated it (`feedbacks/1/`), 116 of 117 seconds of wall clock
+were the driving model's own think time between calls, so an observation is priced per call and
+not per computation. The one thing it buys that a screen cannot give is that `text: []` beside a
+non-empty `segments` is a repaint that completed no line — a cursor moving, a highlight following
+it — which two screens compared by eye report as nothing having happened.
+
 ## 8. Out of scope here
 
 - **Retention and pruning** — `L3.4`. The seam is in place: deltas make pruning snapshots inside

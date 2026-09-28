@@ -37,8 +37,10 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { SessionHost } from './host.js';
 import { composeSteps, escapeBytes, KeyInputError, KEY_SUMMARY, type Composed } from './keys.js';
+import type { Segment } from './classify.js';
 import type { HistoryPoint, HistoryReadOptions } from './history.js';
 import type { SessionUpdate } from './session.js';
+import type { TextLine } from './text-log.js';
 import type { SessionId } from './types.js';
 
 /** What went wrong, in a form a caller can branch on. */
@@ -52,22 +54,43 @@ function fail(code: ErrorCode, message: string) {
   };
 }
 
+/**
+ * The segments as the agent reads them: the verdict, the byte span, and the
+ * evidence it was reached on, flattened into one object.
+ *
+ * Flattened rather than nested because the evidence is the part a caller
+ * branches on, and a caller that has to reach through `evidence.` to find it is
+ * one that will not. `null` in, `null` out: a result that has no change to
+ * report says so rather than reporting an empty one, which is the difference
+ * between "no group arrived" and "a group arrived that changed nothing".
+ */
+function presentSegments(segments: readonly Segment[] | null) {
+  return segments === null
+    ? null
+    : segments.map((s) => ({
+        kind: s.kind,
+        fromByte: s.fromByte,
+        toByte: s.toByte,
+        erased: s.evidence.erased,
+        overwrote: s.evidence.overwrote,
+        reachedBack: s.evidence.reachedBack,
+        scrolledBy: s.evidence.scrolledBy,
+        altScreen: s.evidence.altScreen,
+      }));
+}
+
+/** The lines a change completed, as the agent reads them. `null` in, `null` out. */
+function presentText(text: readonly TextLine[] | null) {
+  return text === null ? null : text.map((l) => l.text);
+}
+
 /** One update, in the form the agent reads: what the screen is and what changed. */
 function present(update: SessionUpdate) {
   return {
     seq: update.seq,
     screen: update.screen.lines,
-    segments: update.segments.map((s) => ({
-      kind: s.kind,
-      fromByte: s.fromByte,
-      toByte: s.toByte,
-      erased: s.evidence.erased,
-      overwrote: s.evidence.overwrote,
-      reachedBack: s.evidence.reachedBack,
-      scrolledBy: s.evidence.scrolledBy,
-      altScreen: s.evidence.altScreen,
-    })),
-    text: update.text.map((l) => l.text),
+    segments: presentSegments(update.segments),
+    text: presentText(update.text),
     collapsed: update.collapsed,
     io: update.io,
   };
@@ -156,6 +179,11 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
         '. A key is encoded using the mode the program has set, read from the screen -- ' +
         '`down` is `CSI B`, or `SS3 B` when the program has turned on application cursor ' +
         'keys -- so the same call is right in a shell and in a full-screen editor.\n\n' +
+        '**A key that only counts twice in quick succession belongs in one batch.** Two ' +
+        '`{key: "ctrl+c"}` steps in one call arrive as one write, which is what a program ' +
+        'waiting for a double press is measuring. The same two keys sent as two calls are a ' +
+        'model round trip apart, so the program sees two single presses and the gesture does ' +
+        'nothing -- which reads exactly like a key that was ignored.\n\n' +
         'Nothing waits inside a batch. It is a sequence of writes at one instant, not a ' +
         'script with reactions; send, then wait, then read, and keep that loop in your own ' +
         'control. The result reports `written`, the bytes as they were actually handed to the ' +
@@ -230,7 +258,9 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
       description:
         'The screen as it is now, what changed on it, and how much output that change ' +
         'stands for. Returns the last classified update, or null when nothing has arrived ' +
-        'yet — which is not the same as an empty screen. Also reports `state`: whether ' +
+        'yet — which is not the same as an empty screen. **A `wait_for_group` already returned ' +
+        'this same report for the state it ended at**, so a read taken straight after one is ' +
+        'the same answer again unless output arrived since. Also reports `state`: whether ' +
         'the session is running, how long it has been idle, and whether what it produced ' +
         'has been read through. **`state.inputUnconsumed` is how many bytes you sent that ' +
         'no output has followed** — `null` before any input, `0` once something came back. ' +
@@ -382,23 +412,27 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
         'silence, not declared by the program* — nothing here can tell you the program ' +
         'finished an act, is still working, or will produce more. Whether this group is the ' +
         'unit you care about is your call. ' +
-        'Returns `reason`: `group` (with `seq`, `group`, `collapsed`, `screen`), `exited`, ' +
-        '`disposed`, or `timeout`. **`afterInput` says whether the group you got contains ' +
+        'Returns `reason`: `group`, `exited`, `disposed`, or `timeout`. **On a group the wait ' +
+        'carries the change itself** — `seq`, `group`, `collapsed`, `screen`, and the ' +
+        '`segments`, `text` and `io` a read would report for the same state — so a wait is ' +
+        'not a prelude to a read. `segments` is the part the screen cannot show you: a group ' +
+        'with `text: []` beside a non-empty `segments` repainted without writing a line, ' +
+        'which is a cursor moving or a highlight following it, not output that stopped. ' +
+        '**`afterInput` says whether the group you got contains ' +
         'bytes produced after your last write** — `null` before any input. `false` means the ' +
         'wait ended on output that was already in flight, so sending more now would be ' +
         'typing into something that has not read the last thing yet. It is placement, not ' +
         'causation: output after input may still be unrelated to it. ' +
-        '`disposed` (the session was closed), or `timeout`. ' +
         '**`collapsed.reason` is how the group ended, measured by the detector** — `gap`: no ' +
         'bytes arrived for `gapMs`; `bytes`: the merged bytes reached `maxBytes`; `chunks`: ' +
         'the merged deliveries reached `maxChunks`; `flush`: a resize, an exit or a dispose ' +
         'closed it. It does **not** say whether the program is still writing or whether more ' +
         'output is coming: at a byte interface that is not provable, and a claim either way ' +
         'would be a judgement dressed as an observation (GOAL.md L1.2). ' +
-        '**`collapsed.grid` is `null` when no grid delta exists** — which includes a resize ' +
-        'and an alt-screen switch, i.e. some of the largest changes there are, and also a ' +
-        'change that touched only the cursor. Do not read it as "nothing changed"; compare ' +
-        'the screens, or read `seq` and play the span back. ' +
+        '**A group is bytes, and bytes are not always a visible change.** A group of a few ' +
+        'hundred bytes can leave every row identical — a cursor moving, a highlight redrawn ' +
+        'on itself, a menu painted over itself. `text` and `segments` are what tell those ' +
+        'apart: comparing two screens can call a cursor move "nothing happened". ' +
         'When `collapsed.chunks > 1`, states existed that were not shown: read them with ' +
         '`history_read({from:{seq:collapsed.rawFrom}, to:{seq}, screen:true})`. ' +
         '`sinceSeq` defaults to the state the session was last typed at, so a group that ' +
@@ -422,7 +456,7 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
       const target = session(sessionId);
       if (!target) return fail('no_session', `no session ${sessionId}`);
       const result = await target.waitForGroup({ sinceSeq, timeoutMs });
-      const { screen, ...rest } = result;
+      const { screen, segments, text, io, ...rest } = result;
       const said =
         result.reason === 'group'
           ? `group ${result.group} at state ${result.seq} (${result.collapsed?.reason ?? 'none'})`
@@ -433,6 +467,12 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
           sessionId,
           ...rest,
           screen: screen ? screen.lines : null,
+          // The change itself, in the form a read reports it, so a wait and a
+          // read of one state are the same answer twice rather than two
+          // descriptions a caller has to reconcile.
+          segments: presentSegments(segments),
+          text: presentText(text),
+          io,
         },
       };
     },
@@ -457,7 +497,11 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
         'from `read_screen` is followed up: read the group\'s span with `screen: true` to see ' +
         'the states it merged. History stays readable after `close_session` (L0.3). ' +
         'Returns `next` to resume, `truncated` when the limit stopped the read, and ' +
-        '`stoppedAtEpochEnd` when the grid changed.',
+        '`stoppedAtEpochEnd` when the grid changed. **`ended` is how the process finished** ' +
+        '— `{at, exitCode, signal}`, or `null` while it is still running. `exitCode` is ' +
+        '`null` when a signal is what ended it, and it stays `null` after `close_session`: ' +
+        'closing disposes the pty without an exit event, so a driven close has no code to ' +
+        'report. `state.exit` on a read is the same fact without the timeline.',
       inputSchema: {
         sessionId: z.string(),
         from: z
@@ -556,6 +600,10 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
             structuredContent: {
               sessionId,
               span: true,
+              // A property of the timeline, not of the span: the caller that
+              // came back after a gap is the one that most needs to know the
+              // process is gone, and it is not something the span says.
+              ended: history.ended,
               truncated: capped.length < records.length,
               ...shaped,
             },
@@ -580,18 +628,9 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
                     at: j.at,
                     fromByte: j.fromByte,
                     toByte: j.toByte,
-                    text: j.text.map((l) => l.text),
+                    text: presentText(j.text),
                     screen: j.screen.lines,
-                    segments: j.segments.map((s) => ({
-                      kind: s.kind,
-                      fromByte: s.fromByte,
-                      toByte: s.toByte,
-                      erased: s.evidence.erased,
-                      overwrote: s.evidence.overwrote,
-                      reachedBack: s.evidence.reachedBack,
-                      scrolledBy: s.evidence.scrolledBy,
-                      altScreen: s.evidence.altScreen,
-                    })),
+                    segments: presentSegments(j.segments),
                     chunks: j.chunks,
                   })),
                 }
@@ -616,6 +655,7 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
             sessionId,
             span: false,
             epoch: page.epoch,
+            ended: history.ended,
             from: page.from,
             next: page.next,
             truncated: page.truncated,

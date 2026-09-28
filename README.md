@@ -76,9 +76,9 @@ recorded, and every one reconstructs exactly through the timeline, keyframe plus
 Those run on the pty half too, which is the feed where things actually go wrong.
 
 A **first MCP surface** exists (`src/mcp.ts`, `npm run mcp:http`): open a session, send
-input, send a batch of input as one write, wait for it to stop changing, wait for a pattern
-to appear, read the screen, address the timeline, close it. It is a spike — the pending
-prompt and large pastes are not on it yet.
+input, send a batch of input as one write, wait for it to stop changing, wait a group out,
+wait for a pattern to appear, read the screen, address the timeline, close it. It is a spike —
+the pending prompt and large pastes are not on it yet.
 
 `history_read` is one tool over the timeline, not a pair. Paging through what happened and
 replaying the frames a group swallowed are the same operation at different settings: `from` and
@@ -115,9 +115,19 @@ watermark defaults to the last input, so a prompt already on screen cannot match
 a wait starts. A match is still an observation, not a verdict: the terminal echoes what is
 typed, and an echo is new output too (`GOAL.md` L1.4).
 
+It can also **wait a group out** (`wait_for_group`), which is the wait a full-screen TUI needs:
+`wait_for_idle` is negative — it returns whether or not anything happened — and a repainting
+menu has no stable text for a pattern to anchor on, while a group ends where the program's own
+run of output did. **The group wait returns the change with it** — `segments`, `text` and `io`,
+the same report a read gives for that state — so `send` → `wait_for_group` is a whole loop in
+two calls. `segments` is the part a screen cannot show you: `text: []` beside a non-empty
+`segments` is a repaint that completed no line, which is a cursor moving or a highlight
+following it rather than output that stopped.
+
 Not built: the pending prompt, large pastes and a composed
-write-wait-respond call (L1.4), honest errors beyond the four coded ones (L1.5), and
-retention and durability (L3.4). Grouping is on by default
+write-wait-respond call (L1.4) — a group wait carrying the change is not that: nothing waits
+inside a write, and the reaction is still the caller's own call — honest errors beyond the four
+coded ones (L1.5), and retention and durability (L3.4). Grouping is on by default
 (`DEFAULT_GROUP_POLICY`); `SessionOptions.groupPolicy: false` opts out, and gives one update
 per raw pty read.
 
@@ -126,7 +136,7 @@ per raw pty read.
 ```bash
 npm install
 npm run typecheck     # src, test, scripts and corpus — one project
-npm run test          # 232 tests
+npm run test          # the whole suite — context.md §11 has the current count
 npm run smoke         # end-to-end against a real shell
 npm run corpus        # score the classifier across replay granularities
 ```
