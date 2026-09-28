@@ -139,6 +139,30 @@ test('a pattern that never appears times out, saying what it saw', async (t) => 
   assert.ok(result.state.idleMs !== null, 'with the facts, for the caller to judge');
 });
 
+test('the screen a wait ends on is addressable by the seq beside it', async (t) => {
+  const session = probe(REACTIVE);
+  t.after(() => session.dispose());
+
+  assert.ok(await waitFor(() => session.pty.bytesRead > 0), 'the first prompt arrived');
+  await session.waitForIdle({ idleMs: 80, timeoutMs: 5000 });
+  session.pty.write('hello\r\n');
+  assert.ok(
+    await waitFor(() => session.screen.snapshot().lines.some((l) => l.includes('GOT-1'))),
+    'the answer landed',
+  );
+
+  // A caller that times out is handed the rows it ended on. Without the number
+  // those rows are filed under, that screen is unaddressable -- it cannot be
+  // read back from, compared against a later one, or reached through
+  // `history_read` -- so the caller reads again just to get a state it can
+  // name. Measured in `feedbacks/edca2559`: a redundant read returned a screen
+  // byte-identical to the timeout's, because the timeout had no `seq`.
+  const result = await session.waitForOutput({ pattern: /NEVER-SEEN/, timeoutMs: 250 });
+  assert.equal(result.reason, 'timeout');
+  assert.ok(result.screen, 'the rows it ended on');
+  assert.equal(result.seq, session.seq, 'and the state those rows are filed under');
+});
+
 test('the default baseline is the last input, so the echo is not the answer', async (t) => {
   const session = probe(REACTIVE);
   t.after(() => session.dispose());

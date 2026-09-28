@@ -44,6 +44,12 @@ const line = 'x'.repeat(511) + '\\n';
 for (;;) process.stdout.write(line);
 `;
 
+/** Prints once, then sits still: a screen with nothing new coming. */
+const PRINT_THEN_QUIET = `
+process.stdout.write('DONE\\r\\n');
+setInterval(() => {}, 1000);
+`;
+
 function open(script: string, groupPolicy?: { gapMs: number; maxBytes?: number } | false) {
   const session = new TerminalSession('wait-group', {
     command: process.execPath,
@@ -143,6 +149,26 @@ test('the catch-up still respects the baseline it is given', async (t) => {
     again.reason !== 'group' || again.seq > first.seq,
     'a group already seen is not offered again',
   );
+});
+
+test('a timed-out group wait names the state its screen is at, not the baseline', async (t) => {
+  const { session } = open(PRINT_THEN_QUIET);
+  t.after(() => session.dispose());
+
+  const drawn = await session.waitForGroup({ timeoutMs: 10000 });
+  assert.equal(drawn.reason, 'group');
+
+  // Ruled out from both sides: the baseline is the state just seen, so the
+  // catch-up cannot offer that group again, and the subject has stopped. The
+  // only thing left is a genuine timeout -- and it still hands back the screen,
+  // so `seq` has to name the state that screen is at. It used to report
+  // `sinceSeq`, which is the *baseline*: a caller addressing the rows it was
+  // handed with that number read history from before its own input.
+  const result = await session.waitForGroup({ sinceSeq: drawn.seq, timeoutMs: 300 });
+  assert.equal(result.reason, 'timeout');
+  assert.ok(result.screen, 'the rows it ended on');
+  assert.equal(result.seq, session.seq, 'and the state those rows are filed under');
+  assert.equal(result.sinceSeq, drawn.seq, 'with the baseline still reported as itself');
 });
 
 test('without grouping every update is its own group, so the wait still ends', async (t) => {

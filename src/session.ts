@@ -288,6 +288,16 @@ export type WaitReason =
 /** The result of a bounded wait. */
 export interface WaitResult {
   reason: WaitReason;
+  /**
+   * The state the wait ended at, in the numbering every `seq` reports.
+   *
+   * Carried although this wait returns no screen, because it is the number that
+   * makes the moment addressable: `history_read({from:{seq}})` reads on from
+   * where the wait stopped. It is always present -- the timeout branch names it
+   * too, rather than letting the shared loop's bare fallback omit it and leave
+   * a declared field silently missing (GOAL.md L1.3).
+   */
+  seq: number;
   /** What was observed when the wait ended. */
   state: SessionState;
   /** Milliseconds the wait lasted, on the session's clock. */
@@ -350,11 +360,15 @@ export interface GroupWaitResult {
    */
   afterInput: boolean | null;
   /**
-   * The state the wait reached, or `sinceSeq` when nothing new arrived.
+   * The state the wait reached, and the number the returned screen is at.
    *
-   * Always present, and never a guess: on a group this is the last state it
-   * covered, so a caller that wants the frames it swallowed reads
-   * `history_read({from:{seq:collapsed.rawFrom}, to:{seq}})`.
+   * Always present, and never a guess. On a group it is the last state the
+   * group covered, so a caller that wants the frames it swallowed reads
+   * `history_read({from:{seq:collapsed.rawFrom}, to:{seq}})`. On the three
+   * reasons where no group arrived it is the **current** state -- the one the
+   * `screen` beside it shows -- and not `sinceSeq`, so the screen it comes with
+   * is addressable by the number in the same response. `sinceSeq` stays for the
+   * baseline; the two differ whenever output arrived that no group closed on.
    */
   seq: number;
   /** Which group, or `null` when no group arrived. */
@@ -434,6 +448,16 @@ export interface OutputWaitResult {
   reason: OutputWaitReason;
   /** Where the pattern was seen, or `null` when it was not. */
   match: OutputMatch | null;
+  /**
+   * The state the wait reached, and the number the returned screen is at.
+   *
+   * The same numbering `SessionUpdate.seq` and `history_read` use, so a caller
+   * that timed out can address the screen it was handed -- `screen` is the
+   * current grid, and this is the number that state is filed under. It labels
+   * the *state*, not the match: on a match it is where the wait ended when the
+   * pattern appeared, which may be later than the row the pattern is on.
+   */
+  seq: number;
   /**
    * The screen as it was when the wait ended, or `null` on a match.
    *
@@ -910,12 +934,15 @@ export class TerminalSession {
       timeoutMs: options.timeoutMs,
       found: (state) =>
         state.drained === true && state.idleMs !== null && state.idleMs >= options.idleMs
-          ? { reason: 'idle', state }
+          ? { reason: 'idle', state, seq: this.seq }
           : null,
       // Nothing more can arrive once the process is gone and its output has
       // been parsed, so sitting out a quiet period would no longer be evidence
       // of anything. Ending here rather than waiting for one.
-      onExit: (state) => ({ reason: 'exited', state }),
+      onExit: (state) => ({ reason: 'exited', state, seq: this.seq }),
+      // Named rather than left to `wait`'s bare fallback, which builds a
+      // `timeout` with no fields beyond the reason and the state.
+      onTimeout: (state) => ({ reason: 'timeout', state, seq: this.seq }),
       // Not drained, there is no moment to compute: only the pipeline knows
       // when it will finish, so this waits on the change rather than on a
       // clock. Drained, it waits exactly until the quiet period would elapse.
@@ -996,7 +1023,9 @@ export class TerminalSession {
       return await this.wait<Omit<OutputWaitResult, 'waitedMs'>>({
         timeoutMs: options.timeoutMs,
         found: (state) =>
-          hit ? { reason: 'matched', match: hit, screen: null, state, sinceByte } : null,
+          hit
+            ? { reason: 'matched', match: hit, screen: null, state, sinceByte, seq: this.seq }
+            : null,
         // Nothing more can arrive and nothing matched, so waiting longer cannot
         // change the answer -- the same early end as `waitForIdle`, for the
         // same reason: the quiet period would no longer be evidence.
@@ -1006,6 +1035,7 @@ export class TerminalSession {
           screen: this.screen.snapshot(),
           state,
           sinceByte,
+          seq: this.seq,
         }),
         onTimeout: (state) => ({
           reason: 'timeout',
@@ -1013,6 +1043,7 @@ export class TerminalSession {
           screen: this.screen.snapshot(),
           state,
           sinceByte,
+          seq: this.seq,
         }),
       });
     } finally {
@@ -1135,7 +1166,7 @@ export class TerminalSession {
             return {
               reason: 'disposed',
               afterInput: null,
-              seq: sinceSeq,
+              seq: this.seq,
               group: null,
               collapsed: null,
               text: null,
@@ -1151,7 +1182,7 @@ export class TerminalSession {
         onExit: (state) => ({
           reason: 'exited',
           afterInput: null,
-          seq: sinceSeq,
+          seq: this.seq,
           group: null,
           collapsed: null,
           text: null,
@@ -1161,13 +1192,18 @@ export class TerminalSession {
           state,
           sinceSeq,
         }),
-        // Nothing arrived and no group is coming. The wait still reports the
-        // state it was waiting at, so `reason` is the only thing that changed --
-        // a caller that timed out can decide what to do without reading again.
+        // Nothing arrived and no group is coming. The wait reports the screen it
+        // is looking at *and* the state that screen is at -- `seq` is the
+        // current state, not `sinceSeq`, because `sinceSeq` labels a different
+        // frame than the one being returned and a caller addressing the screen
+        // with it read history from before its own input. Measured in
+        // `feedbacks/edca2559`: a timeout at `seq: 33` beside a screen 4 states
+        // newer, and a driver that re-read to get an addressable screen the
+        // response had already handed it.
         onTimeout: (state) => ({
           reason: 'timeout',
           afterInput: null,
-          seq: sinceSeq,
+          seq: this.seq,
           group: null,
           collapsed: null,
           text: null,
@@ -1440,8 +1476,18 @@ export class TerminalSession {
     return read - this._bytesParsed;
   }
 
+  /**
+   * The state the session is at now, in the numbering every `seq` reports.
+   *
+   * The **raw delivery** counter, not `_seq`: `_seq` counts classified updates,
+   * and grouping makes the two diverge by however many deliveries a group
+   * swallowed. Everything a caller can address -- `SessionUpdate.seq`,
+   * `history_read`'s addresses, `sinceSeq` -- uses the raw numbering, so a
+   * getter named `seq` that returned the update counter handed back a number
+   * that matched nothing else and silently broke comparisons against it.
+   */
   get seq(): number {
-    return this._seq;
+    return this._rawSeq;
   }
 
   /**

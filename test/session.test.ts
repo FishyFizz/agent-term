@@ -507,6 +507,29 @@ test('history reconstructs every screen of a live session', async (t) => {
   assert.ok(checked >= 2, `compared real groups (${checked})`);
 });
 
+test('the session seq is the numbering updates use, not an update count', async (t) => {
+  const { session, updates } = harness();
+  t.after(() => session.dispose());
+
+  session.pty.write('echo SEQ-NUMBER\r\n');
+  await waitFor(
+    () => updates.some((u) => u.screen.lines.some((l) => l.includes('SEQ-NUMBER'))),
+    { label: 'the echoed output' },
+  );
+
+  // The bug this pins: `_seq` counts *classified updates*, so grouping makes it
+  // fall behind the raw state numbering by however many deliveries a group
+  // swallowed. The getter used to return that counter, which put the one number
+  // a caller could reach without holding an update on a scale nothing else used
+  // -- `sinceSeq`, `SessionUpdate.seq` and `history_read`'s addresses are all
+  // raw states, so comparing them against it silently compared two scales.
+  assert.equal(
+    session.seq,
+    updates.at(-1)!.seq,
+    'the session’s seq is the state the last update reported',
+  );
+});
+
 test('a live resize splits the timeline and freezes the old epoch at its size', async (t) => {
   const { session, updates } = harness();
   const history = new HistoryStore().open(session);
