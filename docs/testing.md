@@ -137,7 +137,7 @@ subject tests whether the driver waits, not whether it can compose a command.
 ```bash
 npm run life                          # random
 npm run life -- --seed 42             # replay one exact run
-npx tsx scripts/life.ts --pick menu   # drive it through AgentTerm and print the screen
+npx tsx scripts/life.ts --pick menu   # drive it through the MCP surface and print the screen
 ```
 
 ### The readiness contract
