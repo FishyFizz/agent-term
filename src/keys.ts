@@ -4,9 +4,9 @@
  * A key is a *name*, not a byte sequence. The caller says `down`; the bytes are
  * this module's problem. That is the whole point: a transport between an agent
  * and this server can silently drop a C0 control character, and a raw `ESC`
- * typed as text is exactly the thing it drops -- a driving run sent `\x1b[B`,
- * the escape byte did not survive, and the program received the inert text
- * `[B` (feedbacks/1.txt). Naming the key removes the byte from the wire.
+ * typed as text is exactly the thing it drops: a driving run sent `\x1b[B`, the
+ * escape byte did not survive, and the program received the inert text `[B`.
+ * Naming the key removes the byte from the wire.
  *
  * ## Why the encoding depends on a mode
  *
@@ -20,6 +20,18 @@
  * Only arrows and Home/End are mode-dependent. For everything else the mode is
  * reported as `null`, because reporting a mode whose value did not affect the
  * bytes would be a fact about a decision that was never made.
+ *
+ * ## Why a paste is a step of its own
+ *
+ * A paste is text, but it is not the same as typed text. A program that has
+ * enabled bracketed paste (`CSI ? 2004 h`, DECSET 2004) receives the characters
+ * wrapped in `CSI 200 ~` ... `CSI 201 ~`, and inserts them literally: a shell
+ * with it on puts a multi-line paste into its editing buffer without running a
+ * line of it, where the same characters sent as plain text would execute at
+ * every newline. So `{paste}` is encoded from the mode the program has set,
+ * exactly as `{key}` is -- the caller says *this is a paste*, and the mode, read
+ * off the screen, decides whether that is a literal insertion or plain text.
+ * With the mode off the two are the same bytes, and the batch says which it was.
  *
  * ## Why this is a leaf module
  *
@@ -39,15 +51,18 @@
  * no widening.
  */
 
-/** The terminal modes a key's bytes depend on. Read from the emulator, never guessed. */
+/** The terminal modes a step's bytes depend on. Read from the emulator, never guessed. */
 export interface KeyModes {
   /** DECCKM: `CSI ? 1 h`. Arrows and Home/End encode as SS3 when set. */
   readonly applicationCursorKeys: boolean;
+  /** DECSET 2004: `CSI ? 2004 h`. A paste is wrapped in the bracketed-paste guards when set. */
+  readonly bracketedPaste: boolean;
 }
 
-/** One step of a batch: exactly one of `text`, `key` or `byte`. */
+/** One step of a batch: exactly one of `text`, `paste`, `key` or `byte`. */
 export interface Step {
   readonly text?: string;
+  readonly paste?: string;
   readonly key?: string;
   readonly byte?: number | string;
   /** Preserved by the transport so a typo can be named. Never read. */
@@ -56,26 +71,34 @@ export interface Step {
 
 /** A step as it resolved, so a caller can see what each one became. */
 export interface ComposedStep {
-  readonly kind: 'text' | 'key' | 'byte';
+  readonly kind: 'text' | 'paste' | 'key' | 'byte';
   readonly text?: string;
   readonly key?: string;
   readonly byte?: number;
+  /** For a paste: whether the bracketed-paste guards were written around it. */
+  readonly wrapped?: boolean;
   /** Exactly what this step contributed, escaped. */
   readonly written: string;
 }
 
-/** What a batch composed to, as facts. */
+/**
+ * What a batch composed to, as facts.
+ *
+ * The two modes are reported per batch, each `null` when no step consulted it:
+ * `null` rather than `false` for a batch of text or ctrl chords, because no
+ * decision depended on it, and reporting `false` would answer a question nobody
+ * asked. A mode a step *did* consult is reported with its value, `false`
+ * included -- "the program had not asked for this" is the whole answer for a
+ * step whose bytes depend on it.
+ */
 export interface Composed {
   /** The whole batch as one string, for one `pty.write` call. */
   readonly bytes: string;
   readonly steps: readonly ComposedStep[];
-  /**
-   * The mode the encoding consulted, or `null` when no step consulted it.
-   *
-   * `null` rather than `false` for a batch of text or ctrl chords: no decision
-   * depended on it, and reporting `false` would answer a question nobody asked.
-   */
+  /** DECCKM, consulted by an arrow or Home/End. */
   readonly applicationCursorKeys: boolean | null;
+  /** DECSET 2004, consulted by a non-empty paste. */
+  readonly bracketedPaste: boolean | null;
 }
 
 /** What went wrong with a batch, in a form the caller can act on. */
@@ -93,6 +116,10 @@ export class KeyInputError extends Error {
 /** The two introducers a key sequence can start with, written once. */
 const CSI = '\x1b[';
 const SS3 = '\x1bO';
+
+/** The bracketed-paste guards (DECSET 2004), written once. */
+const PASTE_START = `${CSI}200~`;
+const PASTE_END = `${CSI}201~`;
 
 interface KeyDef {
   /** Canonical name, as shown in errors and results. */
@@ -328,14 +355,17 @@ function editDistance(a: string, b: string): number {
   return previous[b.length] ?? 0;
 }
 
-const STEP_FIELDS = ['text', 'key', 'byte'] as const;
+const STEP_FIELDS = ['text', 'paste', 'key', 'byte'] as const;
+
+/** How a step is spelled, said once so the two refusals below cannot drift apart. */
+const STEP_SHAPE = 'a step is {text}, {paste}, {key} or {byte}';
 
 /** The field names a step carries that this does not know about. */
 function unknownFields(step: Step): string[] {
   return Object.keys(step).filter((k) => !(STEP_FIELDS as readonly string[]).includes(k));
 }
 
-/** Which of `text`/`key`/`byte` are present. */
+/** Which of `text`/`paste`/`key`/`byte` are present. */
 function presentFields(step: Step): string[] {
   return STEP_FIELDS.filter((field) => step[field] !== undefined);
 }
@@ -418,22 +448,17 @@ export function composeSteps(steps: readonly Step[], modes: KeyModes): Composed 
   const composed: ComposedStep[] = [];
   let bytes = '';
   let applicationCursorKeys: boolean | null = null;
+  let bracketedPaste: boolean | null = null;
 
   steps.forEach((step, index) => {
     const present = presentFields(step);
     if (present.length === 0) {
       const unknown = unknownFields(step);
       const named = unknown.length > 0 ? ` (unknown field ${JSON.stringify(unknown[0])})` : '';
-      throw new KeyInputError(
-        `a step is {text}, {key} or {byte}; found none${named}`,
-        index,
-      );
+      throw new KeyInputError(`${STEP_SHAPE}; found none${named}`, index);
     }
     if (present.length > 1) {
-      throw new KeyInputError(
-        `a step is {text}, {key} or {byte}; found ${present.join(' and ')}`,
-        index,
-      );
+      throw new KeyInputError(`${STEP_SHAPE}; found ${present.join(' and ')}`, index);
     }
 
     const field = present[0];
@@ -441,6 +466,31 @@ export function composeSteps(steps: readonly Step[], modes: KeyModes): Composed 
       const text = step.text ?? '';
       bytes += text;
       composed.push({ kind: 'text', text, written: escapeBytes(text) });
+      return;
+    }
+
+    if (field === 'paste') {
+      const content = step.paste ?? '';
+      if (content === '') {
+        // What a terminal sends for an empty selection is nothing, not an empty
+        // pair of guards: wrapping would be a paste of no bytes that still moved
+        // the input watermark, and no decision depended on the mode.
+        composed.push({ kind: 'paste', wrapped: false, written: '' });
+        return;
+      }
+      if (content.includes(PASTE_END)) {
+        throw new KeyInputError(
+          'a paste cannot contain the bracketed-paste terminator (ESC [ 201 ~): the program ' +
+            'would take it as the end of the paste and read the rest as keystrokes. Send ' +
+            'the text as {text}, or paste it in pieces around the terminator.',
+          index,
+        );
+      }
+      const wrapped = modes.bracketedPaste;
+      bracketedPaste = wrapped;
+      const sent = wrapped ? `${PASTE_START}${content}${PASTE_END}` : content;
+      bytes += sent;
+      composed.push({ kind: 'paste', wrapped, written: escapeBytes(sent) });
       return;
     }
 
@@ -476,5 +526,5 @@ export function composeSteps(steps: readonly Step[], modes: KeyModes): Composed 
     throw new KeyInputError('the batch composes to no bytes, so nothing would be written.');
   }
 
-  return { bytes, steps: composed, applicationCursorKeys };
+  return { bytes, steps: composed, applicationCursorKeys, bracketedPaste };
 }

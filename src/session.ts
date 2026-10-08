@@ -1140,8 +1140,8 @@ export class TerminalSession {
    * it is the latency of a model, so a program that repaints in 70ms has
    * finished its act long before the wait is issued. Listening for the next
    * group alone would sleep to the deadline with the answer already in hand --
-   * measured in `feedbacks/edca2559`, where two of three group waits timed out
-   * for 20s and 8s over an act that `read_screen` returned immediately after.
+   * measured on a driving run, where two of three group waits timed out for 20s
+   * and 8s over an act that `read_screen` returned immediately after.
    * So `_lastUpdate` is read once, after subscribing, and the same `seq >
    * sinceSeq` test decides it.
    *
@@ -1252,10 +1252,10 @@ export class TerminalSession {
         // is looking at *and* the state that screen is at -- `seq` is the
         // current state, not `sinceSeq`, because `sinceSeq` labels a different
         // frame than the one being returned and a caller addressing the screen
-        // with it read history from before its own input. Measured in
-        // `feedbacks/edca2559`: a timeout at `seq: 33` beside a screen 4 states
-        // newer, and a driver that re-read to get an addressable screen the
-        // response had already handed it.
+        // with it read history from before its own input. Measured on a driving
+        // run: a timeout at `seq: 33` beside a screen 4 states newer, and a
+        // driver that re-read to get an addressable screen the response had
+        // already handed it.
         onTimeout: (state) => noGroup('timeout', this.screen.snapshot(), state),
       });
     } finally {

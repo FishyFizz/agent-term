@@ -20,8 +20,10 @@ import {
   type Step,
 } from '../src/keys.js';
 
-const NORMAL: KeyModes = { applicationCursorKeys: false };
-const APPLICATION: KeyModes = { applicationCursorKeys: true };
+const NORMAL: KeyModes = { applicationCursorKeys: false, bracketedPaste: false };
+const APPLICATION: KeyModes = { applicationCursorKeys: true, bracketedPaste: false };
+/** A program that has enabled bracketed paste: a paste step is wrapped. */
+const PASTING: KeyModes = { applicationCursorKeys: false, bracketedPaste: true };
 
 /** Send one step and return the bytes. */
 function send(step: Step, modes: KeyModes = NORMAL): string {
@@ -218,6 +220,75 @@ test('a byte outside the range ConPTY carries faithfully is refused, and says wh
   assert.throws(() => send({ byte: 1.5 }), KeyInputError, 'not a whole byte');
 });
 
+test('a paste is wrapped in the bracketed-paste guards when the program enabled them', () => {
+  // The programme's half: the guards are `CSI 200 ~` ... `CSI 201 ~`, spelled
+  // here as a terminal sends them rather than read back from the module.
+  const START = `${CSI}200~`;
+  const END = `${CSI}201~`;
+
+  // With the mode off a paste is the characters and nothing else -- which is
+  // also what a terminal without bracketed paste sends for a paste.
+  assert.equal(send({ paste: 'hello' }), 'hello', 'off: the characters, unwrapped');
+
+  // With it on the characters are a literal insertion, so a multi-line paste
+  // does not run at its newlines.
+  const multi = 'line one\nline two\n';
+  const composed = composeSteps([{ paste: multi }], PASTING);
+  assert.equal(composed.bytes, `${START}${multi}${END}`, 'on: wrapped, content untouched');
+  assert.deepEqual(
+    composed.steps,
+    [{ kind: 'paste', wrapped: true, written: `${escapeBytes(START)}${escapeBytes(multi)}${escapeBytes(END)}` }],
+    'and the step reports itself as a wrapped paste, escaped like any other write',
+  );
+});
+
+test('a paste reports the mode it consulted, and a plain text step does not', () => {
+  assert.equal(composeSteps([{ paste: 'hi' }], PASTING).bracketedPaste, true, 'wrapped: the mode was on');
+  assert.equal(
+    composeSteps([{ paste: 'hi' }], NORMAL).bracketedPaste,
+    false,
+    'unwrapped: the mode was consulted and was off, which is the whole answer',
+  );
+  // No decision depended on it, so reporting `false` would answer a question
+  // that was never asked.
+  for (const step of [{ text: 'hi' }, { key: 'down' }, { byte: 27 }] as Step[]) {
+    assert.equal(
+      composeSteps([step], PASTING).bracketedPaste,
+      null,
+      `${JSON.stringify(step)} does not depend on bracketed paste, so it reports no mode`,
+    );
+  }
+});
+
+test('a paste may not contain the bracketed-paste terminator', () => {
+  // Letting it through would end the paste early and the program would read the
+  // rest as keystrokes -- the payload escaping the envelope it was put in.
+  assert.throws(
+    () => composeSteps([{ text: 'x' }, { paste: `before${CSI}201~after` }], PASTING),
+    (error: unknown) => {
+      assert.ok(error instanceof KeyInputError, 'typed as a bad input');
+      assert.equal(error.step, 1, 'and names the step');
+      assert.match(error.message, /terminator/, 'says what the text contains');
+      assert.match(error.message, /\{text\}/, 'and points at the way to send it instead');
+      return true;
+    },
+  );
+  // The guard is the terminator, not the introducer or a bare ESC: text that
+  // merely looks like escape syntax is still a legitimate thing to paste.
+  assert.equal(
+    composeSteps([{ paste: `${CSI}200~not a terminator\x1b[` }], PASTING).bytes,
+    `${CSI}200~${CSI}200~not a terminator\x1b[${CSI}201~`,
+    'only the exact terminator is refused',
+  );
+});
+
+test('an empty paste writes nothing, and is not fatal beside real steps', () => {
+  // What a terminal sends for an empty selection is nothing at all -- not an
+  // empty pair of guards, which would move the input watermark for no bytes.
+  assert.equal(composeSteps([{ text: 'a' }, { paste: '' }], PASTING).bytes, 'a', 'contributes nothing');
+  assert.throws(() => composeSteps([{ paste: '' }], PASTING), KeyInputError, 'and alone it is an empty batch');
+});
+
 test('an unknown key is refused with the step, a suggestion and the known set', () => {
   assert.throws(
     () => composeSteps([{ text: 'x' }, { key: 'dwn' }], NORMAL),
@@ -277,7 +348,7 @@ test('Ctrl+@ is refused rather than sent as a byte that never arrives', () => {
   }
 });
 
-test('a step must be exactly one of text, key or byte', () => {
+test('a step must be exactly one of text, paste, key or byte', () => {
   assert.throws(
     () => composeSteps([{ key: 'down', byte: 27 }], NORMAL),
     (error: unknown) => {

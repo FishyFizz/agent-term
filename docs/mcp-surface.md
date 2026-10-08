@@ -46,15 +46,28 @@ what was meant. Keys are not spelled here; see `send_sequence`.
 
 ### `send_sequence`
 
-Composes several steps — text, a named key, or a raw byte — and writes them in **one** write.
+Composes several steps — text, a paste, a named key, or a raw byte — and writes them in **one**
+write.
 
 One write matters twice: it produces one input watermark, and it gives the program the best
 chance of seeing an escape-prefixed sequence whole rather than a bare escape followed by the
 rest. The steps are not separated by waits; a batch that waited between its steps would be a
 scripted recipe, which is not this server's job.
 
-The result reports each step's own contribution and the canonical name of each key, plus the
-terminal modes any step consulted — `null` when no step's bytes depended on a mode.
+A **paste** is text the program should take as an insertion, and it is a step of its own
+because a mode decides what its bytes are. A program that has enabled bracketed paste
+(`CSI ? 2004 h` — bash, zsh, fish and many REPLs do) receives the text wrapped in
+`CSI 200 ~` … `CSI 201 ~` and inserts it literally, so a multi-line paste lands in a shell's
+editing buffer without running a line of it; the same characters sent as text would execute at
+every newline. The caller says *this is a paste*; the mode, read off the screen, says whether
+that becomes a guarded insertion or plain characters — the same rule a named key follows. A
+paste may not contain the terminator `CSI 201 ~`, which would end it early; the refusal is a
+`bad_input`.
+
+The result reports each step's own contribution and the canonical name of each key, whether a
+paste was wrapped, plus the terminal modes any step consulted — the whole object `null` when no
+step's bytes depended on a mode, and a mode a step did consult reported with its value,
+`false` included.
 
 ## Reading
 

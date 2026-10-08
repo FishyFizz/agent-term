@@ -4,9 +4,11 @@
  * Nine tools, because that is the smallest set an agent can drive a terminal
  * with: open one, type into it, send a batch of input as one write, wait for it
  * to stop changing, wait for it to show something, wait for its next group,
- * read what happened, address the timeline it happened on, close it. The rest of interaction (the pending
- * prompt, large pastes) goes on top of these rather than beside them, and is
- * deliberately not here yet.
+ * read what happened, address the timeline it happened on, close it. The rest of
+ * interaction goes on top of these rather than beside them, and is deliberately
+ * not here yet: a paste is a step of `send_sequence` rather than a tool of its
+ * own, because the mode that decides its bytes is the same kind of fact a named
+ * key already reads off the screen.
  *
  * The shape of a result matters more than the number of tools. A read returns
  * what a human at the screen would say: the screen, what changed on it, and
@@ -17,9 +19,9 @@
  * A write reports `written`: the bytes as they were handed to the terminal, in
  * a form that can be compared with what was meant. A transport between an agent
  * and this server can silently drop a control character, and one driving run
- * spent three inputs discovering that its `ESC` had become inert text
- * (`feedbacks/1.txt`). Naming a key removes the byte from the wire; reporting
- * the bytes makes the round trip visible when it does not.
+ * spent three inputs discovering that its `ESC` had become inert text. Naming a
+ * key removes the byte from the wire; reporting the bytes makes the round trip
+ * visible when it does not.
  *
  * A read also reports the session's state as facts — whether it is running,
  * how long it has been idle, whether what it produced has been read through.
@@ -105,11 +107,11 @@ function presentOmission(omitted: Omission) {
  *
  * The grid is `cols` wide and every row is padded to it, so what a caller is
  * handed is `rows` x `cols` characters whether or not the program wrote them.
- * On the 140x40 grid used in `feedbacks/edca2559` that was 5,600 characters a
- * read and 12,870 tokens across nine screens, of which 11% carried anything.
- * Blank cells hold no fact the rest of the report does not: a row that was
- * erased or overwritten is in `segments`, a line that was completed is in
- * `text`, and neither needs the padding to be read.
+ * On a 140x40 grid that was 5,600 characters a read and 12,870 tokens across
+ * nine screens, of which 11% carried anything. Blank cells hold no fact the
+ * rest of the report does not: a row that was erased or overwritten is in
+ * `segments`, a line that was completed is in `text`, and neither needs the
+ * padding to be read.
  *
  * Trimmed from the end only, so every glyph keeps its column, and every row
  * stays in the array at its own index -- a row the program blanked is `''`,
@@ -118,6 +120,23 @@ function presentOmission(omitted: Omission) {
  */
 function presentScreen(lines: readonly string[]): string[] {
   return lines.map((line) => line.replace(/ +$/, ''));
+}
+
+/**
+ * The terminal modes a batch consulted, as the agent reads them.
+ *
+ * The object is `null` when no step consulted any of them — a batch of plain
+ * text made no decision that depended on a mode, and a `false` would answer a
+ * question that was never asked. Inside a reported object a mode no step
+ * consulted is `null` for the same reason, so `bracketedPaste: false` always
+ * means "a paste was encoded, and the program had not enabled it".
+ */
+function presentModes(composed: Composed) {
+  if (composed.applicationCursorKeys === null && composed.bracketedPaste === null) return null;
+  return {
+    applicationCursorKeys: composed.applicationCursorKeys,
+    bracketedPaste: composed.bracketedPaste,
+  };
 }
 
 /** One update, in the form the agent reads: what the screen is and what changed. */
@@ -220,15 +239,23 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
     {
       title: 'Send a batch of input as one write',
       description:
-        'Write several inputs at one instant: each step is `{text}`, `{key}` or `{byte}`, and ' +
-        'the whole batch goes in a single write, in order. This is how a keystroke a program ' +
-        'needs but has no character for gets sent -- "type this, then press Enter" is one call ' +
-        'rather than two, and no raw escape bytes cross the wire.\n\n' +
+        'Write several inputs at one instant: each step is `{text}`, `{paste}`, `{key}` or ' +
+        '`{byte}`, and the whole batch goes in a single write, in order. This is how a ' +
+        'keystroke a program needs but has no character for gets sent -- "type this, then ' +
+        'press Enter" is one call rather than two, and no raw escape bytes cross the wire.\n\n' +
         'Keys are named, not spelled: ' +
         KEY_SUMMARY +
         '. A key is encoded using the mode the program has set, read from the screen -- ' +
         '`down` is `CSI B`, or `SS3 B` when the program has turned on application cursor ' +
         'keys -- so the same call is right in a shell and in a full-screen editor.\n\n' +
+        '**`{paste}` is text the program should take as an insertion, not as keystrokes.** When ' +
+        'the program has enabled bracketed paste (`CSI ? 2004 h` -- bash, zsh, fish and many ' +
+        'REPLs do), the text is wrapped in `ESC [ 200 ~` ... `ESC [ 201 ~` and inserted ' +
+        'literally, so a multi-line paste lands in the shell\'s editing buffer without running ' +
+        'a line of it; the same text as `{text}` would execute at every newline. The mode is ' +
+        'read from the screen, so wait for the program to print something before pasting, and ' +
+        '`modes.bracketedPaste` reports what it was. A paste may not contain the terminator ' +
+        '`ESC [ 201 ~`, which would end the paste early.\n\n' +
         '**A key that only counts twice in quick succession belongs in one batch.** Two ' +
         '`{key: "ctrl+c"}` steps in one call arrive as one write, which is what a program ' +
         'waiting for a double press is measuring. The same two keys sent as two calls are a ' +
@@ -244,6 +271,13 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
           .array(
             z.looseObject({
               text: z.string().optional().describe('Literal text to type.'),
+              paste: z
+                .string()
+                .optional()
+                .describe(
+                  'Text to paste. Wrapped in the bracketed-paste guards when the program has ' +
+                    'enabled bracketed paste, and written plain when it has not.',
+                ),
               key: z
                 .string()
                 .optional()
@@ -257,7 +291,7 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
                 ),
             }),
           )
-          .describe('The steps, in order. Each step is exactly one of text, key or byte.'),
+          .describe('The steps, in order. Each step is exactly one of text, paste, key or byte.'),
       },
     },
     async ({ sessionId, steps }) => {
@@ -287,15 +321,10 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
             kind: step.kind,
             ...(step.key === undefined ? {} : { key: step.key }),
             ...(step.byte === undefined ? {} : { byte: step.byte }),
+            ...(step.wrapped === undefined ? {} : { wrapped: step.wrapped }),
             written: step.written,
           })),
-          // `null` when no step consulted it -- a text-only batch made no
-          // decision that depended on the mode, and `false` would answer a
-          // question that was never asked.
-          modes:
-            composed.applicationCursorKeys === null
-              ? null
-              : { applicationCursorKeys: composed.applicationCursorKeys },
+          modes: presentModes(composed),
         },
       };
     },

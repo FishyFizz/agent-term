@@ -110,6 +110,13 @@ fixed table, because the same arrow is a different byte sequence in a shell and 
 that has turned on application cursor keys. A mode that did not affect the bytes is reported as
 `null`, not as a value, because reporting it would answer a question nobody asked.
 
+A paste follows the same rule. The caller says *this is a paste*, and whether the bytes are the
+characters alone or those characters wrapped in the bracketed-paste guards is read from the
+mode the program set: a program that asked for bracketed paste inserts a multi-line paste
+literally, while one that did not receives the same characters as keystrokes and runs them at
+their newlines. The distinction the caller asked for survives as a fact about the write rather
+than a guess about the program.
+
 And every write reports **the bytes actually written**, so the round trip can be checked without
 reading the screen. The caller sees what was sent, not what was intended.
 

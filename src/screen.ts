@@ -255,13 +255,16 @@ export class ScreenModel {
    * the program set and this session has not fed yet is not reflected, so a
    * caller encoding input on it should have waited for some output first.
    *
-   * There is no per-buffer subtlety to look for -- DECCKM is a global terminal
-   * mode, not an alternate-screen one -- and no unreadable case, since the
-   * emulator is always built with `allowProposedApi` and `modes` is a plain
-   * getter.
+   * There is no per-buffer subtlety to look for -- both DECCKM and bracketed
+   * paste are global terminal modes, not alternate-screen ones -- and no
+   * unreadable case, since the emulator is always built with `allowProposedApi`
+   * and `modes` is a plain getter.
    */
   get modes(): KeyModes {
-    return { applicationCursorKeys: this.terminal.modes.applicationCursorKeysMode };
+    return {
+      applicationCursorKeys: this.terminal.modes.applicationCursorKeysMode,
+      bracketedPaste: this.terminal.modes.bracketedPasteMode,
+    };
   }
 
   /**

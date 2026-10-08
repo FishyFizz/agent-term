@@ -47,7 +47,7 @@ the failure it prevents; read that before editing one.
 | `session.ts` | L0/L1 | A hosted session: pty + screen model + classifier as one object, plus the three waits. |
 | `registry.ts` | L1 | The set of live sessions. Server-generated, unguessable ids. |
 | `host.ts` | L1 | The composition root: a session and its recording, started in one call. |
-| `keys.ts` | L1 | Named keys and the batch a caller composes out of them. Imports nothing. |
+| `keys.ts` | L1 | Named keys, a paste, and the batch a caller composes out of them. Imports nothing. |
 | `match.ts` | L1 | Matching a pattern against the two sinks. |
 | `mcp.ts` | L3 | The MCP tool surface. |
 | `types.ts` | — | Shared option types and grid validation. |

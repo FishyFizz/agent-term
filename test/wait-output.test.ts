@@ -155,7 +155,7 @@ test('the screen a wait ends on is addressable by the seq beside it', async (t) 
   // those rows are filed under, that screen is unaddressable -- it cannot be
   // read back from, compared against a later one, or reached through
   // `history_read` -- so the caller reads again just to get a state it can
-  // name. Measured in `feedbacks/edca2559`: a redundant read returned a screen
+  // name. Measured on a driving run: a redundant read returned a screen
   // byte-identical to the timeout's, because the timeout had no `seq`.
   const result = await session.waitForOutput({ pattern: /NEVER-SEEN/, timeoutMs: 250 });
   assert.equal(result.reason, 'timeout');

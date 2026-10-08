@@ -226,6 +226,20 @@ test('application cursor keys is read from the program, not assumed', async () =
   assert.equal(s.modes.applicationCursorKeys, false, 'and CSI ? 1 l turns it off again');
 });
 
+test('bracketed paste is read from the program too', async () => {
+  // The second mode a step's bytes depend on: whether a paste is wrapped in the
+  // `CSI 200 ~`/`CSI 201 ~` guards is the program's setting, and it is read off
+  // the screen like DECCKM rather than assumed.
+  const s = new ScreenModel(20, 5);
+  assert.equal(s.modes.bracketedPaste, false, 'off until the program says otherwise');
+
+  await s.feed('\x1b[?2004h');
+  assert.equal(s.modes.bracketedPaste, true, 'CSI ? 2004 h turns it on');
+
+  await s.feed('\x1b[?2004l');
+  assert.equal(s.modes.bracketedPaste, false, 'and CSI ? 2004 l turns it off again');
+});
+
 test('a mode set in the middle of output is reflected once it is parsed', async () => {
   // The honest caveat on `modes`: it reports what has been parsed, so a mode
   // that has been written but not yet fed is not in it. That is why the mode is

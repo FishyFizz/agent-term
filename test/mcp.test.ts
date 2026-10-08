@@ -111,10 +111,10 @@ test('a screen comes back without the padding it was written to', async (t) => {
   assert.ok(payload, 'the output arrived');
 
   // The grid is 100 columns and the pty pads every row to it, so a read cost
-  // 24 x 100 characters whether or not the program wrote them -- on the
-  // 140x40 grid in `feedbacks/edca2559`, 12,870 tokens across nine screens for
-  // 11% content. Trimming removes no fact: a row that was erased is in
-  // `segments`, a line that was written is in `text`.
+  // 24 x 100 characters whether or not the program wrote them -- and on a
+  // 140x40 grid, 12,870 tokens across nine screens for 11% content. Trimming
+  // removes no fact: a row that was erased is in `segments`, a line that was
+  // written is in `text`.
   assert.equal(payload.screen.length, 24, 'every row is still there, at its own index');
   for (const [y, row] of payload.screen.entries()) {
     assert.equal(row, row.replace(/ +$/, ''), `row ${y} carries no trailing padding`);
@@ -307,17 +307,23 @@ test('closing ends the session and the tool says so', async (t) => {
 
 /**
  * A subject that reports the exact bytes it receives, so a claim about what a
- * key encoded to can be checked against the program rather than against our own
- * return value. `setRawMode` is a measured requirement: without it the child is
- * line-buffered and receives nothing until a line ending arrives.
+ * key or a paste encoded to can be checked against the program rather than
+ * against our own return value. `setRawMode` is a measured requirement: without
+ * it the child is line-buffered and receives nothing until a line ending
+ * arrives.
+ *
+ * The modes it turns on are written *before* the prompt, so a wait for the
+ * prompt is evidence the mode has been parsed -- which is what makes the mode
+ * readable at the moment a batch is composed.
  *
  * The escape sequences are written `\x1b` in the child's *source*, which the
  * child then parses as ESC -- see the same note in `groups-live.test.ts`.
  */
-function byteReporter(withDecckm: boolean): string {
+function byteReporter(modes: { decckm?: boolean; bracketedPaste?: boolean } = {}): string {
   return (
     'try{process.stdin.setRawMode(true)}catch(e){};' +
-    (withDecckm ? "process.stdout.write('\\x1b[?1h');" : '') +
+    (modes.decckm ? "process.stdout.write('\\x1b[?1h');" : '') +
+    (modes.bracketedPaste ? "process.stdout.write('\\x1b[?2004h');" : '') +
     "process.stdout.write('PROMPT> ');" +
     "process.stdin.on('data',b=>{process.stdout.write('\\r\\nGOT '+" +
     "Buffer.from(b).toString('hex')+'\\r\\nPROMPT> ')});"
@@ -342,7 +348,7 @@ test('a key is encoded for the mode the program set, not from a fixed table', as
   async function drive(withDecckm: boolean) {
     const opened = await call(client, 'open_session', {
       command: process.execPath,
-      args: ['-e', byteReporter(withDecckm)],
+      args: ['-e', byteReporter({ decckm: withDecckm })],
     });
     const sessionId = (opened.structuredContent as { sessionId: string }).sessionId;
 
@@ -396,7 +402,7 @@ test('a batch is one write, and says what each step became', async (t) => {
 
   const opened = await call(client, 'open_session', {
     command: process.execPath,
-    args: ['-e', byteReporter(false)],
+    args: ['-e', byteReporter()],
   });
   const sessionId = (opened.structuredContent as { sessionId: string }).sessionId;
   await call(client, 'wait_for_output', { sessionId, pattern: '^PROMPT>$', timeoutMs: 10000 });
@@ -431,6 +437,71 @@ test('a batch is one write, and says what each step became', async (t) => {
   assert.equal(reported(lines), '676f1b5b420d', 'the program received the batch, in order');
 });
 
+test('a paste is wrapped for a program that enabled bracketed paste, and plain otherwise', async (t) => {
+  const { client, host, close } = await connected();
+  t.after(() => {
+    host.disposeAll();
+    return close();
+  });
+
+  async function drive(bracketedPaste: boolean) {
+    const opened = await call(client, 'open_session', {
+      command: process.execPath,
+      args: ['-e', byteReporter({ bracketedPaste })],
+    });
+    const sessionId = (opened.structuredContent as { sessionId: string }).sessionId;
+
+    // The prompt follows the mode bytes, so a match is evidence the mode has
+    // been parsed -- which is what the paste encoding reads off the screen.
+    const ready = await call(client, 'wait_for_output', {
+      sessionId,
+      pattern: '^PROMPT>$',
+      timeoutMs: 10000,
+    });
+    assert.equal((ready.structuredContent as { reason: string }).reason, 'matched', 'ready');
+
+    const sent = await call(client, 'send_sequence', {
+      sessionId,
+      steps: [{ paste: 'one\ntwo' }],
+    });
+    const result = sent.structuredContent as {
+      written: string;
+      steps: Array<{ kind: string; wrapped?: boolean; written: string }>;
+      modes: { bracketedPaste: boolean | null } | null;
+    };
+
+    await call(client, 'wait_for_output', {
+      sessionId,
+      pattern: '^GOT [0-9a-f]+$',
+      timeoutMs: 10000,
+    });
+    const read = await call(client, 'read_screen', { sessionId });
+    const lines = (read.structuredContent as { screen: string[] }).screen;
+    return { result, seen: reported(lines) };
+  }
+
+  // Bracketed paste on: the text is a literal insertion, so the newline in it
+  // does not run the second line.
+  const pasting = await drive(true);
+  assert.equal(pasting.result.modes?.bracketedPaste, true, 'the mode was read');
+  assert.equal(pasting.result.steps[0]?.kind, 'paste', 'the step is reported as a paste');
+  assert.equal(pasting.result.steps[0]?.wrapped, true, 'and as wrapped');
+  assert.equal(
+    pasting.result.written,
+    '\\x1b[200~one\\x0atwo\\x1b[201~',
+    'the guards around the text, escaped so the round trip can be checked',
+  );
+  assert.equal(pasting.seen, '1b5b3230307e6f6e650a74776f1b5b3230317e', 'the program received the guarded paste');
+
+  // The negative control. Without it the assertion above is satisfied by any
+  // hardcoded guard string and proves nothing about the mode being read.
+  const plain = await drive(false);
+  assert.equal(plain.result.modes?.bracketedPaste, false, 'the mode was read, and was off');
+  assert.equal(plain.result.steps[0]?.wrapped, false, 'so the paste is not wrapped');
+  assert.equal(plain.result.written, 'one\\x0atwo', 'just the characters');
+  assert.equal(plain.seen, '6f6e650a74776f', 'and that is what the program received');
+});
+
 test('a batch that cannot be composed is a typed error, not a silent no-op', async (t) => {
   const { client, host, close } = await connected();
   t.after(() => {
@@ -446,6 +517,9 @@ test('a batch that cannot be composed is a typed error, not a silent no-op', asy
     ['two fields in one step', [{ key: 'down', byte: 27 }], /found key and byte/],
     ['a field it does not know', [{ keys: 'down' }], /unknown field "keys"/],
     ['no fields at all', [{}], /found none/],
+    // A payload carrying the bracketed-paste terminator would escape the
+    // envelope it was put in, so the envelope is refused rather than broken.
+    ['a paste containing the terminator', [{ paste: 'a\x1b[201~b' }], /terminator/],
   ];
 
   for (const [label, steps, expected] of cases) {
@@ -503,7 +577,7 @@ test('send_input reports the bytes it wrote, including the newline it appended',
 });
 
 /**
- * The loop the feedback left open, driven through a real client.
+ * A collapsed group followed into its frames, driven through a real client.
  *
  * `read_screen` reports `collapsed.intermediates` -- states that existed and
  * were not shown -- and until now nothing on the surface could reach them.

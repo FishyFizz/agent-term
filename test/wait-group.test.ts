@@ -118,10 +118,9 @@ test('a group that closed before the wait began is still the answer', async (t) 
   // Let the act complete first, then ask about it. That is the round trip an
   // agent has between sending a key and waiting on it -- seconds, not
   // milliseconds -- so the program has finished repainting long before the
-  // wait is issued. Measured in `feedbacks/edca2559`: two of three group waits
-  // slept their whole deadline over an act `read_screen` returned on the next
-  // call, because listening for the *next* group cannot hear one that already
-  // closed.
+  // wait is issued. Measured on a driving run: two of three group waits slept
+  // their whole deadline over an act `read_screen` returned on the next call,
+  // because listening for the *next* group cannot hear one that already closed.
   assert.ok(await waitFor(() => updates.length > 0), 'an act completed');
 
   const result = await session.waitForGroup({ timeoutMs: 10000 });

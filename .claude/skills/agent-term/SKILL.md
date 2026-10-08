@@ -26,9 +26,10 @@ are driving.
    minimum, so do not shrink past that to save bytes.
 2. **`send_input`** — writes text as if typed. `submit: true` appends a line ending;
    without it no Enter is pressed.
-3. **`send_sequence`** — writes several inputs in one call: `{text}`, `{key}` or `{byte}`,
-   in order. Use it for any keystroke that has no character — arrows, Tab, Escape, Ctrl-C —
-   and for "type this, then press Enter".
+3. **`send_sequence`** — writes several inputs in one call: `{text}`, `{paste}`, `{key}` or
+   `{byte}`, in order. Use it for any keystroke that has no character — arrows, Tab, Escape,
+   Ctrl-C — for "type this, then press Enter", and for `{paste}` when you are inserting
+   content rather than typing keys.
 4. **Wait — and take the change from the wait.** A read taken straight after a send
    returns the state from *before* the send was processed; this is the most common way a
    driver silently accomplishes nothing. **`wait_for_group` blocks until the program
@@ -50,8 +51,17 @@ are driving.
   "steps": [ { "text": "go" }, { "key": "down" }, { "key": "down" }, { "key": "enter" } ] }
 ```
 
-Each step is exactly one of `text`, `key` or `byte`. The whole batch is **one write, in
+Each step is exactly one of `text`, `paste`, `key` or `byte`. The whole batch is **one write, in
 order** — so nothing can arrive between the parts of a key sequence.
+
+- `{paste: "…"}` pastes text. When the program has enabled **bracketed paste**
+  (`CSI ? 2004 h` — bash, zsh, fish and many REPLs turn it on) the text is wrapped in
+  `ESC [ 200 ~` … `ESC [ 201 ~`, which is a literal insertion: **a multi-line paste goes into
+  the shell's editing buffer without running**, where the same characters as `{text}` would
+  execute at every newline. With the mode off the characters are written plain. The mode is
+  read off the screen, so wait for the program to print something before pasting, and
+  `modes.bracketedPaste` reports which it was. Use `{paste}` when you are inserting content —
+  a command block, a file body, a paragraph — rather than typing keys.
 
 - Keys: `up down left right home end insert delete pgup pgdn f1..f12 tab shift+tab enter
   backspace esc space ctrl+a..ctrl+z ctrl+\ ctrl+] ctrl+^ ctrl+_ alt+<char>`. Names are read
@@ -352,11 +362,12 @@ is for a human and says what to fix.
   line-buffered, so keystrokes written into it sit in the line discipline unseen. If a
   program ignores a key and its own documentation says it should accept it, that is a fact
   about the program, not about the key-sending — say so rather than retrying.
-- **A key whose bytes depend on a mode the program set but has not yet printed.**
-  `down` is encoded from `applicationCursorKeysMode` as it stands at the moment of the
-  send; a program that turns it on and is typed at in the same breath can still get
-  `CSI B`. Wait for output from the program first — the result's `modes` field tells you
-  which mode the encoding used.
+- **Bytes that depend on a mode the program set but has not yet printed.** `down` is
+  encoded from `applicationCursorKeysMode` as it stands at the moment of the send, and a
+  paste is wrapped from `bracketedPasteMode` the same way; a program that turns a mode on
+  and is typed at in the same breath can still get the mode-off form. Wait for output from
+  the program first — the result's `modes` field says which mode the encoding used, and
+  `modes.bracketedPaste: false` on a paste means the program had not enabled it.
 
 ## Habits that make a run legible
 
