@@ -134,10 +134,13 @@ signal you can name.
   emitted** — `surface: 'screen' | 'text' | 'both'`, default both.
 - Trailing blanks are stripped first, so a prompt printed as `foo> ` is a row whose
   content is `foo>`. Anchor with `^...$` to mean a whole line.
-- Only output produced after `sinceByte` counts, which defaults to the byte the
-  session was last typed into. A prompt that was already on screen therefore does
-  *not* match the instant the wait starts — the default is what makes this answer
-  "did the program react?" rather than "is this text somewhere on screen?".
+- Only output produced after `sinceByte` counts, which defaults to the later of the
+  byte you were last typed at **and the byte you were last shown** — by `read_screen`, or
+  by the wait or match that returned it. A prompt that was already on screen therefore
+  does *not* match the instant the wait starts, and a row you have already matched is
+  not matched a second time; the default is what makes this answer "did the program
+  react?" rather than "is this text somewhere on screen?". Pass `sinceByte` to reach
+  back — that is how a marker that repeats is asked for again.
 - **The terminal echoes what is typed.** The echo is new output, and it carries your
   own words. An anchored pattern is usually what distinguishes a prompt from the echo
   of the command sent at it.
@@ -175,9 +178,13 @@ are `null`, and `screen` is what the terminal looks like at that moment.
   **while it is still writing**, so more output is coming; `flush` is a resize or exit.
 - **`collapsed.chunks > 1` means states existed that you were not shown.** Read them with
   `history_read({from:{seq:collapsed.rawFrom}, to:{seq}})`.
-- `sinceSeq` defaults to the state you last typed at, so a group that closed *before* your
-  input cannot satisfy the wait. Pass the `seq` you last saw to continue from there — a
-  firehose produces a stream of groups, so loop on it.
+- `sinceSeq` defaults to the later of the state you last typed at and the state you were last
+  shown — by `read_screen`, or by the wait that returned it. So a group that closed *before*
+  your input cannot satisfy the wait, **and a wait with nothing new in between times out
+  rather than handing back the act it just returned.** A firehose produces a stream of groups
+  and the default carries you forward on its own; pass `sinceSeq` to reach back deliberately.
+- `sinceSeq` **in a result** is the baseline that was used, not the state you were shown. To
+  continue from an act, pass its `seq`.
 - **The baseline is a floor, not a starting gun.** A group that closed *after* it is still
   the answer when you ask for it — it does not have to close *while* you wait. Between your
   send and your wait there is a round trip, and a program that repaints in 70ms has finished

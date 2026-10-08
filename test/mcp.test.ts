@@ -837,6 +837,40 @@ test('a group wait reports a repaint that wrote no line, and a read agrees', asy
 });
 
 /**
+ * Reading is looking.
+ *
+ * The waits' default baseline is the later of where the caller last wrote and
+ * where it was last *shown*, and this is the half the surface has to do itself:
+ * only `read_screen` knows it handed a state over. Without it a read followed
+ * by a wait hands back the state that was just read -- the same repeat as two
+ * waits with nothing between them, and just as indistinguishable from an act.
+ */
+test('a read is a baseline: a wait after one asks about what happened next', async (t) => {
+  const { client, host, close } = await connected();
+  t.after(() => {
+    host.disposeAll();
+    return close();
+  });
+
+  const opened = await call(client, 'open_session', {
+    command: process.execPath,
+    args: ['-e', "process.stdout.write('STATIC\\r\\n');setInterval(()=>{},1000);"],
+  });
+  const sessionId = (opened.structuredContent as { sessionId: string }).sessionId;
+
+  const first = (await call(client, 'wait_for_group', { sessionId, timeoutMs: 10000 }))
+    .structuredContent as { reason: string; seq: number };
+  assert.equal(first.reason, 'group', 'the print is one act');
+
+  const read = (await call(client, 'read_screen', { sessionId })).structuredContent as { seq: number };
+  assert.equal(read.seq, first.seq, 'and the read is that same state, nothing having arrived between');
+
+  const again = (await call(client, 'wait_for_group', { sessionId, timeoutMs: 400 }))
+    .structuredContent as { reason: string };
+  assert.equal(again.reason, 'timeout', 'so a wait after it is not handed that state a second time');
+});
+
+/**
  * The exit code: recorded by the timeline, and until now unreachable
  * from the surface, so a driver that came back to a dead session could not ask
  * how it died.

@@ -374,6 +374,11 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
           },
         };
       }
+      // Reading is looking: a read hands the caller this state, so it is where
+      // the waits' default baseline starts from next. Without it, a read
+      // followed by a wait hands back the state that was just read -- the same
+      // repeat as two waits with nothing in between.
+      target.noteShown(last.seq, last.io.bytesRead);
       return {
         content: [{ type: 'text', text: presentScreen(last.screen.lines).join('\n') }],
         structuredContent: { sessionId, ...present(last), state },
@@ -423,9 +428,13 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
         'is matched against screen rows the session wrote, ' +
         'and against completed lines it emitted. Trailing blanks are removed before ' +
         'matching, so a prompt printed as "$ " is a row whose content is "$" — anchor with ' +
-        '`^...$` to mean a whole line. Only output produced after ' +
-        'the byte the session was last typed into counts by default, so a prompt already on ' +
-        'screen does not match instantly; pass `sinceByte` to match from another watermark. ' +
+        '`^...$` to mean a whole line. Only output produced after the later of ' +
+        'the byte you were last typed at and the byte you were last shown counts by ' +
+        'default, so a prompt already on screen does not match instantly, and **a pattern ' +
+        'already matched is not matched twice**: the second wait times out rather than ' +
+        'reporting the same row again. Pass `sinceByte` to match from another watermark — ' +
+        'that is how a repeated marker is picked up again. `sinceByte` **in the result** is ' +
+        'the baseline that was used, not the byte to continue from. ' +
         'A match is an observation, not evidence the program has finished — the terminal ' +
         'echoes what is typed, and an echo is new output too. Use this instead of waiting ' +
         'for idle and then guessing from the screen that the program is ready.',
@@ -443,7 +452,10 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
           .int()
           .nonnegative()
           .optional()
-          .describe('Match only output produced after this byte watermark. Default: the last input.'),
+          .describe(
+            'Match only output produced after this byte watermark. Default: the later of the ' +
+              'last input and the last byte shown to you.',
+          ),
         timeoutMs: z.number().int().positive().describe('Give up after this long.'),
       },
     },
@@ -527,12 +539,16 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
         'apart: comparing two screens can call a cursor move "nothing happened". ' +
         'When `collapsed.chunks > 1`, states existed that were not shown: read them with ' +
         '`history_read({from:{seq:collapsed.rawFrom}, to:{seq}})`. ' +
-        '`sinceSeq` defaults to the state the session was last typed at, so a group that ' +
-        'closed *before* your input cannot satisfy the wait; pass the `seq` you last saw ' +
-        'to continue from there. A firehose produces a sequence of groups — loop with ' +
-        '`sinceSeq`. A session opened without grouping still ends on a group: with no ' +
-        'detector there is no boundary to group to, so each update is one, and ' +
-        '`collapsed` is null.',
+        '`sinceSeq` defaults to the later of the state the session was last typed at and ' +
+        'the state last shown to you -- by `read_screen`, or by the wait that returned it -- so a ' +
+        'group that closed *before* your input cannot satisfy the wait, **and a wait with ' +
+        'nothing new in between does not hand back the act it just returned**: it times ' +
+        'out, carrying the screen it ended on. A firehose produces a sequence of groups, ' +
+        'and the default carries you forward; pass `sinceSeq` to reach back deliberately. ' +
+        'Note that `sinceSeq` **in the result** is the baseline that was used, and the ' +
+        'number to continue from is `seq`, not it. A session opened without grouping ' +
+        'still ends on a group: with no detector there is no boundary to group to, so ' +
+        'each update is one, and `collapsed` is null.',
       inputSchema: {
         sessionId: z.string(),
         sinceSeq: z
@@ -540,7 +556,10 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
           .int()
           .nonnegative()
           .optional()
-          .describe('Only a group ending after this state counts. Default: the last input.'),
+          .describe(
+            'Only a group ending after this state counts. Default: the later of the last ' +
+              'input and the last state shown to you.',
+          ),
         timeoutMs: z.number().int().positive().describe('Give up after this long.'),
       },
     },

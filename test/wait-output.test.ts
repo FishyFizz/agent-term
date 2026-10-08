@@ -76,6 +76,37 @@ test('a row already on screen is not new output: the baseline decides', async (t
   assert.ok(fresh.match!.atByte > 0 && fresh.match!.atByte <= afterPrompt, 'after the baseline');
 });
 
+test('a match already reported is not reported again', async (t) => {
+  const session = probe(QUIET);
+  t.after(() => session.dispose());
+
+  assert.ok(await waitFor(() => session.pty.bytesRead > 0), 'the prompt arrived');
+
+  const first = await session.waitForOutput({ pattern: /^READY>$/, timeoutMs: 5000 });
+  assert.equal(first.reason, 'matched', 'nothing has been typed, so the prompt is new');
+
+  // The other half of the baseline: not the last byte *typed*, the last byte
+  // *shown*. The row above was handed to the caller, so a second wait for it
+  // says nothing arrived rather than reporting the same row at the same byte
+  // for as long as the caller keeps asking. Measured on a driving run: two
+  // consecutive calls, `atByte: 232, row 1` both times.
+  const again = await session.waitForOutput({ pattern: /^READY>$/, timeoutMs: 400 });
+  assert.equal(again.reason, 'timeout', 'the row it just matched is not new output');
+  assert.equal(again.match, null, 'and no match is handed back');
+  assert.ok(again.screen, 'while the screen it ended on still is');
+
+  // An explicit watermark is still an explicit watermark, which is what keeps a
+  // marker that repeats -- a build printing `DONE` per target -- reachable: the
+  // caller names the byte the first one arrived at.
+  const reached = await session.waitForOutput({
+    pattern: /^READY>$/,
+    sinceByte: first.sinceByte,
+    timeoutMs: 4000,
+  });
+  assert.equal(reached.reason, 'matched', 'naming the old baseline reaches back to the row');
+  assert.equal(reached.match?.atByte, first.match?.atByte, 'and it is the same row');
+});
+
 test('a prompt is not a completed line, so text alone never sees it', async (t) => {
   const session = probe(QUIET);
   t.after(() => session.dispose());

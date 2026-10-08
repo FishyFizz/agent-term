@@ -571,6 +571,25 @@ export class TerminalSession {
   /** The state the session was last typed at. See `send`. */
   private _lastInputSeq = 0;
   /**
+   * The furthest state the caller has been *shown*, as against written at.
+   *
+   * `_lastInputSeq` covers the caller's writes and this covers its reads, and
+   * the two are the same kind of fact -- about the interaction, not about the
+   * program. Without it a wait defaults to the last write alone, so a caller
+   * that waits twice with nothing in between is handed the same act again.
+   * Measured on a driving run: two consecutive group waits returning group 5 at
+   * state 9, and two consecutive pattern waits matching the same row at the
+   * same byte. `seq` in the result carries the fact, but a caller with nothing
+   * to compare it against cannot tell a repeat from an act.
+   *
+   * Zero is honest here for the reason it is honest for `_lastInputSeq`: no
+   * state has been shown, and a `max` against a watermark that only grows
+   * cannot be dragged backwards by it.
+   */
+  private _shownSeq = 0;
+  /** The same fact in the byte space `waitForOutput` measures in. */
+  private _shownByte = 0;
+  /**
    * The last update this session delivered, or `null` before the first.
    *
    * Kept so a wait can catch up on an act that already happened. Between a send
@@ -713,6 +732,24 @@ export class TerminalSession {
   /** The state input was last typed at, whoever wrote it. */
   get lastInputSeq(): number {
     return this._lastInputSeq;
+  }
+
+  /**
+   * Record what the caller has been shown, in both address spaces at once.
+   *
+   * Called by whatever hands a result over -- the surface's `read_screen`, and
+   * the waits themselves when they resolve -- because only the thing doing the
+   * handing knows it happened. Each watermark advances to the furthest point
+   * that result reported *in its own space*, which is why a match moves the
+   * byte watermark to the row it matched while a whole frame moves it to the
+   * frame's read-through.
+   *
+   * Only ever forward: reading an old page out of history must not drag the
+   * baseline back over content the caller has already had.
+   */
+  noteShown(seq: number, byte: number): void {
+    if (seq > this._shownSeq) this._shownSeq = seq;
+    if (byte > this._shownByte) this._shownByte = byte;
   }
 
   /** Hand one update to every listener, and keep it for a wait to catch up on. */
@@ -1037,7 +1074,11 @@ export class TerminalSession {
    */
   async waitForOutput(options: WaitForOutputOptions): Promise<OutputWaitResult> {
     const surface: MatchSurface = options.surface ?? 'both';
-    const sinceByte = options.sinceByte ?? this.pty.lastInputByte;
+    // The same baseline the group wait uses, in the space this wait measures
+    // in: the later of where the caller last wrote and where it was last shown.
+    // A row the caller has already matched is therefore not new output, where
+    // before it was new until the next write.
+    const sinceByte = options.sinceByte ?? Math.max(this.pty.lastInputByte, this._shownByte);
     const pattern = options.pattern;
 
     let hit: OutputMatch | null = null;
@@ -1092,7 +1133,7 @@ export class TerminalSession {
       // every wake would only re-check rows that cannot have changed.
       if (surface !== 'text') hit = hit ?? this.matchScreen(pattern, sinceByte);
 
-      return await this.wait<Omit<OutputWaitResult, 'waitedMs'>>({
+      const result = await this.wait<Omit<OutputWaitResult, 'waitedMs'>>({
         timeoutMs: options.timeoutMs,
         found: (state) => (hit ? outcome.matched(hit, state) : null),
         // Nothing more can arrive and nothing matched, so waiting longer cannot
@@ -1101,6 +1142,14 @@ export class TerminalSession {
         onExit: (state) => outcome.endedOn('exited', state),
         onTimeout: (state) => outcome.endedOn('timeout', state),
       });
+      // The matched row is what this wait handed over, so it is what the next
+      // one starts from. Not the read-through: the screen was not handed over
+      // with it, and advancing past rows the caller was never told about would
+      // hide them from a later wait for a different pattern.
+      if (result.reason === 'matched' && result.match) {
+        this.noteShown(result.seq, result.match.atByte);
+      }
+      return result;
     } finally {
       off();
     }
@@ -1152,9 +1201,12 @@ export class TerminalSession {
    * policy without caps never closes a firehose group at all.
    */
   async waitForGroup(options: WaitForGroupOptions): Promise<GroupWaitResult> {
-    // The state the caller has already seen. Anything at or before it is
-    // content it has had, whatever produced it.
-    const sinceSeq = options.sinceSeq ?? this._lastInputSeq;
+    // The state the caller has already seen -- written at or shown. Anything at
+    // or before it is content it has had, whatever produced it. The shown half
+    // is what stops a second wait with nothing in between from handing back the
+    // act the first one returned; without it the baseline is frozen at the last
+    // write and the catch-up below re-offers that group forever.
+    const sinceSeq = options.sinceSeq ?? Math.max(this._lastInputSeq, this._shownSeq);
 
     // Held in a box, not a bare `let`: TypeScript narrows a variable assigned
     // only inside a closure to `never` at the point it is read.
@@ -1219,7 +1271,7 @@ export class TerminalSession {
       // `finally` below unsubscribes, and a `return` of an unresolved promise
       // would run it immediately -- unsubscribing before the wait ever saw
       // anything, which is a wait that can only ever time out.
-      return await this.wait<Omit<GroupWaitResult, 'waitedMs'>>({
+      const result = await this.wait<Omit<GroupWaitResult, 'waitedMs'>>({
         timeoutMs: options.timeoutMs,
         found: (state) => {
           const found = box.found;
@@ -1258,6 +1310,15 @@ export class TerminalSession {
         // already handed it.
         onTimeout: (state) => noGroup('timeout', this.screen.snapshot(), state),
       });
+      // Handing the group over is what makes it "seen", so the next wait starts
+      // from it rather than offering it again. Only a group: a timeout returned
+      // no act, and `exited`/`disposed` are ends rather than answers.
+      if (result.reason === 'group') {
+        // A group always carries its `io`; the zero is for the type, and a
+        // forward-only watermark cannot be moved by it.
+        this.noteShown(result.seq, result.io?.bytesRead ?? 0);
+      }
+      return result;
     } finally {
       off();
       offDispose();

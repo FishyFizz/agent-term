@@ -150,6 +150,32 @@ test('the catch-up still respects the baseline it is given', async (t) => {
   );
 });
 
+test('a wait with nothing new does not hand back the act it just returned', async (t) => {
+  const { session } = open(PRINT_THEN_QUIET);
+  t.after(() => session.dispose());
+
+  const first = await session.waitForGroup({ timeoutMs: 10000 });
+  assert.equal(first.reason, 'group', 'the print is one act');
+
+  // The baseline defaults to the later of where the caller last wrote and where
+  // it was last *shown* -- and the group above was shown. So this wait has
+  // nothing to offer and says so, where before it handed the same group back
+  // for as long as nothing was typed. Measured on a driving run: two
+  // consecutive waits returning group 5 at state 9, which a caller cannot tell
+  // from a new act without having kept the seq by hand. `seq` was in every
+  // result, so the fact was always there; nothing made the default act on it.
+  const again = await session.waitForGroup({ timeoutMs: 400 });
+  assert.equal(again.reason, 'timeout', 'the act it just returned is not new');
+  assert.equal(again.group, null, 'and no group comes back with it');
+  assert.ok(again.screen, 'while the timeout still carries the screen it ended on');
+
+  // An explicit baseline still overrides, which is how a caller asks about a
+  // state it has already had -- the escape hatch, unchanged.
+  const reached = await session.waitForGroup({ sinceSeq: first.sinceSeq, timeoutMs: 4000 });
+  assert.equal(reached.reason, 'group', 'naming the old baseline reaches back to the act');
+  assert.equal(reached.seq, first.seq, 'and it is the same act');
+});
+
 test('a timed-out group wait names the state its screen is at, not the baseline', async (t) => {
   const { session } = open(PRINT_THEN_QUIET);
   t.after(() => session.dispose());

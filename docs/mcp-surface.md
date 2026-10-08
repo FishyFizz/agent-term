@@ -111,6 +111,27 @@ Three waits, one skeleton. Each names only its own stopping reason and leaves wh
 to the caller — who is the one that knows what it is driving. None of them claims the program
 has finished.
 
+### The baseline the two bounded waits default to
+
+`wait_for_output` and `wait_for_group` both ask "since when?", and both answer it the same way:
+**the later of the state the caller last wrote at and the state it was last shown.**
+
+The second half is not derivable from the first, and without it a caller that waits twice with
+nothing in between is handed the same act again — which is indistinguishable from a new one
+without keeping the sequence number by hand, and was measured on a driving run: two consecutive
+group waits returning group 5 at state 9, and two consecutive pattern waits matching the same
+row at the same byte. It is also the half the surface has to supply, because only `read_screen`
+knows it handed a state over. **So a screen read moves the baseline: reading is looking.** A
+history read does not — it is addressed by the caller and may be a look backwards, so where its
+attention is is not something the surface can know.
+
+Each watermark advances to the furthest point a result reported *in its own space* — a whole
+frame moves it to that frame's read-through, a match to the row it matched, since the screen was
+not handed over with it. An explicit `sinceByte` / `sinceSeq` always wins, which is how a caller
+reaches back deliberately: a marker that repeats is asked for again by naming the byte the first
+one arrived at. Every result reports the baseline it used, so "what did new mean here" is
+answerable — and the number to *continue* from is `seq`, not that one.
+
 ### `wait_for_idle`
 
 Blocks until output has been quiet for a requested interval and everything produced has been
@@ -129,10 +150,10 @@ would be wrong on one of them. A pattern is matched against a single row or a si
 never a joined blob, and rows are trimmed so an anchored pattern means the same thing on either
 surface.
 
-The watermark defaults to the last input, so a prompt already on screen cannot match the
-instant a wait starts; `sinceByte` overrides it. The match carries where it was found and the
-byte at which the content arrived — a fact about when the content arrived, not about when the
-match was noticed.
+The watermark defaults to the baseline above, so a prompt already on screen cannot match the
+instant a wait starts, and a row already matched is not matched a second time; `sinceByte`
+overrides it. The match carries where it was found and the byte at which the content arrived —
+a fact about when the content arrived, not about when the match was noticed.
 
 A match is an observation, not evidence the program has finished: the terminal echoes what is
 typed, and an echo is new output too.
@@ -149,7 +170,9 @@ so `send` then `wait_for_group` is a whole loop in two calls. Ends on `group`, `
 
 The baseline is a floor rather than a starting gun: an act that closed *after* it is returned
 even if it closed before the wait was issued, so the round trip between a send and a wait
-cannot lose the act the send caused. `sinceSeq` defaults to the state last typed at.
+cannot lose the act the send caused. `sinceSeq` defaults to the baseline above — so an act the
+wait just returned is not offered again either, and a wait with nothing new times out carrying
+the screen it ended on.
 
 The reason a group closed is reported, because the four do not mean the same thing: only `gap`
 says the program went quiet. A cap cut a group open while it was still writing.
