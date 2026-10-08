@@ -75,6 +75,15 @@ export class StdinRouter {
     this.mode = 'shell';
     this.pending = '';
     this.afterCr = false;
+    // Handing stdin back means the shell has to be *reading* it again, and
+    // reading is not only a mode. Clack closes its readline when a menu
+    // returns, which leaves the stream paused -- and a paused stdin references
+    // nothing, so the event loop empties and the process exits 0 with no `bye`
+    // and nothing on screen but a prompt it had just written. `start` resumed
+    // the stream once, at boot; this is the other half of that, and without it
+    // the subject is gone the first time a menu gives the shell back. Measured
+    // on a driving run where the next line was typed at a corpse.
+    this.stdin.resume();
   }
 
   setRawMode(on: boolean): void {

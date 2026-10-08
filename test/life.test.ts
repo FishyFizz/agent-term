@@ -172,6 +172,21 @@ test('menu mode takes the alt screen and gives the shell back', async (t) => {
   subject.send('\r');
   assert.ok(await waitFor('shell returns', () => subject.atPrompt()), 'leaving the menu restores the prompt');
   assert.equal(subject.buffer(), 'normal', 'the shell is back on the normal screen');
+
+  // The prompt coming back is not the same as the subject still being there to
+  // read the next line, and the difference is not visible on the screen: a clack
+  // menu closes its readline on the way out, which pauses stdin, and a paused
+  // stdin references nothing -- so the event loop empties and the process exits
+  // 0 at once, having written the prompt and nothing else. The assertions above
+  // both hold over a corpse. Measured on a driving run, where the line after the
+  // menu was typed into a subject that had been gone for a minute. So the case
+  // exists to pin the *answering*, not the prompt: a line sent now has to open
+  // the menu again.
+  subject.send('again\r');
+  assert.ok(
+    await waitFor('answers after the menu', () => subject.screen().includes('Select an item')),
+    'the subject is still reading after the menu hands the shell back',
+  );
 });
 
 test('a pattern wait finds the prompt without polling the screen', async (t) => {
