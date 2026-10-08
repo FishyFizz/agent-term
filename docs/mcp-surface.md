@@ -188,6 +188,12 @@ These are contract, not formatting:
 - **Screens are trimmed** of the padding the grid writes them to, end-only, so glyph column
   indices survive. Nothing is lost: what was erased is in the change report, what was written
   is in the text.
+- **Row lists are collapsed into runs.** `changedRows` is the one field that grows with the
+  terminal rather than with what happened — a repaint touching every row of a tall grid names
+  every row, at about four characters each, to say one thing. A contiguous stretch arrives as
+  `"from-to"` and a lone row as the number it already was, so the common case pays nothing for
+  the rare one. The model keeps `number[]`: this is the shape of a delivery, not of the fact,
+  and a caller expands the entries before indexing the screen.
 - **No change is `null`, not empty.** A result with nothing to report says so, which is the
   difference between "no group arrived" and "a group arrived that changed nothing".
 - **Unknowns are `null`, never a fabricated default**, and so are values no decision depended

@@ -871,6 +871,45 @@ test('a read is a baseline: a wait after one asks about what happened next', asy
 });
 
 /**
+ * The row list, collapsed into runs.
+ *
+ * `changedRows` is the field that grows with the terminal rather than with what
+ * happened: a repaint of every row on a tall grid names every row, at about
+ * four characters each, to say one thing. So a contiguous stretch is delivered
+ * as one entry and a row on its own keeps the number it already was. The model
+ * still holds indices -- `classify.test.ts` pins `[0, 1]` -- and this is the
+ * delivery, which is the only place a compression belongs.
+ */
+test('a stretch of changed rows is delivered collapsed, a lone row as itself', async (t) => {
+  const { client, host, close } = await connected();
+  t.after(() => {
+    host.disposeAll();
+    return close();
+  });
+
+  // Three rows in one write, then one more on its own: one run, one number.
+  const subject =
+    "process.stdout.write('one\\r\\ntwo\\r\\nthree\\r\\n');" +
+    "setTimeout(()=>process.stdout.write('four\\r\\n'),800);" +
+    'setInterval(()=>{},1000);';
+  const opened = await call(client, 'open_session', {
+    command: process.execPath,
+    args: ['-e', subject],
+  });
+  const sessionId = (opened.structuredContent as { sessionId: string }).sessionId;
+
+  const first = (await call(client, 'wait_for_group', { sessionId, timeoutMs: 10000 }))
+    .structuredContent as { reason: string; changedRows: (number | string)[] };
+  assert.equal(first.reason, 'group', 'the first write is one act');
+  assert.deepEqual(first.changedRows, ['0-2'], 'and its three adjacent rows are one entry');
+
+  const second = (await call(client, 'wait_for_group', { sessionId, timeoutMs: 10000 }))
+    .structuredContent as { reason: string; changedRows: (number | string)[] };
+  assert.equal(second.reason, 'group', 'the second write is another');
+  assert.deepEqual(second.changedRows, [3], 'and a row on its own stays a number');
+});
+
+/**
  * The exit code: recorded by the timeline, and until now unreachable
  * from the surface, so a driver that came back to a dead session could not ask
  * how it died.

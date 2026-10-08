@@ -170,9 +170,10 @@ are `null`, and `screen` is what the terminal looks like at that moment.
   two screens compared by eye report nothing at all. **Empty `changedRows` beside a non-empty
   `segments` means the act touched no row**: a cursor moving, or a write into cells that
   already held those glyphs. Only indices are given, because the rows themselves are in
-  `screen` and the ones they replaced are one `history_read` away — read
-  `screen[y]` for each `y` in `changedRows` and you have the new state of every row that
-  moved, without comparing anything.
+  `screen` and the ones they replaced are one `history_read` away — expand the entries and
+  read `screen[y]` for each row, and you have the new state of every row that moved, without
+  comparing anything. **A stretch of rows arrives collapsed as `"from-to"`** (`3` is one row,
+  `"3-7"` is five); a run of one stays a number, so only the long ones are strings.
 - **`collapsed.reason` says how it ended, and the four do not mean the same thing**: `gap`
   no bytes arrived for `gapMs`; `bytes`/`chunks` are the caps being reached, cutting a group open
   **while it is still writing**, so more output is coming; `flush` is a resize or exit.
@@ -220,10 +221,11 @@ the end is cut. Nothing is lost by it: a row that was erased or overwritten is i
   `overwrote`, `reachedBack`, `scrolledBy`, `altScreen`. The server has already
   decided whether a change is appended text or a redrawn surface; you do not have to.
 - `changedRows` — which rows of `screen` differ from before this update, as row
-  indices. The row-level half of `segments`: read `screen[y]` for each `y` and you have
-  the new content of every row that moved, with no comparison of two screens and no
-  guessing which of forty rows to look at. Scroll-aware, so a log moving up reports the
-  rows that truly changed rather than every row that shifted.
+  indices, with a contiguous stretch collapsed into `"from-to"` (a lone row stays a
+  number). The row-level half of `segments`: expand the entries, read `screen[y]` for each,
+  and you have the new content of every row that moved, with no comparison of two screens
+  and no guessing which of forty rows to look at. Scroll-aware, so a log moving up reports
+  the rows that truly changed rather than every row that shifted.
 - `text` — the lines this update completed, in order. This is the record of what was
   *written*, including lines that have already scrolled off the screen. **Empty `text`
   beside a non-empty `segments` means the update repainted and wrote no line.**
