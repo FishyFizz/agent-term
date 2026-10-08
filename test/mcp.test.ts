@@ -110,12 +110,18 @@ test('a screen comes back without the padding it was written to', async (t) => {
   }
   assert.ok(payload, 'the output arrived');
 
-  // The grid is 100 columns and the pty pads every row to it, so a read cost
-  // 24 x 100 characters whether or not the program wrote them -- and on a
-  // 140x40 grid, 12,870 tokens across nine screens for 11% content. Trimming
-  // removes no fact: a row that was erased is in `segments`, a line that was
-  // written is in `text`.
-  assert.equal(payload.screen.length, 24, 'every row is still there, at its own index');
+  // The grid is 100 columns and 24 rows, and the pty pads in both directions, so
+  // a read cost 24 x 100 characters whether or not the program wrote them -- and
+  // on a 140x40 grid, 12,870 tokens across nine screens for 11% content.
+  // Trimming removes no fact: a row that was erased is in `segments`, a line
+  // that was written is in `text`, and a position past the end is blank.
+  assert.ok(payload.screen.length <= 24, 'no more rows than the grid has');
+  assert.ok(payload.screen.length > 0, 'and the rows that carry something are here');
+  assert.notEqual(
+    payload.screen.at(-1),
+    '',
+    'the last row delivered carries something -- the blank tail is cut',
+  );
   for (const [y, row] of payload.screen.entries()) {
     assert.equal(row, row.replace(/ +$/, ''), `row ${y} carries no trailing padding`);
   }
@@ -623,9 +629,17 @@ test('a collapsed group\'s swallowed frames are reachable from the surface', asy
 
   assert.equal(body.span, true, 'a `to` reads a span, not a page');
   assert.ok(body.records && body.records.length > 0, 'the span came back with records');
+  // A frame's screen is delivered trimmed like any other, so a frame with
+  // nothing on it is `[]` -- present, and still saying what it had, which is
+  // nothing. Asserting rows on *every* frame would be asserting that the
+  // program had written something by then, which is not what this is about.
   for (const record of body.records!) {
-    assert.ok(record.screen.length > 0, 'each frame carries the screen it produced');
+    assert.ok(Array.isArray(record.screen), 'each frame carries the screen it produced');
   }
+  assert.ok(
+    body.records!.some((record) => record.screen.length > 0),
+    'and the frames that had content on them carry it',
+  );
   assert.deepEqual(
     body.records!.map((r) => r.seq),
     [...body.records!.map((r) => r.seq)].sort((a, b) => a - b),
@@ -868,6 +882,59 @@ test('a read is a baseline: a wait after one asks about what happened next', asy
   const again = (await call(client, 'wait_for_group', { sessionId, timeoutMs: 400 }))
     .structuredContent as { reason: string };
   assert.equal(again.reason, 'timeout', 'so a wait after it is not handed that state a second time');
+});
+
+/**
+ * The same trim, stood upright.
+ *
+ * The grid is padded to `rows` as well as to `cols`, so a screen whose content
+ * stops partway down was paying for the rest of the grid on every delivery.
+ * Only the *end* is cut, again: a blank row between two written ones is layout,
+ * and cutting it would lose a fact rather than a margin. What the cut costs is
+ * one rule, and it is the one the columns already carry -- a position past the
+ * end is blank -- so an index out of range in `changedRows` is a row the act
+ * blanked, which is what that row would have said had it been delivered.
+ */
+test('a screen stops at its last written row, and a blank row between two others stays', async (t) => {
+  const { client, host, close } = await connected();
+  t.after(() => {
+    host.disposeAll();
+    return close();
+  });
+
+  // Three rows: two written with a blank between them, then the second one
+  // erased on its own so its row becomes the end of the screen.
+  const subject =
+    "process.stdout.write('a\\r\\n\\r\\nc\\r\\n');" +
+    "setTimeout(()=>process.stdout.write('\\x1b[3;1H\\x1b[2K'),800);" +
+    'setInterval(()=>{},1000);';
+  const opened = await call(client, 'open_session', {
+    command: process.execPath,
+    args: ['-e', subject],
+    cols: 40,
+    rows: 10,
+  });
+  const sessionId = (opened.structuredContent as { sessionId: string }).sessionId;
+
+  const first = (await call(client, 'wait_for_group', { sessionId, timeoutMs: 10000 }))
+    .structuredContent as { reason: string; screen: string[] };
+  assert.equal(first.reason, 'group', 'the three rows are one act');
+  assert.deepEqual(
+    first.screen,
+    ['a', '', 'c'],
+    'the blank row between two written ones stays, and the seven below are cut',
+  );
+
+  const second = (await call(client, 'wait_for_group', { sessionId, timeoutMs: 10000 }))
+    .structuredContent as { reason: string; screen: string[]; changedRows: (number | string)[] };
+  assert.equal(second.reason, 'group', 'the erase is another');
+  assert.deepEqual(second.screen, ['a'], 'erasing the last written row cuts the screen back to one');
+  assert.deepEqual(second.changedRows, [2], 'while the row it blanked is still named -- out of range');
+  assert.equal(
+    second.screen[2],
+    undefined,
+    'and reading it past the end says blank, which is what the act did',
+  );
 });
 
 /**

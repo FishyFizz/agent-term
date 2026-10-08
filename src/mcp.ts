@@ -119,7 +119,21 @@ function presentOmission(omitted: Omission) {
  * matching a pattern (`match.ts`), applied to what the caller is shown.
  */
 function presentScreen(lines: readonly string[]): string[] {
-  return lines.map((line) => line.replace(/ +$/, ''));
+  const rows = lines.map((line) => line.replace(/ +$/, ''));
+  // The end of the grid as well as the end of each row: the blank rows below
+  // the last one carrying anything are the same padding, stood upright, and a
+  // repaint of a menu on a tall terminal pays for them on every delivery.
+  // End-only again -- a blank row *between* two written ones is layout, and
+  // cutting it would be cutting a fact rather than a margin.
+  //
+  // Every row that is delivered keeps its own index, and a row past the end is
+  // blank, so `changedRows` may name a row the screen does not carry: an index
+  // out of range means the act blanked it, which is the same thing the row
+  // would have said had it been delivered. A screen with nothing on it is `[]`
+  // rather than `rows` empty strings.
+  let last = rows.length;
+  while (last > 0 && rows[last - 1] === '') last--;
+  return rows.slice(0, last);
 }
 
 /**
@@ -373,7 +387,11 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
         'one to read when what changed is a glyph rather than a line: a byte span says a ' +
         'region was redrawn, the row list says which rows actually look different. A ' +
         'contiguous stretch arrives collapsed as `"from-to"`, and a lone row stays a number, ' +
-        'so expand the entries before indexing `screen`. Empty ' +
+        'so expand the entries before indexing `screen`. **A row past the end of `screen` is ' +
+        'blank**: the screen is trimmed of the blank rows below its content as well as of ' +
+        "each row's trailing space, so a row that is blank now is named without being " +
+        'carried. ' +
+        'Empty ' +
         'with a non-empty `segments` means the update touched no row. Also reports `state`: whether ' +
         'the session is running, how long it has been idle, and whether what it produced ' +
         'has been read through. **`state.inputUnconsumed` is how many bytes you sent that ' +
@@ -552,7 +570,9 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
         'group**, which is the row-level half of `segments`: a byte span says a region was ' +
         'redrawn, the row list says a glyph flipped, and it is what to read instead of ' +
         'diffing two screens by eye — a contiguous stretch collapsed as `"from-to"`, a lone ' +
-        'row as itself. Empty beside a non-empty `segments` means the act ' +
+        'row as itself, and a row past the end of `screen` blank, since the screen is ' +
+        'trimmed of the blank rows below its content as well. Empty beside a non-empty ' +
+        '`segments` means the act ' +
         'touched no row at all. ' +
         '**`afterInput` says whether the group you got contains ' +
         'bytes produced after your last write** — `null` before any input. `false` means the ' +

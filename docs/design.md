@@ -125,11 +125,19 @@ the terminal echoes what is typed, and an echo is new output too.
 
 ## The screen crosses the wire trimmed
 
-A grid is `cols` wide and each row is padded to it, so an untrimmed screen is `cols` characters
-a row whether or not the program wrote them. Rows are returned with their trailing padding cut
-— and only the end is cut, so a glyph's column index survives and a blanked row is still an
-empty string at its own index rather than a shifted one. Nothing is lost: what was erased is in
-`segments`, what was written is in `text`.
+A grid is `cols` wide and `rows` tall, and it is padded in both directions: a row is padded out
+to `cols` whether or not the program wrote them, and a screen whose content stops partway down
+carries blank rows to the bottom. Both are returned trimmed — the trailing space of each row,
+and the blank rows below the last one carrying anything — and only *ends* are cut, so a glyph
+keeps its column and a delivered row keeps its index rather than shifting up.
+
+What that costs is one rule, and it is the same rule in both directions: a position past the
+end is blank. So `changedRows` may name a row the screen does not carry, and that is a row that
+is blank *now* — the fact the row would have carried had it been delivered, and no less than
+that. Whether this act blanked it or a scroll revealed it blank is `segments`' answer, not the
+screen's. A screen with nothing on it is `[]`, not a full grid of empty strings.
+
+Nothing is lost: what was erased is in `segments`, what was written is in `text`.
 
 Blank cells hold no fact that the change report does not already carry. Paying for them on
 every read is paying context for padding.

@@ -211,11 +211,18 @@ same answer again unless output arrived since.
 
 **Rows come back trimmed of trailing blanks.** The grid is `cols` wide and the pty pads
 every row to it, so an untrimmed 140-column screen is 140 characters a row whether or not
-the program wrote them; you are given the row's content instead. Every row is still in the
-array **at its own index**, and a row the program blanked is `''` rather than a shift, so
-row numbers and columns mean what they always did — a glyph keeps its column, because only
-the end is cut. Nothing is lost by it: a row that was erased or overwritten is in
-`segments`, and a line that was written is in `text`.
+the program wrote them; you are given the row's content instead. A row the program blanked is
+`''` rather than a shift, and every row keeps **its own index**, so row numbers and columns
+mean what they always did — a glyph keeps its column, because only the end is cut.
+
+**The blank rows at the bottom are cut too**, for the same reason: a screen whose content stops
+partway down was paying for the rest of the grid on every delivery. So `screen` may be shorter
+than the grid, and **a row past its end is blank** — which is why `changedRows` can name a row
+`screen` does not carry: an index out of range is a row that is blank now, which is exactly
+what that row would have said had it been delivered. `segments` is where you read whether this
+act erased it. A screen with nothing on it comes back as `[]`. Nothing is lost by
+any of it: a row that was erased or overwritten is in `segments`, and a line that was written
+is in `text`.
 
 - `segments` — what changed, as spans of byte range, each flagged `erased`,
   `overwrote`, `reachedBack`, `scrolledBy`, `altScreen`. The server has already

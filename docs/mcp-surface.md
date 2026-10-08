@@ -185,9 +185,12 @@ address rather than one you have to re-read to name.
 
 These are contract, not formatting:
 
-- **Screens are trimmed** of the padding the grid writes them to, end-only, so glyph column
-  indices survive. Nothing is lost: what was erased is in the change report, what was written
-  is in the text.
+- **Screens are trimmed** of the padding the grid writes them to — the trailing space of every
+  row, and the blank rows below the last one carrying anything. Only ends are cut, so a glyph
+  keeps its column and a delivered row keeps its index; a position past the end is blank, which
+  means `changedRows` may name a row the screen does not carry, and that is a row that is blank
+  now. A screen with nothing on it is `[]`. Nothing is lost: what was erased is in the
+  change report, what was written is in the text.
 - **Row lists are collapsed into runs.** `changedRows` is the one field that grows with the
   terminal rather than with what happened — a repaint touching every row of a tall grid names
   every row, at about four characters each, to say one thing. A contiguous stretch arrives as
