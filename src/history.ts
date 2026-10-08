@@ -255,6 +255,8 @@ export interface HistoryReadOptions {
    * A single delivery larger than the whole budget is still returned in full,
    * and reported as such by `overBudget`. The alternative — truncating it —
    * would make the one thing the caller asked to see unreadable.
+   *
+   * A **span** is bounded by it too, and cut from the other end: see `span`.
    */
   maxChars?: number;
 }
@@ -276,16 +278,44 @@ export interface HistoryReadOptions {
 export interface Omission {
   /** How many units were not returned. 0 when nothing was left out. */
   count: number;
-  /** Why — `count` for `limit`, `budget` for `maxChars`. */
+  /**
+   * Why — `count` for `limit`, `budget` for `maxChars`. `budget` when both
+   * bit, because that is the one with a different fix: a bigger budget.
+   */
   reason: 'none' | 'count' | 'budget';
   /**
-   * The screen at the point the read begins, when something was omitted.
-   * Null when nothing was omitted, and never a screen the caller did not ask
-   * for — the anchor is what makes a gap resumable rather than a hole.
+   * The state the omitted run is resumed from, when something was omitted.
+   *
+   * Null when nothing was omitted. A screen is materialized here even for a
+   * read that did not ask for screens, because the anchor is what makes a gap
+   * resumable rather than a hole — and null `fromSeq`/`screen` is how a caller
+   * tells "nothing was dropped" from "something was, and here is where".
    */
   screen: ScreenSnapshot | null;
-  /** The `seq` the returned window starts at, so the anchor is addressable. */
+  /**
+   * The `seq` of `screen`, so the anchor is addressable.
+   *
+   * `locate` resolves an address to the record **at or before** it, so reading
+   * from here returns the omitted deliveries — re-reading one already seen at
+   * the boundary, which is how the address space is defined rather than a
+   * special case.
+   */
   fromSeq: number | null;
+  /**
+   * Whether the window returned is itself larger than `maxChars`.
+   *
+   * Set when one delivery is bigger than the whole budget: it comes back in
+   * full rather than truncated, because half a screen would read as the state,
+   * so the budget did not hold and the caller is told rather than left to
+   * assume it did. `reason` is `budget` beside it, and `count` is 0 when that
+   * one delivery was the whole read.
+   */
+  overBudget: boolean;
+}
+
+/** Nothing was omitted — the one shape for it, so no read invents its own. */
+function nothingOmitted(): Omission {
+  return { count: 0, reason: 'none', screen: null, fromSeq: null, overBudget: false };
 }
 
 /** What a read of the timeline returned, at the projection asked for. */
@@ -329,6 +359,60 @@ interface Epoch {
 }
 
 const DEFAULT_LIMIT = 50;
+
+/**
+ * What one record costs the caller, at the shape it is returned in.
+ *
+ * Counted in characters because that is the budget a caller has — "do not blow
+ * up my context", not "fifty". The `text` a record completed always crosses;
+ * a screen crosses only when the read returns one, and it dominates, which is
+ * exactly why the budget exists.
+ */
+function costOf(record: HistoryRecord, screen: ScreenSnapshot | null, level: HistoryLevel): number {
+  const text = record.text.reduce((n, line) => n + line.text.length, 0);
+  if (level === 'text' || screen === null) return text;
+  return screen.lines.reduce((n, row) => n + row.length, text);
+}
+
+/**
+ * The longest run of whole deliveries that fits `maxChars`.
+ *
+ * One function for both bounded reads because the cut is one rule: whole
+ * deliveries, never part of one, and **never fewer than one** — a delivery
+ * larger than the whole budget still comes back in full, since truncating it
+ * would make the one thing a caller asked to see unreadable. `overBudget` is
+ * how the read says the budget did not hold, rather than leaving it to be
+ * inferred from a count that came out 1.
+ *
+ * Which end survives is the only difference: a page with a budget is a driver
+ * returning after a gap asking for the newest of what it missed, and a span is
+ * a window opened at an address the caller chose and read forward from there.
+ */
+function fitBudget<T>(
+  items: readonly T[],
+  cost: (item: T, index: number) => number,
+  maxChars: number,
+  end: 'newest' | 'oldest',
+): { kept: T[]; dropped: T[]; overBudget: boolean } {
+  const kept: T[] = [];
+  let spent = 0;
+  const step = end === 'newest' ? -1 : 1;
+  for (let i = end === 'newest' ? items.length - 1 : 0; i >= 0 && i < items.length; i += step) {
+    const item = items[i]!;
+    const price = cost(item, i);
+    // The first one is kept whatever it costs: below-empty is worse than over.
+    if (kept.length > 0 && spent + price > maxChars) break;
+    kept.push(item);
+    spent += price;
+  }
+  if (end === 'newest') kept.reverse();
+  const taken = kept.length;
+  return {
+    kept,
+    dropped: end === 'newest' ? items.slice(0, items.length - taken) : items.slice(taken),
+    overBudget: spent > maxChars,
+  };
+}
 
 /**
  * The timeline for one session.
@@ -525,7 +609,7 @@ export class SessionHistory {
   }
 
   /**
-   * The deliveries in a span, each with the screen it produced.
+   * A span of the timeline, bounded, with whatever did not fit reported.
    *
    * Addresses, not sequence numbers: a span is opened by whatever the caller
    * already holds -- a token from a page, a byte watermark from a send, a time
@@ -536,24 +620,84 @@ export class SessionHistory {
    * The stream read straight: every delivery in the span, in order, with its
    * state reconstructed. This is what `collapsed.intermediates` promises — the
    * states a group swallowed, playable back — and it lives here because the
-   * stream is this timeline's, not the session's.
+   * stream is this timeline's, not the session's. It is also what a driver
+   * reaches for with a `collapsed.rawFrom..rawTo` in hand, so it carries the two
+   * caps every other read has rather than answering with everything there is.
+   * Nothing is dropped in silence — `limit` cuts a count, `maxChars` cuts a
+   * budget, and `omitted` says how much went, why, and where to resume.
    *
-   * Crosses epochs where `read` will not, because a replay of what one group did
-   * is not less true for the grid having changed under it. Each screen comes
+   * Crosses epochs where `readBack` will not, because a replay of what one group
+   * did is not less true for the grid having changed under it. Each screen comes
    * back at the size it was produced at, so the caller can tell; `epoch` says
    * which. A page is a window into one grid, a replay is a span of what
    * happened.
+   *
+   * Cut from the **oldest** end, unlike a page: a span is opened at an address
+   * the caller chose and read forward from there, so the part it asked to start
+   * at is the part it means to see. A page with a budget is a driver returning
+   * after a gap, which wants the newest of what it missed.
+   *
+   * `level` is here because the budget counts the shape actually returned, and
+   * only the caller knows which shape it asked for.
    */
-  deliveries(
+  span(
+    from?: HistoryPoint | null,
+    to?: HistoryPoint | null,
+    options: { level?: HistoryLevel; limit?: number; maxChars?: number } = {},
+  ): {
+    records: Array<HistoryRecord & { screen: ScreenSnapshot; epoch: number }>;
+    omitted: Omission;
+    truncated: boolean;
+  } {
+    const level = options.level ?? 'records';
+    const all = this.collect(from, to);
+
+    let records = options.limit === undefined ? all : all.slice(0, options.limit);
+    let reason: Omission['reason'] = 'none';
+    let overBudget = false;
+
+    const maxChars = options.maxChars;
+    if (maxChars !== undefined && records.length > 0) {
+      const fit = fitBudget(records, (record) => costOf(record, record.screen, level), maxChars, 'oldest');
+      if (fit.dropped.length > 0 || fit.overBudget) {
+        reason = 'budget';
+        overBudget = fit.overBudget;
+        records = fit.kept;
+      }
+    }
+    if (reason === 'none' && records.length < all.length) reason = 'count';
+
+    // The first delivery that did not come back, which is where a further read
+    // resumes from: this read went forward, so what is missing follows it.
+    const resumed = all[records.length];
+    const omitted: Omission =
+      reason === 'none'
+        ? nothingOmitted()
+        : {
+            count: all.length - records.length,
+            reason,
+            screen: resumed?.screen ?? null,
+            fromSeq: resumed?.seq ?? null,
+            overBudget,
+          };
+
+    return { records, omitted, truncated: records.length < all.length };
+  }
+
+  /**
+   * Every delivery in a span, in order, each with the screen it produced.
+   *
+   * Both ends clamp into the recorded range rather than vanishing: a span
+   * opened before the first record starts at the beginning, one closed past the
+   * last ends at it. `locate` answers "at or before", which is right for
+   * seeking to a state and wrong for bounding a span -- there, the nearest
+   * record *inside* is the answer, and returning nothing would silently narrow
+   * what the caller asked to see.
+   */
+  private collect(
     from?: HistoryPoint | null,
     to?: HistoryPoint | null,
   ): Array<HistoryRecord & { screen: ScreenSnapshot; epoch: number }> {
-    // Both ends clamp into the recorded range rather than vanishing: a span
-    // opened before the first record starts at the beginning, one closed past
-    // the last ends at it. `locate` answers "at or before", which is right for
-    // seeking to a state and wrong for bounding a span -- there, the nearest
-    // record *inside* is the answer, and returning nothing would silently
-    // narrow what the caller asked to see.
     const start = (from === undefined || from === null ? null : this.locate(from)) ?? this.firstRecord();
     const end = (to === undefined || to === null ? null : this.locate(to)) ?? this.lastRecord();
     if (!start || !end) return [];
@@ -618,71 +762,62 @@ export class SessionHistory {
     // the caller asked for (a screen costs far more than a line).
     const window: HistoryRecord[] = [];
     let index = start.index;
-    let truncated = false;
     for (; index < epoch.records.length; index++) {
       const record = epoch.records[index];
       if (!record) break;
-      if (window.length === limit) {
-        truncated = true;
-        break;
-      }
+      if (window.length === limit) break;
       window.push(record);
     }
 
+    const truncated = index < epoch.records.length;
     const stoppedAtEpochEnd = index >= epoch.records.length;
 
-    // Cost a record at the shape it will be returned in. `screen` is the
-    // expensive one and dominates, which is exactly why the budget exists.
-    //
-    // `at` is the record's index in the *epoch*, not in `window`; the two differ
-    // by `start.index`. Passed in because the caller holds it (see the identity
-    // the `records` walk below relies on), where `indexOf` would be a linear
-    // scan per record to re-derive a number already in hand.
-    const costOf = (r: HistoryRecord, at: number): number => {
-      if (level === 'text') return r.text.reduce((n, l) => n + l.text.length, 0);
-      if (options.screen === true) {
-        const screen = this.screenInEpoch(epoch, at);
-        if (screen) return screen.lines.reduce((n, row) => n + row.length, 0);
-      }
-      return r.text.reduce((n, l) => n + l.text.length, 0);
-    };
-
-    // Newest-first assembly under `maxChars`, cut at a whole delivery.
+    // Both caps report through one `Omission`, because a caller that had to
+    // check two fields to learn what it is missing would miss one of them.
+    // `cutIndex` is the delivery the omission is resumed from, held as an index
+    // in the *epoch* -- `window` is a contiguous run from `start.index`, so the
+    // two differ by a number already in hand and nothing scans to find it.
     let records = window;
-    let omitted: Omission = { count: 0, reason: 'none', screen: null, fromSeq: null };
+    let reason: Omission['reason'] = 'none';
+    let cutIndex: number | null = null;
+    let overBudget = false;
+
     const maxChars = options.maxChars;
     if (maxChars !== undefined && window.length > 0) {
-      let spent = 0;
-      let take = window.length;
-      for (let i = window.length - 1; i >= 0; i--) {
-        const cost = costOf(window[i]!, start.index + i);
-        // A single delivery larger than the whole budget still comes back in
-        // full: truncating it would make the one thing asked for unreadable.
-        // This only applies to the newest one — once something fits, the cut
-        // is a whole delivery and the loop stops there.
-        if (spent + cost > maxChars && spent === 0 && i === window.length - 1) {
-          take = i;
-          break;
-        }
-        if (spent + cost > maxChars) break;
-        spent += cost;
-        take = i;
-      }
-      if (take > 0) {
-        const cutAt = take - 1;
-        const cut = window[cutAt]!;
-        omitted = {
-          count: take,
-          reason: 'budget',
-          // `window` is a contiguous run from `start.index`, so `window[i]` is
-          // `epoch.records[start.index + i]` -- the identity the `records` walk
-          // below uses, and the reason neither end scans the epoch to find it.
-          screen: this.screenInEpoch(epoch, start.index + cutAt) ?? null,
-          fromSeq: cut.seq,
-        };
-        records = window.slice(take);
+      const fit = fitBudget(
+        window,
+        (record, i) =>
+          costOf(record, options.screen === true ? this.screenInEpoch(epoch, start.index + i) : null, level),
+        maxChars,
+        'newest',
+      );
+      if (fit.dropped.length > 0 || fit.overBudget) {
+        reason = 'budget';
+        // The last delivery that did not fit: the state the returned window
+        // begins at, and where a further read picks the rest up.
+        cutIndex = start.index + window.length - fit.kept.length - 1;
+        overBudget = fit.overBudget;
+        records = fit.kept;
       }
     }
+    if (reason === 'none' && truncated) {
+      reason = 'count';
+      // The last delivery returned: the state the omitted tail follows.
+      cutIndex = start.index + window.length - 1;
+    }
+
+    // How much is missing is a count of the timeline, not of one cut: with both
+    // caps applied, the limit's tail and the budget's head are both gone.
+    const omitted: Omission =
+      reason === 'none' || cutIndex === null
+        ? nothingOmitted()
+        : {
+            count: epoch.records.length - (start.index + records.length),
+            reason,
+            screen: this.screenInEpoch(epoch, cutIndex) ?? null,
+            fromSeq: epoch.records[cutIndex]?.seq ?? null,
+            overBudget,
+          };
 
     const from = this.encode(start.epoch.info.index, start.index);
     const next = anchor === 'back' ? null : this.resumeAt(start.epoch.info.index, index);

@@ -543,6 +543,7 @@ test('a collapsed group\'s swallowed frames are reachable from the surface', asy
   const body = played.structuredContent as {
     span: boolean;
     truncated: boolean;
+    omitted: { count: number; reason: string; overBudget: boolean };
     records?: Array<{ seq: number; screen: string[]; text: string[] }>;
   };
 
@@ -556,6 +557,24 @@ test('a collapsed group\'s swallowed frames are reachable from the surface', asy
     [...body.records!.map((r) => r.seq)].sort((a, b) => a - b),
     'in the order they happened',
   );
+  // A span reports what it left out exactly as a page does, and a span read
+  // inside the addresses it was given left out nothing.
+  assert.equal(body.omitted.reason, 'none', 'nothing was cut, and it says so');
+  assert.equal(body.omitted.count, 0);
+  assert.equal(body.truncated, false);
+
+  // `limit` bounds a span too — the read a driver makes with a group's raw
+  // range in hand is the one an unbounded answer hurts most.
+  const cut = (await call(client, 'history_read', { sessionId, ...span, limit: 1 })).structuredContent as {
+    truncated: boolean;
+    omitted: { count: number; reason: string; fromSeq: number | null };
+  };
+  if (body.records!.length > 1) {
+    assert.equal(cut.truncated, true, 'the limit cut the span');
+    assert.equal(cut.omitted.reason, 'count', 'and it says which cap did it');
+    assert.equal(cut.omitted.count, body.records!.length - 1, 'how much went');
+    assert.equal(cut.omitted.fromSeq, body.records![1]!.seq, 'and where to resume');
+  }
 });
 
 test('history survives the session being closed, and is still addressable', async (t) => {

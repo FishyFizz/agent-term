@@ -143,7 +143,7 @@ test('a merged group can be played back: the states it swallowed are readable', 
   const group = updates.find((u) => u.collapsed && u.collapsed.chunks > 1)!;
   const { rawFrom, rawTo, chunks } = group.collapsed!;
 
-  const playback = history.deliveries({ seq: rawFrom }, { seq: rawTo });
+  const playback = history.span({ seq: rawFrom }, { seq: rawTo }).records;
   assert.equal(playback.length, chunks, 'one record per raw delivery the group swallowed');
   assert.ok(playback.length > 1, 'the group really did merge');
 

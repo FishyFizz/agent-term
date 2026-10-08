@@ -38,7 +38,7 @@ import { z } from 'zod';
 import { SessionHost } from './host.js';
 import { composeSteps, escapeBytes, KeyInputError, KEY_SUMMARY, type Composed } from './keys.js';
 import type { Segment } from './classify.js';
-import type { HistoryPoint, HistoryReadOptions } from './history.js';
+import type { HistoryPoint, HistoryReadOptions, Omission } from './history.js';
 import type { SessionUpdate } from './session.js';
 import type { TextLine } from './text-log.js';
 import type { SessionId } from './types.js';
@@ -82,6 +82,22 @@ function presentSegments(segments: readonly Segment[] | null) {
 /** The lines a change completed, as the agent reads them. `null` in, `null` out. */
 function presentText(text: readonly TextLine[] | null) {
   return text === null ? null : text.map((l) => l.text);
+}
+
+/**
+ * What a cut read left out, as the agent reads it: how much, why, and where to
+ * resume. One shape for both a page and a span, so a caller branches on the
+ * same fields whichever read it made — and so the anchor screen is trimmed and
+ * shaped like every other screen the surface returns.
+ */
+function presentOmission(omitted: Omission) {
+  return {
+    count: omitted.count,
+    reason: omitted.reason,
+    fromSeq: omitted.fromSeq,
+    overBudget: omitted.overBudget,
+    ...(omitted.screen ? { screen: presentScreen(omitted.screen.lines) } : {}),
+  };
 }
 
 /**
@@ -307,7 +323,7 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
         'no `atPrompt`. **`seq` is the number of the state being shown** — one ' +
         'number for the whole timeline, incremented per raw delivery, and the same one ' +
         '`history_read` addresses with. A group that swallowed states 3..9 reports 9, and ' +
-        '`history_read({from:{seq:3}, to:{seq:9}, screen:true})` plays 3..9 back.',
+        '`history_read({from:{seq:3}, to:{seq:9}})` plays 3..9 back.',
       inputSchema: { sessionId: z.string() },
     },
     async ({ sessionId }) => {
@@ -481,7 +497,7 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
         'on itself, a menu painted over itself. `text` and `segments` are what tell those ' +
         'apart: comparing two screens can call a cursor move "nothing happened". ' +
         'When `collapsed.chunks > 1`, states existed that were not shown: read them with ' +
-        '`history_read({from:{seq:collapsed.rawFrom}, to:{seq}, screen:true})`. ' +
+        '`history_read({from:{seq:collapsed.rawFrom}, to:{seq}})`. ' +
         '`sinceSeq` defaults to the state the session was last typed at, so a group that ' +
         'closed *before* your input cannot satisfy the wait; pass the `seq` you last saw ' +
         'to continue from there. A firehose produces a sequence of groups — loop with ' +
@@ -537,14 +553,18 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
         'in ms, or a byte offset — and the two ends need not be the same kind. `level` ' +
         'chooses the projection: `records` (default, the deliveries as recorded), `groups` ' +
         '(the units the agent was shown, with verdicts), or `text` (plain lines). ' +
-        '`screen: true` materializes the screen at each point, which is what turns a page ' +
+        '`screen: true` materializes the screen at each point, which is what turns a read ' +
         'into a playback — leave it off for cheap paging. Passing `to` reads a span and ' +
         'may cross a resize; paging with only `from` never does, and every result reports ' +
-        'the grid size its records were produced at. This is how `collapsed.intermediates` ' +
-        'from `read_screen` is followed up: read the group\'s span with `screen: true` to see ' +
-        'the states it merged. History stays readable after `close_session`. ' +
-        'Returns `next` to resume, `truncated` when the limit stopped the read, and ' +
-        '`stoppedAtEpochEnd` when the grid changed. **`ended` is how the process finished** ' +
+        'the grid size its records were produced at. **A span is a replay, so it carries ' +
+        'each record\'s screen whatever `screen` says**, and each record says which epoch it ' +
+        'was produced at, since one span may hold two. This is how `collapsed.intermediates` ' +
+        'from `read_screen` is followed up: read the group\'s span to see the states it ' +
+        'merged. History stays readable after `close_session`. ' +
+        'Both reads are bounded — `limit` by count, `maxChars` by characters — and ' +
+        'neither is cut in silence: `truncated` says the read was cut and **`omitted` says ' +
+        'how much went, why, and the `seq` to resume from**, with the screen at the cut. ' +
+        '`stoppedAtEpochEnd` says a page stopped because the grid changed. **`ended` is how the process finished** ' +
         '— `{at, exitCode, signal}`, or `null` while it is still running. `exitCode` is ' +
         '`null` when a signal is what ended it, and it stays `null` after `close_session`: ' +
         'closing disposes the pty without an exit event, so a driven close has no code to ' +
@@ -557,18 +577,29 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
         to: address
           .optional()
           .describe('Where to stop, same address space. Default: read on from `from`.'),
-        limit: z.number().int().positive().optional().describe('Cap on records, groups or lines. Default 50.'),
+        limit: z
+          .number()
+          .int()
+          .positive()
+          .optional()
+          .describe(
+            'Cap on records, groups or lines. Default 50 for a page. A span has no default: it ' +
+            'is already bounded by the addresses you gave it.',
+          ),
         maxChars: z
           .number()
           .int()
           .positive()
           .optional()
           .describe(
-            'Cap in **characters**, cut at a whole delivery. For a driver returning after a gap: ' +
-            'of 300 unseen groups the newest ones are actionable and the oldest are history, so ' +
-            'assembly runs from the newest end and stops at a seq boundary. What did not fit is ' +
-            'counted in `omitted`, with the screen at the cut so the gap is resumable. A single ' +
-            'delivery larger than the budget still comes back in full rather than half a screen.',
+            'Cap in **characters**, cut at a whole delivery, for a page and a span alike. On a ' +
+            'page — a driver returning after a gap — of 300 unseen groups the newest are ' +
+            'actionable and the oldest are history, so assembly runs from the newest end; a span ' +
+            'is read forward from the address you opened it at, so it is cut from the oldest end. ' +
+            'Either way what did not fit is counted in `omitted`, with `reason`, the `seq` to ' +
+            'resume from, and the screen at the cut, so a gap is resumable rather than a hole. A ' +
+            'single delivery larger than the budget still comes back in full rather than half a ' +
+            'screen, and `omitted.overBudget` says so.',
           ),
         level: z
           .enum(['records', 'groups', 'text'])
@@ -577,7 +608,10 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
         screen: z
           .boolean()
           .optional()
-          .describe('Materialize the screen at each record — playback. Off by default.'),
+          .describe(
+            'Materialize the screen at each record — playback. Off by default for a page. A ' +
+            'span is a replay and always carries the screen each record produced.',
+          ),
       },
     },
     async ({ sessionId, from, to, limit, maxChars, level, screen }) => {
@@ -594,40 +628,48 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
       };
 
       try {
-        // A span is a replay: `deliveries` is what crosses a resize, because
-        // what one group did is not less true for the grid having changed.
+        const level = options.level ?? 'records';
+
+        // A span is a replay: it crosses a resize, because what one group did
+        // is not less true for the grid having changed. And it is bounded by
+        // the same two caps a page is -- a span is how `collapsed.rawFrom` and
+        // `rawTo` are followed up, and an unbounded answer to that is the one
+        // that blows a caller's context.
         if (options.to !== undefined && options.to !== null) {
-          if ((options.level ?? 'records') === 'groups') {
+          if (level === 'groups') {
             return fail('bad_input', 'a span (`to`) is read at the `records` or `text` level');
           }
-          const records = history.deliveries(options.from, options.to);
-          const capped = limit === undefined ? records : records.slice(0, limit);
-          const lines = capped.flatMap((r) => r.text);
-          const shaped = (options.level ?? 'records') === 'text'
-            ? { level: 'text' as const, lines: lines.map((l) => ({ text: l.text })) }
-            : {
-                level: 'records' as const,
-                records: capped.map((r) => ({
-                  seq: r.seq,
-                  group: r.group,
-                  at: r.at,
-                  fromByte: r.fromByte,
-                  toByte: r.toByte,
-                  text: r.text.map((l) => l.text),
-                  epoch: r.epoch,
-                  screen: presentScreen(r.screen.lines),
-                  cursor: r.cursor,
-                  buffer: r.buffer,
-                })),
-              };
+          const replay = history.span(options.from, options.to, { level, limit, maxChars });
+          const lines = replay.records.flatMap((r) => r.text);
+          const shaped =
+            level === 'text'
+              ? { level: 'text' as const, lines: lines.map((l) => l.text) }
+              : {
+                  level: 'records' as const,
+                  records: replay.records.map((r) => ({
+                    seq: r.seq,
+                    group: r.group,
+                    at: r.at,
+                    fromByte: r.fromByte,
+                    toByte: r.toByte,
+                    text: r.text.map((l) => l.text),
+                    // A span crosses epochs, so each record has to say which
+                    // grid it was produced at -- the page reports one size for
+                    // the whole read, and a span has no one size to report.
+                    epoch: r.epoch,
+                    screen: presentScreen(r.screen.lines),
+                    cursor: r.cursor,
+                    buffer: r.buffer,
+                  })),
+                };
           return {
             content: [
               {
                 type: 'text',
                 text:
-                  (options.level ?? 'records') === 'text'
-                    ? `${lines.length} lines across ${capped.length} deliveries`
-                    : `${capped.length} deliveries`,
+                  level === 'text'
+                    ? `${lines.length} lines across ${replay.records.length} deliveries`
+                    : `${replay.records.length} deliveries${replay.truncated ? ' (cut)' : ''}`,
               },
             ],
             structuredContent: {
@@ -637,7 +679,8 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
               // came back after a gap is the one that most needs to know the
               // process is gone, and it is not something the span says.
               ended: history.ended,
-              truncated: capped.length < records.length,
+              truncated: replay.truncated,
+              omitted: presentOmission(replay.omitted),
               ...shaped,
             },
           };
@@ -693,12 +736,7 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
             next: page.next,
             truncated: page.truncated,
             stoppedAtEpochEnd: page.stoppedAtEpochEnd,
-            omitted: {
-              count: page.omitted.count,
-              reason: page.omitted.reason,
-              fromSeq: page.omitted.fromSeq,
-              ...(page.omitted.screen ? { screen: presentScreen(page.omitted.screen.lines) } : {}),
-            },
+            omitted: presentOmission(page.omitted),
             ...shaped,
           },
         };

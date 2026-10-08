@@ -129,21 +129,21 @@ test('a span opens with any address kind, and the two ends need not match', () =
   f.write(['a', 'b'], { text: ['b'] });
   const last = f.write(['a', 'b', 'c'], { text: ['c'] });
 
-  const mixed = history.deliveries({ seq: first }, { byte: 28 });
+  const mixed = history.span({ seq: first }, { byte: 28 }).records;
   assert.deepEqual(
     mixed.map((r) => r.seq),
     [first, first + 1, last],
     'a seq opens the span, a byte closes it',
   );
 
-  const byToken = history.deliveries(history.tokenAt({ seq: first })!, { seq: last });
+  const byToken = history.span(history.tokenAt({ seq: first })!, { seq: last }).records;
   assert.equal(byToken.length, 3, 'a token from a page opens a span too');
 });
 
 test('a span crosses a resize; a page does not', () => {
   const { history } = twoEpochs();
 
-  const span = history.deliveries({ seq: 1 }, { seq: 3 });
+  const span = history.span({ seq: 1 }, { seq: 3 }).records;
   assert.equal(span.length, 3, 'what happened is not less true for the grid changing');
   assert.deepEqual(
     [...new Set(span.map((r) => r.epoch))],
@@ -165,7 +165,11 @@ test('a span that contains nothing is empty rather than the whole timeline', () 
   const first = f.write(['a'], { text: ['a'] });
   f.write(['a', 'b'], { text: ['b'] });
 
-  assert.equal(history.deliveries({ seq: first + 1 }, { seq: first }).length, 0, 'to before from');
+  assert.equal(
+    history.span({ seq: first + 1 }, { seq: first }).records.length,
+    0,
+    'to before from',
+  );
 
   // An address means "at or before" — the resolution limit `locate` documents,
   // and the same one `screenAt` obeys — so a span past the end clamps to the
@@ -173,7 +177,7 @@ test('a span that contains nothing is empty rather than the whole timeline', () 
   // "strictly after the end"; the nearest state to what was asked is the honest
   // answer, and it is the record the caller would have got from `screenAt`.
   assert.deepEqual(
-    history.deliveries({ seq: 99 }, { seq: 100 }).map((r) => r.seq),
+    history.span({ seq: 99 }, { seq: 100 }).records.map((r) => r.seq),
     [first + 1],
     'a span past the end is the last state, not silence',
   );

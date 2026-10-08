@@ -470,7 +470,7 @@ test('history reconstructs every screen of a live session', async (t) => {
   // The **stream** is what is stored: one record per delivery, encoded as a
   // delta against the last keyframe. Reading a delivery back must give the
   // screen that delivery produced.
-  const deliveries = history.deliveries({ seq: 0 }, { seq: Number.MAX_SAFE_INTEGER });
+  const deliveries = history.span({ seq: 0 }, { seq: Number.MAX_SAFE_INTEGER }).records;
   assert.ok(deliveries.length > 0, 'the stream recorded deliveries');
   for (let i = 1; i < deliveries.length; i++) {
     const previous = deliveries[i - 1]!;
@@ -663,7 +663,7 @@ test('the update seq addresses the timeline: what was swallowed is reachable', a
 
     // Which is what makes the swallowed ones addressable: these are states
     // that existed, were recorded, and were never shown as an update.
-    const playback = history.deliveries({ seq: from }, { seq: to });
+    const playback = history.span({ seq: from }, { seq: to }).records;
     assert.equal(playback.length, update.collapsed!.chunks, 'every swallowed state comes back');
     for (const state of playback) {
       assert.ok(state.screen, 'with the screen it had');

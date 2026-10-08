@@ -75,16 +75,22 @@ replaying the frames a group swallowed are the same operation at different setti
 - `from` and `to` take **any address** — a token, a sequence number, a timestamp, a byte
   offset — and the two ends need not be the same kind.
 - `level` picks the projection: records, groups, or text.
-- `screen: true` materializes the state at each point, which is what turns a page into a
+- `screen: true` materializes the state at each point, which is what turns a read into a
   playback.
 
 A **span** (with `to` set) is a replay and crosses a resize; a **page** (with `from` alone)
-never does, and reports the grid size it was produced at. This is what makes the intermediate
-states a group collapsed reachable: read the group's span with `screen: true` and they come
-back.
+never does, and reports the grid size it was produced at. Because a span *is* a replay it
+carries each record's screen whatever `screen` says, and each record names the epoch it was
+produced at — one span may hold two sizes. This is what makes the intermediate states a group
+collapsed reachable: read the group's span and they come back.
 
 Omission is reported, never silent: a read that was cut says how much was left out, why, and
-which sequence number to resume from.
+which sequence number to resume from. Both reads are bounded the same way — `limit` by count,
+`maxChars` by characters, cut at a whole delivery so the answer is never half a screen — and
+which end survives follows from which way the read goes. A page with a budget is a driver
+returning after a gap, so it keeps the newest of what it missed; a span is opened at an
+address the caller chose and read forward, so it keeps the oldest. A single delivery larger
+than the whole budget comes back in full rather than truncated, and `overBudget` says so.
 
 ## Waiting
 

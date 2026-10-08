@@ -142,7 +142,7 @@ export interface CollapsedInfo {
   spanMs: number;
   /**
    * The deliveries this group stands for, as an inclusive range of `Delivery.seq`.
-   * Pass to `SessionHistory.deliveries(from, to)` to read and play them back.
+   * Pass to `SessionHistory.span(from, to)` to read and play them back.
    *
    * `0..0` when grouping is off: nothing was swallowed, so there is nothing to
    * play back and the honest answer is an empty range rather than `1..1`.

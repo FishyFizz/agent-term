@@ -164,7 +164,7 @@ are `null`, and `screen` is what the terminal looks like at that moment.
   no bytes arrived for `gapMs`; `bytes`/`chunks` are the caps being reached, cutting a group open
   **while it is still writing**, so more output is coming; `flush` is a resize or exit.
 - **`collapsed.chunks > 1` means states existed that you were not shown.** Read them with
-  `history_read({from:{seq:collapsed.rawFrom}, to:{seq}, screen:true})`.
+  `history_read({from:{seq:collapsed.rawFrom}, to:{seq}})`.
 - `sinceSeq` defaults to the state you last typed at, so a group that closed *before* your
   input cannot satisfy the wait. Pass the `seq` you last saw to continue from there — a
   firehose produces a stream of groups, so loop on it.
@@ -214,7 +214,7 @@ the end is cut. Nothing is lost by it: a row that was erased or overwritten is i
   screen you are looking at is the net effect of several deliveries, and **states
   existed that you were not shown**. Those states are not lost: take
   `collapsed.rawFrom`/`rawTo` and read them with
-  `history_read({from:{seq:rawFrom}, to:{seq:rawTo}, screen:true})`.
+  `history_read({from:{seq:rawFrom}, to:{seq:rawTo}})`.
 - `io` — `bytesRead`, a monotonic watermark you can compare against a later read, and
   `bytesPending`.
 
