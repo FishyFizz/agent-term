@@ -10,6 +10,10 @@ does not tell you what the program means, or whether it has finished; it reports
 facts and leaves the judgement to you, because you are the one that knows what you
 are driving.
 
+The tool descriptions on the server are deliberately terse — they load on every turn, so
+they say what a tool does and point here. This skill is the reference: read it before you
+lean on a field's semantics, and come back to it when a result surprises you.
+
 ## The loop
 
 1. **`open_session`** — returns a `sessionId`, which every other tool needs. Takes
@@ -61,7 +65,8 @@ order** — so nothing can arrive between the parts of a key sequence.
   execute at every newline. With the mode off the characters are written plain. The mode is
   read off the screen, so wait for the program to print something before pasting, and
   `modes.bracketedPaste` reports which it was. Use `{paste}` when you are inserting content —
-  a command block, a file body, a paragraph — rather than typing keys.
+  a command block, a file body, a paragraph — rather than typing keys. A paste may not
+  contain the terminator `ESC [ 201 ~`, which would end it early; that is a `bad_input`.
 
 - Keys: `up down left right home end insert delete pgup pgdn f1..f12 tab shift+tab enter
   backspace esc space ctrl+a..ctrl+z ctrl+\ ctrl+] ctrl+^ ctrl+_ alt+<char>`. Names are read
@@ -273,6 +278,51 @@ its tail. `null` means not knowable; it never means zero.
 
 An update of `null` means nothing has arrived yet. That is not an empty screen — look
 at `screen`.
+
+## History
+
+`history_read` is one surface over the timeline. Paging through what happened and
+replaying the states a group swallowed are the same operation at different settings, and
+it is how you look at a state you are not currently at — a `seq` a wait handed you, the
+intermediate frames of a `collapsed` group, or a run of output from before you started
+looking. **History stays readable after `close_session`**, so an ended session is still
+addressable.
+
+`from` and `to` take **any address** — a token from a previous read (`next`), `{seq}`,
+`{at}` (a timestamp in ms), or `{byte}` (a byte offset) — and the two ends need not be
+the same kind. `level` picks the projection:
+
+- `records` (default) — the deliveries as recorded, one per raw state.
+- `groups` — the units the agent was shown, with their verdicts.
+- `text` — plain lines, no per-state structure.
+
+**A page versus a span.** With only `from`, or neither end, you get a **page**: it
+never crosses a resize, reports the grid size as `epoch`, and carries a `next` token to
+continue from. With `to` set you get a **span** — a replay — which *does* cross a
+resize: one span may hold two grid sizes, so **each record names the `epoch` it was
+produced at** rather than one size for the whole read. A span is read at `records` or
+`text`; the `groups` level is rejected. A span always carries each record's screen,
+whatever `screen` says; on a page, `screen: true` materializes the screen at each point
+— playback — and is off by default for cheap paging.
+
+**Both reads are bounded, and neither is cut in silence.** `limit` caps by count
+(default 50 for a page); `maxChars` caps by characters, cut at a whole delivery. Which
+end survives follows from the direction: a page is a driver returning after a gap, so it
+keeps the **newest** of what it missed; a span is opened where you chose and read
+forward, so it keeps the **oldest**. A single delivery larger than the whole budget comes
+back in full rather than half a screen, and `omitted.overBudget` says so. When a read is
+cut, `truncated` is true and `omitted` says `count`, `reason`, `fromSeq` (where to
+resume), `overBudget`, and the screen at the cut. `stoppedAtEpochEnd` says a page stopped
+because the grid changed under it.
+
+**`ended`** reports how the process finished: `{at, exitCode, signal}`, or `null` while
+it is still running. `exitCode` is `null` when a signal ended it, and it stays `null`
+after `close_session` — closing disposes the pty without an exit event, so a driven close
+has no code to report. `state.exit` on any read is the same fact without the timeline.
+
+Records carry `seq`, `group`, `at`, `fromByte`, `toByte`, `text` (the lines), `cursor`,
+`buffer`, and — on a span — `epoch` and `screen`. The `groups` level is the shape a group
+wait returns, per group.
 
 ## From facts to a use case
 

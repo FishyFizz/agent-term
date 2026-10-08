@@ -8,6 +8,11 @@ tools** — capabilities are added by making an existing call carry more, not by
 Capabilities that are not on the surface are absent on purpose rather than forgotten; see
 [design.md](design.md) for the refusals they would violate.
 
+The same cost applies to each tool's description, which every connected agent carries on
+every turn. So the descriptions are terse — what the tool does, its parameters, the one
+trap — and the semantics below live in the `agent-term` skill, which is loaded when it is
+needed rather than charged for always. The contracts here are the authority for both.
+
 ## Errors
 
 Failures come back as one of a closed set of codes, so a caller can branch on them instead of

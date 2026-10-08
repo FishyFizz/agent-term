@@ -225,8 +225,9 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
     {
       title: 'Open a terminal session',
       description:
-        'Start a hosted terminal session running a command. Returns its id, which every ' +
-        'other tool needs. Defaults to a platform shell.',
+        'Start a hosted terminal session running a command; with no command you get a ' +
+        'platform shell. Returns the `sessionId` every other tool addresses, plus the grid ' +
+        'size and the pid.',
       inputSchema: {
         command: z.string().optional().describe('Executable to run. Defaults to a shell.'),
         args: z.array(z.string()).optional().describe('Arguments to the executable.'),
@@ -249,10 +250,10 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
     {
       title: 'Send input to a session',
       description:
-        'Write text into a session, as if typed. `submit` appends a newline, so a command ' +
-        'that needs Enter pressed should set it. To press a key rather than type characters — ' +
-        'arrows, Tab, Escape, Ctrl-C — use `send_sequence`. The result reports `written`, the ' +
-        'bytes as they were actually handed to the terminal.',
+        'Write text into a session, as if typed. `submit: true` appends the line ending, so a ' +
+        'command that needs Enter pressed should set it. To press a key rather than type ' +
+        'characters — arrows, Tab, Escape, Ctrl-C — use `send_sequence`. The result reports ' +
+        '`written`: the bytes as they were handed to the terminal.',
       inputSchema: {
         sessionId: z.string(),
         text: z.string().describe('What to type.'),
@@ -282,32 +283,16 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
     {
       title: 'Send a batch of input as one write',
       description:
-        'Write several inputs at one instant: each step is `{text}`, `{paste}`, `{key}` or ' +
-        '`{byte}`, and the whole batch goes in a single write, in order. This is how a ' +
-        'keystroke a program needs but has no character for gets sent -- "type this, then ' +
-        'press Enter" is one call rather than two, and no raw escape bytes cross the wire.\n\n' +
-        'Keys are named, not spelled: ' +
+        'Write several inputs as one write, in order: each step is `{text}`, `{paste}`, ' +
+        '`{key}` or `{byte}`. This is how a named key or a raw byte is sent, and how "type ' +
+        'this, then press Enter" becomes one call rather than two. Keys are named, not ' +
+        'spelled (' +
         KEY_SUMMARY +
-        '. A key is encoded using the mode the program has set, read from the screen -- ' +
-        '`down` is `CSI B`, or `SS3 B` when the program has turned on application cursor ' +
-        'keys -- so the same call is right in a shell and in a full-screen editor.\n\n' +
-        '**`{paste}` is text the program should take as an insertion, not as keystrokes.** When ' +
-        'the program has enabled bracketed paste (`CSI ? 2004 h` -- bash, zsh, fish and many ' +
-        'REPLs do), the text is wrapped in `ESC [ 200 ~` ... `ESC [ 201 ~` and inserted ' +
-        'literally, so a multi-line paste lands in the shell\'s editing buffer without running ' +
-        'a line of it; the same text as `{text}` would execute at every newline. The mode is ' +
-        'read from the screen, so wait for the program to print something before pasting, and ' +
-        '`modes.bracketedPaste` reports what it was. A paste may not contain the terminator ' +
-        '`ESC [ 201 ~`, which would end the paste early.\n\n' +
-        '**A key that only counts twice in quick succession belongs in one batch.** Two ' +
-        '`{key: "ctrl+c"}` steps in one call arrive as one write, which is what a program ' +
-        'waiting for a double press is measuring. The same two keys sent as two calls are a ' +
-        'model round trip apart, so the program sees two single presses and the gesture does ' +
-        'nothing -- which reads exactly like a key that was ignored.\n\n' +
-        'Nothing waits inside a batch. It is a sequence of writes at one instant, not a ' +
-        'script with reactions; send, then wait, then read, and keep that loop in your own ' +
-        'control. The result reports `written`, the bytes as they were actually handed to the ' +
-        'terminal, so what the program received can be checked without reading the screen.',
+        '); a key is encoded for the mode the program has set, read off the screen. A ' +
+        '`{paste}` is an insertion, wrapped in bracketed-paste guards when the program has ' +
+        'enabled them. Nothing waits inside a batch. The result reports what each step wrote ' +
+        'and the modes it consulted; the agent-term skill covers key names and paste ' +
+        'semantics in full.',
       inputSchema: {
         sessionId: z.string(),
         steps: z
@@ -318,8 +303,8 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
                 .string()
                 .optional()
                 .describe(
-                  'Text to paste. Wrapped in the bracketed-paste guards when the program has ' +
-                    'enabled bracketed paste, and written plain when it has not.',
+                  'Text to paste — an insertion, not keystrokes. Wrapped in bracketed-paste ' +
+                    'guards when the program has enabled them, written plain when not.',
                 ),
               key: z
                 .string()
@@ -378,30 +363,11 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
     {
       title: 'Read what a session shows now',
       description:
-        'The screen as it is now, what changed on it, and how much output that change ' +
-        'stands for. Returns the last classified update, or null when nothing has arrived ' +
-        'yet — which is not the same as an empty screen. **A `wait_for_group` already returned ' +
-        'this same report for the state it ended at**, so a read taken straight after one is ' +
-        'the same answer again unless output arrived since. **`changedRows` names the rows ' +
-        'that differ from before this update** — the row-level half of `segments`, and the ' +
-        'one to read when what changed is a glyph rather than a line: a byte span says a ' +
-        'region was redrawn, the row list says which rows actually look different. A ' +
-        'contiguous stretch arrives collapsed as `"from-to"`, and a lone row stays a number, ' +
-        'so expand the entries before indexing `screen`. **A row past the end of `screen` is ' +
-        'blank**: the screen is trimmed of the blank rows below its content as well as of ' +
-        "each row's trailing space, so a row that is blank now is named without being " +
-        'carried. ' +
-        'Empty ' +
-        'with a non-empty `segments` means the update touched no row. Also reports `state`: whether ' +
-        'the session is running, how long it has been idle, and whether what it produced ' +
-        'has been read through. **`state.inputUnconsumed` is how many bytes you sent that ' +
-        'no output has followed** — `null` before any input, `0` once something came back. ' +
-        'It is a byte count, not a verdict: a shell running a slow builtin and a shell ' +
-        'sitting at a prompt are indistinguishable from outside, so there is deliberately ' +
-        'no `atPrompt`. **`seq` is the number of the state being shown** — one ' +
-        'number for the whole timeline, incremented per raw delivery, and the same one ' +
-        '`history_read` addresses with. A group that swallowed states 3..9 reports 9, and ' +
-        '`history_read({from:{seq:3}, to:{seq:9}})` plays 3..9 back.',
+        'The screen as it is now, what changed on it, and how much output that change stands ' +
+        'for. Returns the last classified update — `null` when nothing has arrived yet, ' +
+        'which is not the same as an empty screen — plus `state`. A `wait_for_group` already ' +
+        'returns this same report for the state it ended at. See the agent-term skill for ' +
+        'the field contract (`screen`, `segments`, `changedRows`, `seq`, `state`).',
       inputSchema: { sessionId: z.string() },
     },
     async ({ sessionId }) => {
@@ -440,12 +406,11 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
     {
       title: 'Wait for a session to stop changing',
       description:
-        'Block until the session has been quiet for `idleMs` and everything it produced ' +
-        'has been read through, or until `timeoutMs` passes. Returns which of those ' +
-        'stopped it: `idle`, `exited`, or `timeout`. `idle` does NOT mean the program has ' +
-        'finished — nothing observable can establish that while it runs; it means the ' +
-        'quiet period you asked for was observed. Use this instead of sleeping after a ' +
-        'send: a read taken straight after a send returns the previous state.',
+        'Block until the session has been quiet for `idleMs` and everything it produced has ' +
+        'been read through, or until `timeoutMs` passes. Returns which of those stopped it: ' +
+        '`idle`, `exited` or `timeout`. Idle does not mean the program has finished. Use it ' +
+        'instead of sleeping after a send; when you want the change itself, `wait_for_group` ' +
+        'returns it with the verdict.',
       inputSchema: {
         sessionId: z.string(),
         idleMs: z.number().int().nonnegative().describe('How long the pty must have been quiet.'),
@@ -469,24 +434,12 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
       title: 'Wait for a session to show something',
       description:
         'Block until a regular expression appears in what the session produced, or until ' +
-        '`timeoutMs` passes or the process exits. Returns which of those stopped it: ' +
-        '`matched`, `exited` or `timeout`, and what matched (the text, the screen row, the ' +
-        'byte it arrived at). When it does NOT match, `screen` carries the rows as they ' +
-        'were when the wait ended, so a timeout answers "what is it showing?" without a ' +
-        'second call; it is `null` on `matched`, where the match is the answer. A pattern ' +
-        'is matched against screen rows the session wrote, ' +
-        'and against completed lines it emitted. Trailing blanks are removed before ' +
-        'matching, so a prompt printed as "$ " is a row whose content is "$" — anchor with ' +
-        '`^...$` to mean a whole line. Only output produced after the later of ' +
-        'the byte you were last typed at and the byte you were last shown counts by ' +
-        'default, so a prompt already on screen does not match instantly, and **a pattern ' +
-        'already matched is not matched twice**: the second wait times out rather than ' +
-        'reporting the same row again. Pass `sinceByte` to match from another watermark — ' +
-        'that is how a repeated marker is picked up again. `sinceByte` **in the result** is ' +
-        'the baseline that was used, not the byte to continue from. ' +
-        'A match is an observation, not evidence the program has finished — the terminal ' +
-        'echoes what is typed, and an echo is new output too. Use this instead of waiting ' +
-        'for idle and then guessing from the screen that the program is ready.',
+        '`timeoutMs` passes or the process exits. Returns `reason` (`matched`, `exited`, ' +
+        '`timeout`) and, on a match, the text, row and byte it was found at. When it does ' +
+        'not match, `screen` carries the rows it ended on, so a timeout needs no second ' +
+        'call. Prefer this over wait-then-eyeball when the program has a readiness signal ' +
+        'you can name. A match is an observation, not proof the program is finished. See the ' +
+        'agent-term skill for `surface`, `sinceByte` and the matching rules.',
       inputSchema: {
         sessionId: z.string(),
         pattern: z
@@ -549,59 +502,14 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
     {
       title: 'Wait for the next group',
       description:
-        'Block until the next **group** is delivered, or until `timeoutMs` passes. A group ' +
-        'is a run of output delivered together; its boundary is drawn by `gapMs` of silence ' +
-        'or by a cap. ' +
-        'The third wait, and the one a full-screen TUI needs: `wait_for_idle` is negative ' +
-        '(nothing arrived for a while) so it returns whether or not anything happened, and ' +
-        '`wait_for_output` needs a pattern to anchor on, which a repainting menu does not ' +
-        'have. A group is positive and content-agnostic. ' +
-        '**What this reports is measured, not interpreted.** The boundary is *inferred from ' +
-        'silence, not declared by the program* — nothing here can tell you the program ' +
-        'finished an act, is still working, or will produce more. Whether this group is the ' +
-        'unit you care about is your call. ' +
-        'Returns `reason`: `group`, `exited`, `disposed`, or `timeout`. **On a group the wait ' +
-        'carries the change itself** — `seq`, `group`, `collapsed`, `screen`, and the ' +
-        '`segments`, `text`, `changedRows` and `io` a read would report for the same state — ' +
-        'so a wait is not a prelude to a read. `segments` is the part the screen cannot show ' +
-        'you: a group with `text: []` beside a non-empty `segments` repainted without writing ' +
-        'a line, which is a cursor moving or a highlight following it, not output that ' +
-        'stopped. **`changedRows` names the rows of `screen` that differ from before the ' +
-        'group**, which is the row-level half of `segments`: a byte span says a region was ' +
-        'redrawn, the row list says a glyph flipped, and it is what to read instead of ' +
-        'diffing two screens by eye — a contiguous stretch collapsed as `"from-to"`, a lone ' +
-        'row as itself, and a row past the end of `screen` blank, since the screen is ' +
-        'trimmed of the blank rows below its content as well. Empty beside a non-empty ' +
-        '`segments` means the act ' +
-        'touched no row at all. ' +
-        '**`afterInput` says whether the group you got contains ' +
-        'bytes produced after your last write** — `null` before any input, and `null` on a ' +
-        'wait that ended without a group, where there is no placement to report. `false` means the ' +
-        'wait ended on output that was already in flight, so sending more now would be ' +
-        'typing into something that has not read the last thing yet. It is placement, not ' +
-        'causation: output after input may still be unrelated to it. ' +
-        '**`collapsed.reason` is how the group ended, measured by the detector** — `gap`: no ' +
-        'bytes arrived for `gapMs`; `bytes`: the merged bytes reached `maxBytes`; `chunks`: ' +
-        'the merged deliveries reached `maxChunks`; `flush`: a resize, an exit or a dispose ' +
-        'closed it. It does **not** say whether the program is still writing or whether more ' +
-        'output is coming: at a byte interface that is not provable, and a claim either way ' +
-        'would be a judgement dressed as an observation. ' +
-        '**A group is bytes, and bytes are not always a visible change.** A group of a few ' +
-        'hundred bytes can leave every row identical — a cursor moving, a highlight redrawn ' +
-        'on itself, a menu painted over itself. `text` and `segments` are what tell those ' +
-        'apart: comparing two screens can call a cursor move "nothing happened". ' +
-        'When `collapsed.chunks > 1`, states existed that were not shown: read them with ' +
-        '`history_read({from:{seq:collapsed.rawFrom}, to:{seq}})`. ' +
-        '`sinceSeq` defaults to the later of the state the session was last typed at and ' +
-        'the state last shown to you -- by `read_screen`, or by the wait that returned it -- so a ' +
-        'group that closed *before* your input cannot satisfy the wait, **and a wait with ' +
-        'nothing new in between does not hand back the act it just returned**: it times ' +
-        'out, carrying the screen it ended on. A firehose produces a sequence of groups, ' +
-        'and the default carries you forward; pass `sinceSeq` to reach back deliberately. ' +
-        'Note that `sinceSeq` **in the result** is the baseline that was used, and the ' +
-        'number to continue from is `seq`, not it. A session opened without grouping ' +
-        'still ends on a group: with no detector there is no boundary to group to, so ' +
-        'each update is one, and `collapsed` is null.',
+        'Block until the next group is delivered — a run of output closed by silence or by a ' +
+        'cap — or until `timeoutMs`. This is the wait a full-screen TUI needs: idle is ' +
+        'negative and a repainting menu has no text to anchor a pattern on. **The wait ' +
+        'carries the change with the verdict** (`seq`, `screen`, `segments`, `text`, ' +
+        '`changedRows`, `collapsed`, `io`), so `send` then `wait_for_group` is a whole loop ' +
+        'in two calls. Returns `reason`: `group`, `exited`, `disposed` or `timeout`. A group ' +
+        'is measured, not interpreted — it does not say the program has finished. See the ' +
+        'agent-term skill for what a group is and how to read one.',
       inputSchema: {
         sessionId: z.string(),
         sinceSeq: z
@@ -648,29 +556,14 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
     {
       title: 'Read a session\'s history',
       description:
-        'Address a session\'s timeline and read it back. This is one surface over one ' +
-        'timeline: paging through what happened and replaying the states inside a group ' +
-        'are the same operation here, at different settings. `from` and `to` take any ' +
-        'address — a token from a previous read (`next`), a sequence number, a timestamp ' +
-        'in ms, or a byte offset — and the two ends need not be the same kind. `level` ' +
-        'chooses the projection: `records` (default, the deliveries as recorded), `groups` ' +
-        '(the units the agent was shown, with verdicts), or `text` (plain lines). ' +
-        '`screen: true` materializes the screen at each point, which is what turns a read ' +
-        'into a playback — leave it off for cheap paging. Passing `to` reads a span and ' +
-        'may cross a resize; paging with only `from` never does, and every result reports ' +
-        'the grid size its records were produced at. **A span is a replay, so it carries ' +
-        'each record\'s screen whatever `screen` says**, and each record says which epoch it ' +
-        'was produced at, since one span may hold two. This is how `collapsed.intermediates` ' +
-        'from `read_screen` is followed up: read the group\'s span to see the states it ' +
-        'merged. History stays readable after `close_session`. ' +
-        'Both reads are bounded — `limit` by count, `maxChars` by characters — and ' +
-        'neither is cut in silence: `truncated` says the read was cut and **`omitted` says ' +
-        'how much went, why, and the `seq` to resume from**, with the screen at the cut. ' +
-        '`stoppedAtEpochEnd` says a page stopped because the grid changed. **`ended` is how the process finished** ' +
-        '— `{at, exitCode, signal}`, or `null` while it is still running. `exitCode` is ' +
-        '`null` when a signal is what ended it, and it stays `null` after `close_session`: ' +
-        'closing disposes the pty without an exit event, so a driven close has no code to ' +
-        'report. `state.exit` on a read is the same fact without the timeline.',
+        'Address a session\'s timeline and read it back; history stays readable after ' +
+        '`close_session`. `from`/`to` take any address — a token from a previous read ' +
+        '(`next`), `{seq}`, `{at}` in ms, or `{byte}` — and the ends need not match. `to` ' +
+        'reads a span (a replay, which crosses a resize); `from` alone pages. `level` picks ' +
+        'the projection: `records` (default), `groups`, or `text`. Both reads are bounded by ' +
+        '`limit` and `maxChars`, and a cut read reports `truncated` and `omitted` rather ' +
+        'than failing silently. See the agent-term skill for the full contract — page vs ' +
+        'span, `epoch`, `ended`, and how to resume.',
       inputSchema: {
         sessionId: z.string(),
         from: address
@@ -678,15 +571,15 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
           .describe('Where to start: a token, or {seq}, {at} (ms) or {byte}. Default: the beginning.'),
         to: address
           .optional()
-          .describe('Where to stop, same address space. Default: read on from `from`.'),
+          .describe('Where to stop, same address space. Setting it makes this a span (a replay). Default: read on from `from`.'),
         limit: z
           .number()
           .int()
           .positive()
           .optional()
           .describe(
-            'Cap on records, groups or lines. Default 50 for a page. A span has no default: it ' +
-            'is already bounded by the addresses you gave it.',
+            'Cap on records, groups or lines. Default 50 for a page; a span is already bounded ' +
+              'by the addresses you gave it.',
           ),
         maxChars: z
           .number()
@@ -694,25 +587,20 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
           .positive()
           .optional()
           .describe(
-            'Cap in **characters**, cut at a whole delivery, for a page and a span alike. On a ' +
-            'page — a driver returning after a gap — of 300 unseen groups the newest are ' +
-            'actionable and the oldest are history, so assembly runs from the newest end; a span ' +
-            'is read forward from the address you opened it at, so it is cut from the oldest end. ' +
-            'Either way what did not fit is counted in `omitted`, with `reason`, the `seq` to ' +
-            'resume from, and the screen at the cut, so a gap is resumable rather than a hole. A ' +
-            'single delivery larger than the budget still comes back in full rather than half a ' +
-            'screen, and `omitted.overBudget` says so.',
+            'Cap in characters, cut at a whole delivery, for a page and a span alike. What did ' +
+              'not fit is counted in `omitted`; a single delivery larger than the budget still ' +
+              'comes back in full, flagged `overBudget`.',
           ),
         level: z
           .enum(['records', 'groups', 'text'])
           .optional()
-          .describe('The projection: deliveries as recorded (default), the groups shown, or plain text.'),
+          .describe('The projection: deliveries as recorded (default), the groups shown, or plain text. A span is read at `records` or `text`.'),
         screen: z
           .boolean()
           .optional()
           .describe(
-            'Materialize the screen at each record — playback. Off by default for a page. A ' +
-            'span is a replay and always carries the screen each record produced.',
+            'Materialize the screen at each record — playback. Off by default for a page; a ' +
+              'span is a replay and always carries it.',
           ),
       },
     },
