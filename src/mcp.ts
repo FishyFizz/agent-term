@@ -575,7 +575,8 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
         '`segments` means the act ' +
         'touched no row at all. ' +
         '**`afterInput` says whether the group you got contains ' +
-        'bytes produced after your last write** — `null` before any input. `false` means the ' +
+        'bytes produced after your last write** — `null` before any input, and `null` on a ' +
+        'wait that ended without a group, where there is no placement to report. `false` means the ' +
         'wait ended on output that was already in flight, so sending more now would be ' +
         'typing into something that has not read the last thing yet. It is placement, not ' +
         'causation: output after input may still be unrelated to it. ' +

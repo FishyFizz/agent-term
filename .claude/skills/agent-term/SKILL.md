@@ -307,6 +307,8 @@ instead is two facts:**
 - **`state.inputUnconsumed`** — bytes you sent that no output has followed. `null` before any
   input, `0` once something came back. **A byte count, not a verdict.**
 - **`afterInput`** on a group wait — whether the group's bytes sit after your last write.
+  `null` before any input *or* on a wait that ended without a group, where there is no
+  placement to report; `false` means the wait ended on output already in flight.
   Placement, not causation: output after input may still be unrelated to it.
 
 **What to actually do:**
