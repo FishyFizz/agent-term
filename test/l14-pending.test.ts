@@ -76,6 +76,31 @@ test('unconsumed input is counted, and clears once output comes back', async (t)
   });
 });
 
+test('the count is what is pending, not everything ever written', async (t) => {
+  const { session } = harness();
+  t.after(() => session.dispose());
+
+  await waitFor(() => session.pty.bytesRead > 0, { label: 'the first prompt' });
+
+  // One write, answered. Those bytes are spent, and must not be carried into
+  // the next count: the total ever written is a high-water mark, and this
+  // field is documented as not being one.
+  session.pty.write('echo l14-spent\r');
+  await waitFor(() => session.state().inputUnconsumed === 0, { label: 'the first reply' });
+
+  // A second write, unread. Read synchronously: no output can have been
+  // processed in the same tick, so this is the count with only these bytes in
+  // flight and the answered ones behind it.
+  const pending = 'echo l14-pending\r';
+  session.pty.write(pending);
+
+  assert.equal(
+    session.state().inputUnconsumed,
+    Buffer.byteLength(pending),
+    'only the second write is outstanding — the answered one is not added to it',
+  );
+});
+
 test('a group wait reports whether its bytes follow the last input', async (t) => {
   const { session } = harness();
   t.after(() => session.dispose());

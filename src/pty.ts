@@ -86,6 +86,21 @@ export class PtySession implements PtyEventTarget {
    * It does not say the program is waiting — only what the byte counts are.
    */
   private _bytesWritten = 0;
+  /**
+   * `bytesWritten` when the pty last produced output. Monotonic.
+   *
+   * The input-side counterpart to `_lastInputByte`. That one marks where the
+   * read watermark stood at the last write, which is how "has anything come
+   * back since" is answered; this one marks how much had gone *in* when
+   * something did come back — which is what makes the pending count a count
+   * of the bytes still outstanding rather than of every byte ever written.
+   *
+   * Without it, a session that has written twice with the second write
+   * unanswered reports the sum of both: an answered command line is added to
+   * the bytes that are actually pending, and a caller reads a whole submitted
+   * line where three keystrokes went in.
+   */
+  private _bytesWrittenAtRead = 0;
 
   constructor(id: string, options: SessionOptions = {}) {
     const shell = defaultShell();
@@ -114,6 +129,11 @@ export class PtySession implements PtyEventTarget {
       this.pty.onData((chunk) => {
         const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, 'utf8');
         this._bytesRead += bytes.length;
+        // Something came back, so as far as the byte counts can tell
+        // everything written up to this point has been answered. Stamped here
+        // rather than in the getter for the same reason the write watermarks
+        // are stamped in `write`: this is the one place output arrives.
+        this._bytesWrittenAtRead = this._bytesWritten;
         this.emitter.emit('data', bytes);
       }),
       this.pty.onExit(({ exitCode, signal }) => {
@@ -191,7 +211,9 @@ export class PtySession implements PtyEventTarget {
    */
   get unconsumedBytes(): number | null {
     if (this._bytesWritten === 0) return null;
-    return this._lastInputByte === this._bytesRead ? this._bytesWritten : 0;
+    return this._lastInputByte === this._bytesRead
+      ? this._bytesWritten - this._bytesWrittenAtRead
+      : 0;
   }
 
   /** Resize the pty; the program inside is told via SIGWINCH / ConPTY. */
