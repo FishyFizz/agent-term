@@ -22,7 +22,31 @@ const args = isWindows ? ['-NoLogo', '-NoProfile'] : [];
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
- * Build a live session over a real shell.
+ * A command that prints `count` numbered lines, optionally prefixed.
+ *
+ * The two default shells have no syntax in common for "a range, mapped", and
+ * a test that needs a firehose has to ask whichever one the platform provides.
+ * PowerShell `1..N` has no dash equivalent -- written literally it is not a
+ * command, and the test passes on an error message instead of a firehose --
+ * so the POSIX side goes through `seq`, which is coreutils and present.
+ */
+function emitLines(count: number, prefix = ''): string {
+  if (isWindows) return `1..${count} | % { "${prefix}$_" }`;
+  return prefix === '' ? `seq ${count}` : `seq -f '${prefix}%g' ${count}`;
+}
+
+/**
+ * The byte that submits a line: a bare CR, which is what Enter sends.
+ *
+ * Not `\r\n`. On a POSIX pty the line discipline translates the CR to a
+ * newline and the LF is a second one, so the shell runs the command *and* an
+ * empty line; on ConPTY the LF leaves PowerShell at a continuation prompt.
+ * Typing the command and pressing Enter is one CR.
+ */
+const ENTER = '\r';
+
+/**
+ * Build a live session over a real shell, ready to be typed at.
  *
  * `TerminalSession` constructs its own pty, so the registry is not used to
  * spawn here -- using both would start two shells per test and leave one
@@ -30,11 +54,24 @@ const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
  *
  * The session wires pty data to its own classifier, so subscribing is all a
  * caller does; there is no separate feed step to forget.
+ *
+ * It resolves only once the shell has produced its first output, so a test's
+ * command is a separate act rather than a race with the shell's startup.
+ *
+ * The race is not about losing the command -- a command written at session
+ * creation is buffered by the pty and does run, measured 10 times out of 10 --
+ * but about what lands in the *first delivery*. A pty that hands back one 4 KiB
+ * read can return the prompt, the command echo and the whole output together,
+ * so the number of updates a test sees, and whether the first group swallowed
+ * one delivery or several, depends on when its first read happened to run.
+ * Waiting for the prompt makes that the shell's business rather than the
+ * scheduler's -- and it is what an agent does before it types.
  */
-function harness() {
+async function harness() {
   const session = new TerminalSession('test-session', { command, args, cols: 100, rows: 24 });
   const updates: Awaited<ReturnType<TerminalSession['feed']>>[] = [];
   session.onUpdate((u) => updates.push(u));
+  await waitFor(() => session.pty.bytesRead > 0, { label: 'the shell prompt' });
   return { session, updates };
 }
 
@@ -54,22 +91,27 @@ function waitFor(
 }
 
 test('a real shell session reports its output as ordered writing segments', async (t) => {
-  const { session, updates } = harness();
+  const { session, updates } = await harness();
   t.after(() => session.dispose());
 
   assert.ok(session.pty.alive, 'session is live');
 
-  session.pty.write('echo AGENTTERM-E2E\r\n');
+  session.pty.write(`echo AGENTTERM-E2E${ENTER}`);
   const got = await waitFor(
     () => updates.some((u) => u.screen.lines.some((l) => l.includes('AGENTTERM-E2E'))),
     { label: 'echo output' },
   );
   assert.ok(got, 'the echo appeared on the screen');
 
-  // Sequence numbers are ordered and start at 1.
+  // Sequence numbers are ordered, and the run begins at the first state.
+  // `seq` is the state an update *ends* at, so a first group that swallowed
+  // more than one delivery reports 2 or more: asserting `seqs[0] === 1` would
+  // be asserting that the pty happened to hand the first delivery back alone.
+  // `collapsed.rawFrom` is the fact that does not move -- the group starts at
+  // state 1 -- and an ungrouped update's `seq` is that state itself.
   assert.ok(updates.length > 0, 'at least one update');
   const seqs = updates.map((u) => u.seq);
-  assert.equal(seqs[0], 1, 'first update is seq 1');
+  assert.equal(updates[0]!.collapsed?.rawFrom ?? seqs[0], 1, 'the first update begins the stream');
   assert.deepEqual(
     seqs,
     [...seqs].sort((a, b) => a - b),
@@ -100,10 +142,10 @@ test('a real shell session reports its output as ordered writing segments', asyn
 });
 
 test('the screen model tracks what the shell actually shows', async (t) => {
-  const { session, updates } = harness();
+  const { session, updates } = await harness();
   t.after(() => session.dispose());
 
-  session.pty.write('echo MARKER-XYZ\r\n');
+  session.pty.write(`echo MARKER-XYZ${ENTER}`);
   await waitFor(() => updates.some((u) => u.screen.lines.some((l) => l.includes('MARKER-XYZ'))), {
     label: 'marker',
   });
@@ -118,12 +160,17 @@ test('the screen model tracks what the shell actually shows', async (t) => {
 });
 
 test('a command producing many lines is classified without drowning', async (t) => {
-  const { session, updates } = harness();
+  const { session, updates } = await harness();
   t.after(() => session.dispose());
 
   // A firehose: 200 lines, more than the 24-row screen.
-  session.pty.write('1..200 | % { $_ }\r\n');
-  await waitFor(() => session.seq > 0 && updates.at(-1)!.io.bytesRead > 500, {
+  session.pty.write(`${emitLines(200)}${ENTER}`);
+  // `session.seq > 0` and an emitted update are not the same instant: the
+  // counter moves inside `feed`, before the update reaches a listener, so a
+  // predicate that reads both can run in the window where the counter has
+  // advanced and `updates` is still empty. Guarding the read is what keeps that
+  // from throwing out of the assertion.
+  await waitFor(() => (updates.at(-1)?.io.bytesRead ?? 0) > 500, {
     label: 'bulk output',
     timeoutMs: 15000,
   });
@@ -145,11 +192,16 @@ test('a command producing many lines is classified without drowning', async (t) 
 });
 
 test('bytesPending is a count the parser disagrees with, never a hardcoded zero', async (t) => {
-  const { session, updates } = harness();
+  const { session, updates } = await harness();
   t.after(() => session.dispose());
 
-  session.pty.write('1..200 | % { $_ }\r\n');
-  await waitFor(() => session.seq > 0 && updates.at(-1)!.io.bytesRead > 500, {
+  session.pty.write(`${emitLines(200)}${ENTER}`);
+  // `session.seq > 0` and an emitted update are not the same instant: the
+  // counter moves inside `feed`, before the update reaches a listener, so a
+  // predicate that reads both can run in the window where the counter has
+  // advanced and `updates` is still empty. Guarding the read is what keeps that
+  // from throwing out of the assertion.
+  await waitFor(() => (updates.at(-1)?.io.bytesRead ?? 0) > 500, {
     label: 'bulk output',
     timeoutMs: 15000,
   });
@@ -233,10 +285,10 @@ test('the state read reports facts, and no verdict about whether output is finis
 });
 
 test('an exit is reported as a fact, and drain follows it rather than being assumed', async (t) => {
-  const { session } = harness();
+  const { session } = await harness();
   t.after(() => session.dispose());
 
-  session.pty.write('exit\r\n');
+  session.pty.write(`exit${ENTER}`);
   assert.ok(await waitFor(() => session.state().exit !== null, { label: 'the exit' }));
 
   const exited = session.state();
@@ -310,10 +362,10 @@ test('a wait that cannot be satisfied ends as a timeout, saying what it saw', as
 });
 
 test('an exit ends a wait early: a quiet period would no longer mean anything', async (t) => {
-  const { session } = harness();
+  const { session } = await harness();
   t.after(() => session.dispose());
 
-  session.pty.write('exit\r\n');
+  session.pty.write(`exit${ENTER}`);
 
   // Asked for five seconds of quiet. Once the process is gone and its output
   // has been parsed, nothing more can arrive, so waiting that out would be
@@ -328,12 +380,23 @@ test('an exit ends a wait early: a quiet period would no longer mean anything', 
 });
 
 test("every update's delta reproduces that update's screen exactly", async (t) => {
-  const { session, updates } = harness();
+  const { session, updates } = await harness();
   t.after(() => session.dispose());
 
-  session.pty.write('1..200 | % { $_ }\r\n');
-  await waitFor(() => session.seq > 0 && updates.at(-1)!.io.bytesRead > 500, {
+  // Two acts, not one. The delta this checks is the one *between* updates, so
+  // the run has to produce more than one: a pty that reads in 4 KiB blocks
+  // (Linux) hands back a whole 200-line burst as a single group, while ConPTY
+  // happens to split it. The first act fills and scrolls the screen; the second
+  // appends to the settled screen, so there is a delta from one update's screen
+  // to the next's on either platform.
+  session.pty.write(`${emitLines(200)}${ENTER}`);
+  await waitFor(() => updates.some((u) => u.screen.lines.some((l) => l.trim() === '200')), {
     label: 'bulk output',
+    timeoutMs: 15000,
+  });
+  session.pty.write(`echo DELTA-MARK${ENTER}`);
+  await waitFor(() => updates.some((u) => u.screen.lines.some((l) => l.includes('DELTA-MARK'))), {
+    label: 'the second act',
     timeoutMs: 15000,
   });
 
@@ -365,14 +428,14 @@ test("every update's delta reproduces that update's screen exactly", async (t) =
 });
 
 test('a bulk run keeps the lines the grid cannot hold', async (t) => {
-  const { session, updates } = harness();
+  const { session, updates } = await harness();
   t.after(() => session.dispose());
 
   // 200 lines into a 24-row screen: the overwhelming majority cannot survive on
   // the grid, which is the whole reason the text log exists. Wait for the *last*
   // line rather than a count, so the assertions below run on a finished command
   // instead of racing one still producing output.
-  session.pty.write('1..200 | % { "AGENTTERM-LINE-$_" }\r\n');
+  session.pty.write(`${emitLines(200, 'AGENTTERM-LINE-')}${ENTER}`);
   const got = await waitFor(
     () => updates.some((u) => u.text.some((l) => l.text.includes('AGENTTERM-LINE-200'))),
     { label: 'the final line', timeoutMs: 15000 },
@@ -393,7 +456,7 @@ test('a bulk run keeps the lines the grid cannot hold', async (t) => {
 });
 
 test('a resize is reported, and only after what was already queued', async (t) => {
-  const { session } = harness();
+  const { session } = await harness();
   t.after(() => session.dispose());
 
   const seen: number[] = [];
@@ -422,12 +485,12 @@ test('a resize is reported, and only after what was already queued', async (t) =
 test('the process exiting is reported, with its status', async (t) => {
   // The shell the harness already uses, told to leave -- rather than a
   // throwaway command, whose ConPTY teardown wedges on this platform.
-  const { session } = harness();
+  const { session } = await harness();
   t.after(() => session.dispose());
 
   const seen: PtyExitInfo[] = [];
   session.onExit((info) => seen.push(info));
-  session.pty.write('exit\r\n');
+  session.pty.write(`exit${ENTER}`);
 
   const got = await waitFor(() => seen.length > 0, { label: 'exit' });
   assert.ok(got, 'the exit was reported');
@@ -436,12 +499,12 @@ test('the process exiting is reported, with its status', async (t) => {
   assert.ok(seen[0]?.exitCode !== undefined, 'with a status, not an absent one');
 });
 
-test('a disposed session reports itself over, not merely released', () => {
+test('a disposed session reports itself over, not merely released', async () => {
   // `dispose()` kills the process itself, and drops the exit handler in the
   // same breath -- so nothing is left to clear the liveness flag afterwards.
   // A caller still holding the session would be told it is alive with its pty
   // gone, and `write()` guards on exactly that flag before touching the pty.
-  const { session } = harness();
+  const { session } = await harness();
 
   session.dispose();
   assert.equal(session.pty.alive, false, 'disposal is the end of the session');
@@ -451,13 +514,22 @@ test('a disposed session reports itself over, not merely released', () => {
 });
 
 test('history reconstructs every screen of a live session', async (t) => {
-  const { session, updates } = harness();
+  const { session, updates } = await harness();
   const history = new HistoryStore().open(session);
   t.after(() => session.dispose());
 
-  session.pty.write('1..40 | % { "HIST-$_" }\r\n');
+  // Two acts, so the epoch holds more than one group to compare: a pty that
+  // reads in 4 KiB blocks hands a whole burst back as one group, and a single
+  // group would make the projection check below trivially true on Linux while
+  // ConPTY's chatty delivery happened to give it several.
+  session.pty.write(`${emitLines(40, 'HIST-')}${ENTER}`);
   await waitFor(() => updates.some((u) => u.screen.lines.some((l) => l.includes('HIST-40'))), {
     label: 'the last line',
+    timeoutMs: 15000,
+  });
+  session.pty.write(`echo HIST-DONE${ENTER}`);
+  await waitFor(() => updates.some((u) => u.screen.lines.some((l) => l.includes('HIST-DONE'))), {
+    label: 'the second act',
     timeoutMs: 15000,
   });
 
@@ -508,10 +580,10 @@ test('history reconstructs every screen of a live session', async (t) => {
 });
 
 test('the session seq is the numbering updates use, not an update count', async (t) => {
-  const { session, updates } = harness();
+  const { session, updates } = await harness();
   t.after(() => session.dispose());
 
-  session.pty.write('echo SEQ-NUMBER\r\n');
+  session.pty.write(`echo SEQ-NUMBER${ENTER}`);
   await waitFor(
     () => updates.some((u) => u.screen.lines.some((l) => l.includes('SEQ-NUMBER'))),
     { label: 'the echoed output' },
@@ -531,11 +603,11 @@ test('the session seq is the numbering updates use, not an update count', async 
 });
 
 test('a live resize splits the timeline and freezes the old epoch at its size', async (t) => {
-  const { session, updates } = harness();
+  const { session, updates } = await harness();
   const history = new HistoryStore().open(session);
   t.after(() => session.dispose());
 
-  session.pty.write('echo BEFORE-RESIZE\r\n');
+  session.pty.write(`echo BEFORE-RESIZE${ENTER}`);
   await waitFor(
     () => updates.some((u) => u.screen.lines.some((l) => l.includes('BEFORE-RESIZE'))),
     { label: 'pre-resize output' },
@@ -543,7 +615,7 @@ test('a live resize splits the timeline and freezes the old epoch at its size', 
   const beforeResize = session.seq;
 
   session.resize(60, 20);
-  session.pty.write('echo AFTER-RESIZE\r\n');
+  session.pty.write(`echo AFTER-RESIZE${ENTER}`);
   await waitFor(
     () => updates.some((u) => u.seq > beforeResize && u.screen.lines.some((l) => l.includes('AFTER-RESIZE'))),
     { label: 'post-resize output' },
@@ -575,7 +647,7 @@ test('the host starts recording the moment it opens a session', async (t) => {
   assert.equal(host.session(session.id), session);
   assert.equal(history.epochs().length, 1, 'epoch 0 exists before any output');
 
-  session.pty.write('echo HOST-MARKER\r\n');
+  session.pty.write(`echo HOST-MARKER${ENTER}`);
   const recorded = await waitFor(
     () => history.textSince(undefined, 200).lines.some((l) => l.text.includes('HOST-MARKER')),
     { label: 'recorded output' },
@@ -595,14 +667,14 @@ test('the host starts recording the moment it opens a session', async (t) => {
 });
 
 test('resizing a live session keeps pty and screen in step', async (t) => {
-  const { session, updates } = harness();
+  const { session, updates } = await harness();
   t.after(() => session.dispose());
 
   session.resize(120, 40);
   assert.equal(session.pty.cols, 120);
   assert.equal(session.screen.cols, 120, 'screen resized with the pty');
 
-  session.pty.write('echo AFTER-RESIZE\r\n');
+  session.pty.write(`echo AFTER-RESIZE${ENTER}`);
   await waitFor(() => updates.some((u) => u.screen.lines.some((l) => l.includes('AFTER-RESIZE'))), {
     label: 'post-resize output',
   });
@@ -617,11 +689,11 @@ test('the text log keeps a line the shell terminated by positioning', async (t) 
   // that captured only on `onLineFeed` put the line on the screen and never in
   // the record. Everything above then disagreed with itself -- `read_screen`
   // would report a screen containing a line its own `text` did not have.
-  const { session, updates } = harness();
+  const { session, updates } = await harness();
   t.after(() => session.dispose());
 
   const OUT = 'AGENTTERM-CONPTY-LINE';
-  session.pty.write(`echo ${OUT}\r\n`);
+  session.pty.write(`echo ${OUT}${ENTER}`);
 
   const got = await waitFor(
     () => updates.some((u) => u.text.some((l) => l.text.trim() === OUT)),
@@ -636,12 +708,21 @@ test('the text log keeps a line the shell terminated by positioning', async (t) 
 });
 
 test('the update seq addresses the timeline: what was swallowed is reachable', async (t) => {
-  const { session, updates } = harness();
+  const { session, updates } = await harness();
   const history = new HistoryStore().open(session);
   t.after(() => session.dispose());
 
-  session.pty.write('1..30 | % { "HIST-$_" }\r\n');
-  await waitFor(() => updates.some((u) => u.screen.lines.some((l) => l.includes('HIST-30'))), {
+  // A large burst, deliberately. A group only swallows several deliveries if
+  // the program produced several, and how many arrive in one read is the pty's
+  // business. The bound is the pty's output buffer: a burst larger than it
+  // cannot be handed back in a single read, whenever the reader happens to run,
+  // so the subject has to clear that -- measured once with the burst racing the
+  // shell's startup, 200 numbered lines arrived as a *single* delivery and 2000
+  // as about twenty. That is why this sends 2000 and not the 30 it used to:
+  // "a firehose" is not by itself enough.
+  const LAST = 'HIST-2000';
+  session.pty.write(`${emitLines(2000, 'HIST-')}${ENTER}`);
+  await waitFor(() => updates.some((u) => u.screen.lines.some((l) => l.includes(LAST))), {
     label: 'the last line',
     timeoutMs: 15000,
   });

@@ -69,6 +69,9 @@ function feeder(history: SessionHistory, cols = 20, rows = 4) {
         text,
         scrolledRows: 0,
         grid: previous ? gridDelta(previous, screen) : null,
+        // The state this delivery started from. Blank before the first write,
+        // which is what a session's own first delivery starts from too.
+        before: previous ?? snapshot(size.cols, size.rows, []),
         screen,
       };
       history.push(input);

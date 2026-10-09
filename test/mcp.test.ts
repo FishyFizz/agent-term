@@ -43,6 +43,7 @@ test('the surface exposes the core loop', async (t) => {
     'history_read',
     'open_session',
     'read_screen',
+    'resize_session',
     'send_input',
     'send_sequence',
     'wait_for_group',
@@ -344,6 +345,76 @@ function reported(lines: readonly string[]): string {
     .join('');
 }
 
+test('resize_session changes the grid, and the timeline records the new shape', async (t) => {
+  const { client, host, close } = await connected();
+  t.after(() => {
+    host.disposeAll();
+    return close();
+  });
+
+  const opened = await call(client, 'open_session', { cols: 40, rows: 12 });
+  const sessionId = (opened.structuredContent as { sessionId: string }).sessionId;
+
+  // Something to be the "before": a record produced at the old size.
+  await call(client, 'send_input', { sessionId, text: 'echo BEFORE', submit: true });
+  await call(client, 'wait_for_output', { sessionId, pattern: 'BEFORE' });
+
+  const resized = await call(client, 'resize_session', { sessionId, cols: 70, rows: 20 });
+  const size = resized.structuredContent as { cols: number; rows: number };
+  assert.deepEqual(
+    { cols: size.cols, rows: size.rows },
+    { cols: 70, rows: 20 },
+    'the applied size, not the requested one',
+  );
+
+  // The timeline splits at the resize, so what was recorded at 40 columns is
+  // still readable at 40 columns -- the epochs are the two grid sizes. Output
+  // has to arrive at the new size first: an epoch is opened by the resize but
+  // is not the one a read lands on until it holds a record. It is polled for
+  // rather than slept on, because a wait can be satisfied by the echo of the
+  // command, which is on the screen before the record is folded into history.
+  await call(client, 'send_input', { sessionId, text: 'echo AFTER', submit: true });
+  let epoch: { index: number; cols: number } = { index: 0, cols: 40 };
+  for (let i = 0; i < 100; i++) {
+    epoch = (
+      (await call(client, 'history_read', { sessionId, limit: 1 })).structuredContent as {
+        epoch: { index: number; cols: number };
+      }
+    ).epoch;
+    if (epoch.index >= 1 && epoch.cols === 70) break;
+    await delay(25);
+  }
+  assert.equal(epoch.cols, 70, 'the newest epoch is the new size');
+  assert.ok(epoch.index >= 1, 'and the resize is what opened it');
+
+  // A session whose process has exited is refused rather than resized
+  // invisibly: `PtySession.resize` is a no-op once the pty is gone, so the
+  // grid would move and nothing could be drawing into it.
+  await call(client, 'send_input', { sessionId, text: 'exit', submit: true });
+  const done = (await call(client, 'wait_for_idle', {
+    sessionId,
+    // A quiet period that cannot be reached, so the exit is what ends the
+    // wait: with a reachable one, `idle` is found first and the exit is never
+    // reported.
+    idleMs: 60000,
+    timeoutMs: 15000,
+  })).structuredContent as { reason: string };
+  assert.equal(done.reason, 'exited', 'the shell is gone');
+  const refused = await call(client, 'resize_session', { sessionId, cols: 80, rows: 24 });
+  assert.equal(
+    (refused.structuredContent as { error: { code: string } }).error.code,
+    'not_live',
+    'a dead pty cannot be resized',
+  );
+
+  // And one that was never there is the other error, not the same one.
+  const none = await call(client, 'resize_session', { sessionId: 'no-such-session', cols: 80, rows: 24 });
+  assert.equal(
+    (none.structuredContent as { error: { code: string } }).error.code,
+    'no_session',
+  );
+});
+
 test('a key is encoded for the mode the program set, not from a fixed table', async (t) => {
   const { client, host, close } = await connected();
   t.after(() => {
@@ -549,7 +620,7 @@ test('a batch that cannot be composed is a typed error, not a silent no-op', asy
   assert.notEqual(after.isError, true, 'the session was not disturbed by the refusals');
 });
 
-test('send_input reports the bytes it wrote, including the newline it appended', async (t) => {
+test('send_input reports the bytes it wrote, including the Enter it sent', async (t) => {
   const { client, host, close } = await connected();
   t.after(() => {
     host.disposeAll();
@@ -573,12 +644,14 @@ test('send_input reports the bytes it wrote, including the newline it appended',
   );
 
   // The count includes the line ending, so it counts what was actually written
-  // rather than only the caller's payload.
+  // rather than only the caller's payload. The ending is a bare CR -- the byte
+  // a terminal's Enter key sends -- not CRLF, which a POSIX line discipline
+  // reads as a second, empty line.
   const submitted = await call(client, 'send_input', { sessionId, text: 'hi', submit: true });
   assert.deepEqual(
     shape(submitted),
-    { bytesWritten: 4, written: 'hi\\x0d\\x0a', submitted: true },
-    'what was typed, plus the line ending that was actually sent',
+    { bytesWritten: 3, written: 'hi\\x0d', submitted: true },
+    'what was typed, plus the Enter that was actually sent',
   );
 });
 

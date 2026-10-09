@@ -72,6 +72,9 @@ function feeder(history: SessionHistory, cols = 20, rows = 4) {
         text,
         scrolledRows: 0,
         grid: previous ? gridDelta(previous, screen) : null,
+        // The state this delivery started from. Blank before the first write,
+        // which is what a session's own first delivery starts from too.
+        before: previous ?? snapshot(size.cols, size.rows, []),
         screen,
       };
       history.push(input);
@@ -201,6 +204,34 @@ test('`screen` is what separates a page from a playback', () => {
   assert.deepEqual(played.records[1]!.screen!.lines[1], 'beta'.padEnd(20, ' '), 'the state at that point');
 });
 
+test('a group that swallowed several deliveries plays back as one record each', () => {
+  const history = new SessionHistory('s');
+  const f = feeder(history);
+
+  // Three deliveries the agent was shown as one group. The group number is
+  // what ties them -- each keeps its own `seq` and its own screen, which is the
+  // whole reason the number exists: a group that collapsed states 3..5 reports
+  // one number, and this is how the states between it come back.
+  const first = f.write(['one'], { text: ['one'], group: 7 });
+  f.write(['one', 'two'], { text: ['two'], group: 7 });
+  const last = f.write(['one', 'two', 'three'], { text: ['three'], group: 7 });
+
+  const playback = history.span({ seq: first }, { seq: last }).records;
+  assert.deepEqual(
+    playback.map((r) => r.seq),
+    [first, first + 1, last],
+    'one record per delivery the group swallowed, in the order they arrived',
+  );
+  assert.ok(
+    playback.every((r) => r.group === 7),
+    'all of them tied to the group they were shown as',
+  );
+  assert.ok(
+    playback.every((r) => r.screen !== undefined),
+    'and each reconstructs to a screen of its own',
+  );
+});
+
 test('a read at the `text` level returns lines, and at `groups` level verdicts', () => {
   const history = new SessionHistory('s');
   const f = feeder(history);
@@ -218,13 +249,47 @@ test('a read at the `text` level returns lines, and at `groups` level verdicts',
   assert.equal(asGroups.groups[0]!.chunks, 2, 'and it remembers it swallowed two');
 });
 
+test('a read with no address returns the newest, and says how much older there is', () => {
+  const history = new SessionHistory('s');
+  const f = feeder(history);
+  for (let i = 0; i < 7; i++) f.write([`line-${i}`], { text: [`line-${i}`] });
+
+  const page = asRecords(history.readBack({ limit: 2 }));
+  assert.deepEqual(
+    page.records.map((r) => r.seq),
+    [6, 7],
+    'the end of the timeline -- the part a returning driver can still act on',
+  );
+  assert.equal(page.next, null, 'there is nothing after it to page on to');
+  assert.equal(page.truncated, true, 'and it was cut');
+  assert.equal(page.omitted.count, 5, 'the five older deliveries');
+  assert.equal(page.omitted.reason, 'count');
+  assert.equal(page.omitted.fromSeq, 5, 'the anchor is the delivery the window starts after');
+  assert.ok(page.omitted.screen !== null, 'and its state comes with it');
+
+  // The older run is still addressable, even though the read went the other
+  // way: it is a span *up to* the anchor, not a page forward from it.
+  const older = history.span(
+    { seq: 1 },
+    { seq: page.omitted.fromSeq ?? 1 },
+    { level: 'records', limit: 100 },
+  );
+  assert.deepEqual(
+    older.records.map((r) => r.seq),
+    [1, 2, 3, 4, 5],
+    'everything older than the page, read forward to the anchor',
+  );
+});
+
 test('paging on `next` walks the whole timeline without repeating or skipping', () => {
   const history = new SessionHistory('s');
   const f = feeder(history);
   for (let i = 0; i < 7; i++) f.write([`line-${i}`], { text: [`line-${i}`] });
 
   const seen: number[] = [];
-  let page = asRecords(history.readBack({ limit: 2 }));
+  // Paging is a forward walk, so it starts at an address: a read with none
+  // hands back the newest end and has no `next` (see the test above).
+  let page = asRecords(history.readBack({ from: { seq: 1 }, limit: 2 }));
   seen.push(...page.records.map((r) => r.seq));
   let guard = 0;
   while (page.next && guard++ < 20) {

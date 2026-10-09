@@ -77,11 +77,12 @@ networking tweak.
 
 ## The tools
 
-Nine tools, one loop: open, send, wait, read, close.
+Ten tools, one loop: open, send, wait, read, close.
 
 | Tool | What it does |
 |---|---|
 | `open_session` | Starts a hosted session (a shell by default). Returns the `sessionId` every other tool addresses. |
+| `resize_session` | Sets a live session's terminal size; the pty is resized, so the program inside is told. |
 | `send_input` | Writes text as if typed; `submit` presses Enter. |
 | `send_sequence` | Composes several steps — text, a paste, a named key, a raw byte — into one write. |
 | `read_screen` | The last classified update: the screen, what changed, and the session state. |
@@ -105,6 +106,20 @@ Everything is in [`docs/`](docs/README.md):
 | [classifier.md](docs/classifier.md) | How writing vs. drawing is decided, and what it refuses to decide |
 | [mcp-surface.md](docs/mcp-surface.md) | The tools an agent drives, and their contracts |
 | [testing.md](docs/testing.md) | The corpus, the lifelike fixture, and what a test may assert |
+
+## Platforms
+
+Sessions are real ptys, so the server runs wherever `node-pty` does, and it is tested on two:
+
+- **Windows**, over ConPTY. ConPTY parses and re-emits output, so a session's bytes are not
+  always the program's own, and it hands back many small deliveries.
+- **Linux** (and other POSIX systems), over a standard pty. Bytes pass through unaltered, the
+  terminal's line discipline applies (`ICRNL`, echo), and reads arrive in 4 KiB blocks — so the
+  same program produces fewer, larger deliveries than on Windows.
+
+The surface is identical on both. `submit` presses Enter — a bare CR, the byte the key sends —
+which is what a terminal on either platform expects; sending `\r\n` submits the line *and* runs
+an empty one on POSIX.
 
 ## Development
 

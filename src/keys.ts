@@ -41,14 +41,28 @@
  *
  * ## What a byte code may be, and why the range is small
  *
- * `{ byte: N }` is the escape hatch for anything the table does not name. The
- * faithful range is `0x01`-`0x7f`, and both boundaries were measured rather
- * than assumed: `0x00` sent through ConPTY arrives as nothing at all, and
- * `0x80`-`0xff` arrive as U+FFFD, because ConPTY carries input as UTF-8 text.
- * Bytes `0x01`-`0x7f` arrive exactly. Since every byte this module can produce
- * is in that range, and UTF-8 encodes it as one byte, a JS string is a lossless
- * carrier for a composed batch -- which is why `PtySession.write(string)` needs
- * no widening.
+ * `{ byte: N }` is the escape hatch for anything the table does not name, and
+ * the range it accepts is `0x01`-`0x7f`. The two boundaries are refused for
+ * different reasons, and neither is "the table does not list it".
+ *
+ * The **low** boundary is a platform difference. ConPTY drops a `0x00` --
+ * measured: it arrives as nothing at all -- while a POSIX pty carries it
+ * (measured: the child received `00 41 0a` for `\x00A\r`). It is refused on
+ * both anyway, deliberately: a batch must mean the same thing wherever the
+ * server runs, and a keystroke that works on one platform while silently
+ * vanishing on the other is the failure this module exists to prevent.
+ *
+ * The **high** boundary is not a platform limit at all but a property of the
+ * transport. A step is composed into a JS string and handed to
+ * `PtySession.write`, which the pty encodes as UTF-8, so a character above
+ * `0x7f` leaves as two or more bytes rather than one -- measured on a POSIX
+ * pty: U+00C3 left as `c3 83`. `0x80`-`0xff` therefore cannot be sent as a
+ * single raw byte on any platform, and `{text}` is how the character itself
+ * goes.
+ *
+ * Bytes `0x01`-`0x7f` arrive exactly on both, and since UTF-8 encodes each as
+ * one byte, a JS string is a lossless carrier for a composed batch -- which is
+ * why `PtySession.write(string)` needs no widening.
  */
 
 /** The terminal modes a step's bytes depend on. Read from the emulator, never guessed. */
@@ -291,7 +305,8 @@ function resolve(name: string): Resolved | null {
       // outcome; sending it would look like it worked.
       throw new KeyInputError(
         `${JSON.stringify(name)} is 0x00, which does not survive ConPTY (measured: it is ` +
-          'dropped). The faithful range is 0x01-0x7f.',
+          'dropped there, though a POSIX pty carries it). Refused on both so a batch means ' +
+          'the same thing wherever the server runs. The faithful range is 0x01-0x7f.',
       );
     }
     return { canonical: `ctrl+${parts.key.toLowerCase()}`, bytes: String.fromCharCode(byte), app: null };
@@ -397,15 +412,17 @@ function parseByte(value: number | string, index: number): number {
 
   if (n === 0x00) {
     throw new KeyInputError(
-      'byte 0 does not survive ConPTY (measured: it is dropped). The faithful range is ' +
-        '0x01-0x7f.',
+      'byte 0 does not survive ConPTY (measured: it is dropped there, though a POSIX pty ' +
+        'carries it). Refused on both so a batch means the same thing wherever the server ' +
+        'runs. The faithful range is 0x01-0x7f.',
       index,
     );
   }
   if (n < 0x00 || n > 0x7f) {
     throw new KeyInputError(
-      `byte ${n} is outside 0x01-0x7f. ConPTY carries input as UTF-8 text, so a byte above ` +
-        '0x7f arrives as U+FFFD (measured). Send the character itself as {text}, or stay ' +
+      `byte ${n} is outside 0x01-0x7f. A batch is composed into a string and written as ` +
+        'UTF-8, so a character above 0x7f leaves as two or more bytes rather than one ' +
+        '(measured: U+00C3 left as c3 83). Send the character itself as {text}, or stay ' +
         'within the range.',
       index,
     );

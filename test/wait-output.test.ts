@@ -5,6 +5,11 @@
  * current row, nothing while it works, one line of answer per input. That is
  * the shape the wait exists for -- and it is the shape `fixtures/life` has, so
  * what is asserted here is what an agent driving that subject depends on.
+ *
+ * Input is submitted with a bare CR, which is what Enter sends. `\r\n` is not
+ * the same keystroke: a POSIX pty's line discipline turns the CR into a newline
+ * and the LF is a second one, so the subject reads two lines — and the two
+ * answers land against one row, so the anchored prompt below never appears.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -176,7 +181,7 @@ test('the screen a wait ends on is addressable by the seq beside it', async (t) 
 
   assert.ok(await waitFor(() => session.pty.bytesRead > 0), 'the first prompt arrived');
   await session.waitForIdle({ idleMs: 80, timeoutMs: 5000 });
-  session.pty.write('hello\r\n');
+  session.pty.write('hello\r');
   assert.ok(
     await waitFor(() => session.screen.snapshot().lines.some((l) => l.includes('GOT-1'))),
     'the answer landed',
@@ -201,7 +206,7 @@ test('the default baseline is the last input, so the echo is not the answer', as
   assert.ok(await waitFor(() => session.pty.bytesRead > 0), 'the first prompt arrived');
   await session.waitForIdle({ idleMs: 80, timeoutMs: 5000 });
 
-  session.pty.write('hello\r\n');
+  session.pty.write('hello\r');
   const typedAt = session.lastInputByte;
   assert.ok(typedAt > 0, 'writing input stamps the watermark a wait starts from');
 

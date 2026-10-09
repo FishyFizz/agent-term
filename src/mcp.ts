@@ -1,14 +1,20 @@
 /**
  * The MCP surface — a spike of the core loop, not the whole thing.
  *
- * Nine tools, because that is the smallest set an agent can drive a terminal
- * with: open one, type into it, send a batch of input as one write, wait for it
- * to stop changing, wait for it to show something, wait for its next group,
- * read what happened, address the timeline it happened on, close it. The rest of
- * interaction goes on top of these rather than beside them, and is deliberately
- * not here yet: a paste is a step of `send_sequence` rather than a tool of its
- * own, because the mode that decides its bytes is the same kind of fact a named
- * key already reads off the screen.
+ * Ten tools, because that is the smallest set an agent can drive a terminal
+ * with: open one, resize it, type into it, send a batch of input as one write,
+ * wait for it to stop changing, wait for it to show something, wait for its next
+ * group, read what happened, address the timeline it happened on, close it. The
+ * rest of interaction goes on top of these rather than beside them, and is
+ * deliberately not here yet: a paste is a step of `send_sequence` rather than a
+ * tool of its own, because the mode that decides its bytes is the same kind of
+ * fact a named key already reads off the screen.
+ *
+ * `resize_session` is a tool rather than an argument on another call because it
+ * has no other call to belong to: a resize is an act on the session, like
+ * closing one, and it is the only way an agent can move the grid -- the size
+ * otherwise belongs to whoever opened the session. Everything the size touches
+ * (the wrapping, the screen, the history's epochs) follows from it.
  *
  * The shape of a result matters more than the number of tools. A read returns
  * what a human at the screen would say: the screen, what changed on it, and
@@ -246,25 +252,61 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
   );
 
   server.registerTool(
+    'resize_session',
+    {
+      title: 'Resize a session',
+      description:
+        'Set a live session\'s terminal size. The pty is resized — the program inside is told ' +
+        'via SIGWINCH — and the emulator follows, so the grid, the wrapping and the recorded ' +
+        'history agree on the new shape. The resize ends the group in flight and opens a new ' +
+        'epoch, so everything before it stays readable at the size it was produced at.',
+      inputSchema: {
+        sessionId: z.string(),
+        cols: z.number().int().positive().describe('New width in columns.'),
+        rows: z.number().int().positive().describe('New height in rows.'),
+      },
+    },
+    async ({ sessionId, cols, rows }) => {
+      const target = session(sessionId);
+      if (!target) return fail('no_session', `no session ${sessionId}`);
+      // Refused rather than applied to a dead pty: `PtySession.resize` is a
+      // no-op once the process is gone, so resizing here would move the grid
+      // while leaving the program that reads it dead -- a change reported as
+      // done and visible nowhere.
+      if (!target.pty.alive) return fail('not_live', `session ${sessionId} has exited`);
+      target.resize(cols, rows);
+      return {
+        content: [{ type: 'text', text: 'resized' }],
+        structuredContent: { sessionId, cols: target.screen.cols, rows: target.screen.rows },
+      };
+    },
+  );
+
+  server.registerTool(
     'send_input',
     {
       title: 'Send input to a session',
       description:
-        'Write text into a session, as if typed. `submit: true` appends the line ending, so a ' +
+        'Write text into a session, as if typed. `submit: true` presses Enter, so a ' +
         'command that needs Enter pressed should set it. To press a key rather than type ' +
         'characters — arrows, Tab, Escape, Ctrl-C — use `send_sequence`. The result reports ' +
         '`written`: the bytes as they were handed to the terminal.',
       inputSchema: {
         sessionId: z.string(),
         text: z.string().describe('What to type.'),
-        submit: z.boolean().optional().describe('Append a newline, submitting the line.'),
+        submit: z.boolean().optional().describe('Press Enter: send the carriage return that submits the line.'),
       },
     },
     async ({ sessionId, text, submit }) => {
       const target = session(sessionId);
       if (!target) return fail('no_session', `no session ${sessionId}`);
       if (!target.pty.alive) return fail('not_live', `session ${sessionId} has exited`);
-      const bytes = submit ? `${text}\r\n` : text;
+      // A bare CR, which is what a terminal's Enter key sends. `\r\n` is not
+      // the same keystroke: on a POSIX pty the line discipline's ICRNL turns
+      // the CR into a newline and the LF that follows is a second one, so the
+      // shell runs the command and then an empty line — measured, two prompts
+      // back. On ConPTY the LF leaves PowerShell at its continuation prompt.
+      const bytes = submit ? `${text}\r` : text;
       target.send(bytes);
       return {
         content: [{ type: 'text', text: 'sent' }],
@@ -568,7 +610,10 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
         sessionId: z.string(),
         from: address
           .optional()
-          .describe('Where to start: a token, or {seq}, {at} (ms) or {byte}. Default: the beginning.'),
+          .describe(
+            'Where to start: a token, or {seq}, {at} (ms) or {byte}. The read goes forward ' +
+              'from there. Default: no address, which returns the newest end.',
+          ),
         to: address
           .optional()
           .describe('Where to stop, same address space. Setting it makes this a span (a replay). Default: read on from `from`.'),

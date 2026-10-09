@@ -204,6 +204,8 @@ export class ScreenModel {
   private _rows: number;
   private _scrolled = 0;
   private _scrollPos = 0;
+  /** Which buffer `_scrollPos` was read in, so a switch is not a scroll. */
+  private _scrollBuffer: 'normal' | 'alternate' = 'normal';
 
   constructor(cols: number, rows: number, scrollback?: number) {
     this._cols = cols;
@@ -217,6 +219,19 @@ export class ScreenModel {
       // position. Counted here rather than read from `viewportY`, which
       // saturates once the scrollback ring is full and then reports 0 while
       // content keeps moving.
+      //
+      // A buffer switch is not a scroll, and the emulator fires one for it:
+      // entering the alternate screen resets the scroll position, so the two
+      // buffers' positions are on different scales and the difference between
+      // them is not rows moved. Counting it reported `scrolledBy: 1` for a
+      // swap that moved nothing (measured: `CSI ? 1049 h` alone, on a screen
+      // with no content at all), and every pager's first paint carried it.
+      const buffer = this.terminal.buffer.active.type;
+      if (buffer !== this._scrollBuffer) {
+        this._scrollBuffer = buffer;
+        this._scrollPos = position;
+        return;
+      }
       const delta = position > this._scrollPos ? position - this._scrollPos : 1;
       this._scrolled += delta;
       this._scrollPos = position;

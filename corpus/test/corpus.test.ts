@@ -252,12 +252,20 @@ test('every programme runs and records without throwing', async (t) => {
   }
 });
 
-test('recording is deterministic apart from timestamps', async () => {
+test('recording is deterministic apart from timestamps and provenance', async () => {
   // Re-recording must reproduce the committed trace byte for byte, or a
   // "regression" can be nothing but clock drift. Two independent runs of
   // `--feed both` were identical everywhere except `recordedAt`, `op.at` and
   // `arrivals[].at`, so those are stripped and everything else is compared
   // exactly.
+  //
+  // `platform` joins them for the same reason: it records the machine the
+  // artifact was *made on*, not anything about what it contains. A `direct`
+  // trace is the programme's own bytes fed to the emulator with no pty in
+  // between (`runDirect`), so its content is identical on every platform — but
+  // a corpus committed from Windows carries `platform: 'win32'`, and comparing
+  // that field would fail on Linux for a trace that is in fact reproduced
+  // exactly. It is provenance, so it is stripped with the timestamps.
   const trace = loadTrace('basic.plain-write', 'direct');
   const programme = findProgramme('basic.plain-write')!;
   const { trace: fresh } = await runDirect(programme);
@@ -265,6 +273,7 @@ test('recording is deterministic apart from timestamps', async () => {
   const stripTime = (t: Trace) => ({
     ...t,
     recordedAt: '<time>',
+    platform: '<platform>',
     ops: t.ops.map(({ at: _at, ...rest }) => rest),
     // Arrival times are *when* the bytes came in -- the whole point of
     // recording them, and the one thing a second run cannot reproduce.

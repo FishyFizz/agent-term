@@ -28,6 +28,9 @@
  *    cursor has left, and anything the linefeed pass already took is skipped,
  *    so the two cannot double-count.
  *
+ *    The two passes do not fire in row order, which is why what they queue is
+ *    sorted before it is judged: see `inRowOrder`.
+ *
  * 2. **Judgement — is it text or a repaint?** The diff, per row, through
  *    `rowDiff` in `classify.ts`: content arriving where there was none is text;
  *    an erase or an overwrite is a repaint and is dropped. A program drawing a
@@ -101,11 +104,37 @@ export class TextLog {
    */
   drain(): TextLine[] {
     const out = this.lines.slice();
-    for (const p of this.pending) out.push({ byte: p.byte, buffer: p.buffer, text: p.text });
+    for (const p of this.inRowOrder()) {
+      out.push({ byte: p.byte, buffer: p.buffer, text: p.text });
+    }
     this.lines.length = 0;
     this.pending.length = 0;
     this.takenRows.clear();
     return out;
+  }
+
+  /**
+   * The pending lines, in the order their rows appear on the buffer.
+   *
+   * The two triggers do not fire in row order, and that is the whole reason
+   * this exists. The linefeed trigger runs *during* the parse and reads the row
+   * above the cursor; the left-rows trigger runs after it and sweeps from the
+   * top. A line that wraps the grid is completed by its *second* row -- the
+   * linefeed ends the tail -- so the tail is queued first, and the head, found
+   * later by the sweep, is queued behind it. The log then reported
+   * `["…tail", "head"]` for a line the screen showed head-first, and when
+   * another line arrived in the same feed the head was reported after *that*
+   * too: not merely reversed, but deferred past unrelated output.
+   *
+   * The row index is the one order both triggers agree on. Both name absolute
+   * buffer rows (`viewportY + cursorY - 1` for the linefeed, `viewportTop + y`
+   * for the sweep), and a buffer row does not move when the viewport scrolls
+   * under it, so the two are directly comparable and sorting by them restores
+   * the order the rows appear in -- which for text arriving at the cursor is
+   * the order it was written.
+   */
+  private inRowOrder(): PendingLine[] {
+    return [...this.pending].sort((a, b) => a.row - b.row);
   }
 
   /**
@@ -116,7 +145,7 @@ export class TextLog {
    * after the write and after `captureLeftRows`.
    */
   resolve(isText: (row: number) => boolean): void {
-    for (const p of this.pending) {
+    for (const p of this.inRowOrder()) {
       if (isText(p.row)) this.lines.push({ byte: p.byte, buffer: p.buffer, text: p.text });
     }
     this.pending.length = 0;

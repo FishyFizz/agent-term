@@ -9,6 +9,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { TerminalSession, type SessionUpdate } from '../src/session.js';
+import type { GroupPolicy } from '../src/types.js';
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -50,7 +51,7 @@ process.stdout.write('DONE\\r\\n');
 setInterval(() => {}, 1000);
 `;
 
-function open(script: string, groupPolicy?: { gapMs: number; maxBytes?: number } | false) {
+function open(script: string, groupPolicy?: GroupPolicy | false) {
   const session = new TerminalSession('wait-group', {
     command: process.execPath,
     args: ['-e', script],
@@ -232,15 +233,24 @@ test('a firehose is cut by a cap, and says the program has not stopped', async (
   // program is still writing.
   // A tight write loop, so no gap ever opens: `setInterval` at 1ms still
   // leaves a gap and closes on silence, which would test the wrong path.
-  const { session } = open(FIREHOSE, { gapMs: 50, maxBytes: 4096 });
+  //
+  // The cap that ends this group is the **delivery** cap, not the byte cap, and
+  // that is the assertion's whole basis: how many bytes arrive in one delivery
+  // is the pty's choice -- a POSIX pty hands back 4 KiB blocks while ConPTY
+  // returns much smaller writes -- so a byte cap would end the group after a
+  // platform-dependent number of deliveries and "it merged what it cut" would
+  // be checkable on one platform and not the other. Deliveries are the one unit
+  // the detector itself counts, so the group has exactly `CAP` of them
+  // wherever it runs. `maxBytes` is left well above what a loop like this can
+  // produce in a handful of reads, so the delivery cap is what fires.
+  const CAP = 8;
+  const { session } = open(FIREHOSE, { gapMs: 50, maxChunks: CAP, maxBytes: 1_000_000 });
   t.after(() => session.dispose());
 
   const result = await session.waitForGroup({ timeoutMs: 10000 });
   assert.equal(result.reason, 'group', 'it returns rather than hanging');
   assert.ok(result.collapsed);
-  assert.ok(
-    result.collapsed!.reason === 'bytes' || result.collapsed!.reason === 'chunks',
-    `cut by a cap, not by silence (got ${result.collapsed!.reason})`,
-  );
-  assert.ok(result.collapsed!.chunks > 1, 'and it merged what it cut');
+  assert.equal(result.collapsed!.reason, 'chunks', 'cut by a cap, not by silence');
+  assert.equal(result.collapsed!.chunks, CAP, 'and it merged exactly the deliveries the cap allowed');
+  assert.ok(result.collapsed!.bytes > 0, 'carrying real bytes');
 });

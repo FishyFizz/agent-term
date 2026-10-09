@@ -193,9 +193,11 @@ test('a byte step sends that byte, from a number or from hex', () => {
   assert.deepEqual(composed.steps, [{ kind: 'byte', byte: 27, written: '\\x1b' }]);
 });
 
-test('a byte outside the range ConPTY carries faithfully is refused, and says why', () => {
-  // Both boundaries are measured facts, not policy: 0x00 is dropped by ConPTY,
-  // and 0x80-0xff arrive as U+FFFD because ConPTY carries input as UTF-8 text.
+test('a byte outside the range the transport carries faithfully is refused, and says why', () => {
+  // Both boundaries are measured facts, not policy. 0x00 is dropped by ConPTY
+  // (a POSIX pty carries it, and it is refused on both anyway, so a batch means
+  // the same thing wherever the server runs); 0x80-0xff cannot leave as a
+  // single byte because a batch is written as a UTF-8 string.
   assert.throws(
     () => send({ byte: 0 }),
     (error: unknown) => {

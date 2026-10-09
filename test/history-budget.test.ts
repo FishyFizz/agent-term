@@ -61,6 +61,8 @@ function feed(history: SessionHistory, n: number, lineLength: number): void {
       text: tl,
       scrolledRows: 0,
       grid: previous ? gridDelta(previous, screen) : null,
+      // Blank before the first delivery, as a session's own first delivery is.
+      before: previous ?? snapshot(40, 4, []),
       screen,
     });
     previous = screen;

@@ -106,10 +106,14 @@ async function main(): Promise<void> {
   // text -- PowerShell echoes what you type -- so the check requires the value,
   // and it must not appear before the probe was sent.
   chunks.length = 0;
+  // Both forms answer the *same* question -- is stdout redirected -- because the
+  // check below reads one marker for both platforms. `[ -t 1 ]` tests the
+  // opposite (is stdout a terminal), so the POSIX branches are swapped to
+  // report `IsOutputRedirected`'s sense: False when the child really has a tty.
   const ttyProbe = isWindows
     ? '$r = [Console]::IsOutputRedirected; Write-Output "TTYIS:$r"'
-    : 'if [ -t 1 ]; then echo TTYIS:True; else echo TTYIS:False; fi';
-  session.write(`${ttyProbe}\r\n`);
+    : 'if [ -t 1 ]; then echo TTYIS:False; else echo TTYIS:True; fi';
+  session.write(`${ttyProbe}\r`);
 
   // Wait on the *value*, not on the marker. PowerShell echoes the command
   // being typed with ANSI colour codes interleaved, so the echoed literal
@@ -134,7 +138,7 @@ async function main(): Promise<void> {
     exitInfo = info;
   });
 
-  session.write(isWindows ? 'exit\r\n' : 'exit\n');
+  session.write('exit\r');
   const exited = await waitFor(() => exitInfo !== null, { label: 'exit event', timeoutMs: 10000 });
   check('exit event fired', exited, exitInfo ? JSON.stringify(exitInfo) : '');
   check('alive flips false on exit', !session.alive);
@@ -172,7 +176,7 @@ async function main(): Promise<void> {
   });
   aChunks.length = 0;
   bChunks.length = 0;
-  a.pty.write('echo ONLY-A\r\n');
+  a.pty.write('echo ONLY-A\r');
   const aGot = await waitFor(() => aSeen().includes('ONLY-A'), { label: 'ONLY-A' });
   await delay(300);
   check('session a received its own output', aGot);

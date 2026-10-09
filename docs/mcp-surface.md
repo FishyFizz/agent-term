@@ -27,7 +27,7 @@ parsing prose:
 
 Unexpected exceptions are re-thrown, never converted into a caller error.
 
-## Opening and closing
+## Opening, resizing, closing
 
 ### `open_session`
 
@@ -35,6 +35,21 @@ Starts a hosted session. Takes `command`, `args`, `cwd`, `cols`, `rows`, all opt
 defaults are a platform shell, the server's working directory, and a sanitized copy of the
 environment. Returns the session id, which is what every other tool addresses, along with the
 grid size and the pid.
+
+### `resize_session`
+
+Sets a live session's terminal size. The pty is resized — the program inside is told via
+SIGWINCH — and the emulator follows, so the grid, the wrapping and the recorded history agree on
+the new shape. Returns the size that was applied.
+
+A resize ends the group in flight and opens a new **epoch**, so everything recorded before it
+stays readable at the size it was produced at — that is what the `epoch` a read reports is for.
+
+The server owns the size, and the two sides move together only when this is called or the
+session is opened. A program that resizes *itself* (`stty cols 60`) changes the pty's `winsize`
+without telling the emulator, so the grid does not follow and a full-screen program started
+afterwards draws for a width the grid does not have. Resizing through this tool is the way to
+move both.
 
 ### `close_session`
 
@@ -45,9 +60,9 @@ session is the moment the record matters most, not the moment to drop it.
 
 ### `send_input`
 
-Writes text as if typed, with `submit` appending the line ending. Returns the byte count and
-`written` — the bytes as actually handed to the terminal, escaped so they can be compared with
-what was meant. Keys are not spelled here; see `send_sequence`.
+Writes text as if typed, with `submit` pressing Enter — a bare CR, the byte the key sends.
+Returns the byte count and `written` — the bytes as actually handed to the terminal, escaped so
+they can be compared with what was meant. Keys are not spelled here; see `send_sequence`.
 
 ### `send_sequence`
 
@@ -104,11 +119,33 @@ collapsed reachable: read the group's span and they come back.
 
 Omission is reported, never silent: a read that was cut says how much was left out, why, and
 which sequence number to resume from. Both reads are bounded the same way — `limit` by count,
-`maxChars` by characters, cut at a whole delivery so the answer is never half a screen — and
-which end survives follows from which way the read goes. A page with a budget is a driver
-returning after a gap, so it keeps the newest of what it missed; a span is opened at an
-address the caller chose and read forward, so it keeps the oldest. A single delivery larger
-than the whole budget comes back in full rather than truncated, and `overBudget` says so.
+`maxChars` by characters, cut at a whole unit so the answer is never half a screen. The unit is
+the record at the level asked for: a **delivery** at `records` and `text`, and a **group** at
+`groups`. A group can carry the text of hundreds of deliveries, so `maxChars` bounds by group
+there and a small budget may come back far over it — with `overBudget` set, so the caller is
+told rather than left to assume the budget held.
+
+Which end survives follows from which bound bit, and which way the read goes.
+
+**A page with no `from` returns the newest.** A driver coming back after a gap can act on the
+recent end and not on the part it has slept through, so that is the end it gets, and `omitted`
+says how much older history it did not ask for. Give an address and the read goes forward from
+there instead — paging is that walk, and a page with an address has a `next` to walk on with.
+
+- **`limit` bounds the window at the end the read is anchored to**: it drops the tail of a
+  forward read, and the older records of a back one. `omitted.fromSeq` is the delivery the
+  omitted run is resumed from — the last one returned when the read went forward, the last one
+  left behind when it went back.
+- **`maxChars` protects a budget**, so it keeps the *newest* records of whatever window the read
+  built, whichever way it was anchored. A span is the other way round: it is opened at an
+  address the caller chose and read forward from there, so its budget keeps the *oldest*.
+
+A single unit larger than the whole budget comes back in full rather than truncated, and
+`overBudget` says so.
+
+An older run is read with a **span**, not a page: there is no address that walks backwards, so
+the way to see what a back read left out is `{from: <the epoch's start>, to: {seq:
+omitted.fromSeq}}`.
 
 ## Waiting
 

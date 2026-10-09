@@ -120,6 +120,21 @@ commit the traces.
   byte counts come out right either way; do not assume a Buffer in either direction.
 - **Writes are asynchronous.** The grid reflects a write only after the callback fires; a
   same-tick read returns the pre-write grid.
+- **Delivery granularity is the platform's, and it decides what a group is.** ConPTY hands back
+  many small writes; a POSIX pty reads in 4 KiB blocks, so a short burst arrives as *one*
+  delivery and comes back as one group where Windows saw several. A test that needs more than
+  one group has to make the programme produce two acts, not assume the pty will split one —
+  `session.test.ts` writes a bulk command, waits for its last line, then writes a second.
+- **A line is submitted with a bare `\r`, never `\r\n`.** Enter sends CR. On a POSIX pty the
+  line discipline's `ICRNL` turns the CR into a newline and the LF that follows is a *second*
+  one, so a `\r\n` runs the command and then an empty line; on ConPTY the LF leaves PowerShell
+  at its continuation prompt. Both were measured.
+- **`/bin/sh` is dash on Debian/Ubuntu**, and its `printf` has no `\x` escape — `printf '\xe4'`
+  emits the literal text. Use the POSIX octal form (`\344`) when a test has to rebuild bytes in
+  a shell. `seq` is the portable way to emit N lines; PowerShell's `1..N` has no POSIX
+  equivalent.
+- **Exit `signal` is spelled differently per platform.** node-pty reports `0` for a clean exit
+  on POSIX and `undefined` on Windows; `pty.ts` normalises both to `null`.
 
 Re-probe these rather than trusting them if a dependency version moves.
 

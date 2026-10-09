@@ -138,9 +138,15 @@ export class PtySession implements PtyEventTarget {
       }),
       this.pty.onExit(({ exitCode, signal }) => {
         this._alive = false;
+        // "No signal ended it" is spelled differently per platform: node-pty
+        // reports `undefined` on Windows and `0` on POSIX, and both mean the
+        // process ended on its own. Normalised to `null` here, so a clean
+        // `exit 3` reports the same facts on either platform rather than
+        // `signal: 0` on one and `null` on the other for the same event.
+        const diedBySignal = signal !== undefined && signal !== 0;
         this._exitInfo = {
-          exitCode: exitCode === 0 && signal !== undefined && signal !== 0 ? null : exitCode,
-          signal: signal ?? null,
+          exitCode: exitCode === 0 && diedBySignal ? null : exitCode,
+          signal: diedBySignal ? signal : null,
         };
         this.emitter.emit('exit', this._exitInfo);
       }),

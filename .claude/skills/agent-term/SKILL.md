@@ -1,6 +1,6 @@
 ---
 name: agent-term
-description: Usage guide for the agent-term MCP server — how to drive an interactive terminal program through its tools (open_session, send_input, send_sequence, wait_for_idle, wait_for_group, wait_for_output, read_screen, history_read, close_session). Use whenever you are operating a terminal session through agent-term, including black-box driving exercises where you are handed an interactive program to operate and are not told how it behaves.
+description: Usage guide for the agent-term MCP server — how to drive an interactive terminal program through its tools (open_session, resize_session, send_input, send_sequence, wait_for_idle, wait_for_group, wait_for_output, read_screen, history_read, close_session). Use whenever you are operating a terminal session through agent-term, including black-box driving exercises where you are handed an interactive program to operate and are not told how it behaves.
 ---
 
 # Driving a terminal through agent-term
@@ -28,6 +28,12 @@ lean on a field's semantics, and come back to it when a result surprises you.
    across nine screens, most of it blank. Pick the smallest grid the program's layout
    actually needs; a full-screen TUI's frame will wrap and repaint badly below its own
    minimum, so do not shrink past that to save bytes.
+   **The size is not fixed once chosen: `resize_session` changes it mid-session**, and
+   resizes the pty too, so the program inside is told and redraws. Use it when a program
+   needs a different frame later; do not reach for a shell command like `stty cols`, which
+   moves the pty's `winsize` without telling the emulator and leaves the grid at the old
+   width. A resize starts a new epoch in the history; everything before it stays readable
+   at the size it was produced at.
 2. **`send_input`** — writes text as if typed. `submit: true` appends a line ending;
    without it no Enter is pressed.
 3. **`send_sequence`** — writes several inputs in one call: `{text}`, `{paste}`, `{key}` or
@@ -305,15 +311,29 @@ produced at** rather than one size for the whole read. A span is read at `record
 whatever `screen` says; on a page, `screen: true` materializes the screen at each point
 — playback — and is off by default for cheap paging.
 
+**A page with no `from` gives you the newest.** Coming back to a session you have not
+watched for a while, you want the end — the part you can still act on — not the beginning
+you have slept through. Give an address and the read goes forward from there instead,
+which is how you page: `next` walks on.
+
 **Both reads are bounded, and neither is cut in silence.** `limit` caps by count
-(default 50 for a page); `maxChars` caps by characters, cut at a whole delivery. Which
-end survives follows from the direction: a page is a driver returning after a gap, so it
-keeps the **newest** of what it missed; a span is opened where you chose and read
-forward, so it keeps the **oldest**. A single delivery larger than the whole budget comes
-back in full rather than half a screen, and `omitted.overBudget` says so. When a read is
-cut, `truncated` is true and `omitted` says `count`, `reason`, `fromSeq` (where to
-resume), `overBudget`, and the screen at the cut. `stoppedAtEpochEnd` says a page stopped
-because the grid changed under it.
+(default 50 for a page); `maxChars` caps by characters, cut at a whole unit. Which end
+survives follows from the bound and the direction. `limit` bounds at the end the read is
+anchored to — the tail of a forward read, the older records of a back (no-`from`) one.
+`maxChars` protects a budget, so it keeps the **newest** of whatever window the read
+built; a span is the exception, opened where you chose and read forward, so it keeps the
+**oldest**. The unit the budget cuts at is the record at the level you asked for: a
+delivery at `records`/`text`, and a **group** at `groups` — where one group can carry
+hundreds of deliveries' text, so `maxChars` bounds by group there and a small budget can
+come back far over it. A single unit larger than the whole budget comes back in full
+rather than half a screen, and `omitted.overBudget` says so. When a read is cut,
+`truncated` is true and `omitted` says `count`, `reason`, `fromSeq` (the anchor),
+`overBudget`, and the screen at the cut. `stoppedAtEpochEnd` says a page stopped because
+the grid changed under it.
+
+**The anchor sits between what you got and what you did not.** For a forward read the
+omitted run is after it; for a back read it is *older*, and nothing here walks backwards —
+read it as a span `{from: <epoch start>, to: {seq: omitted.fromSeq}}`.
 
 **`ended`** reports how the process finished: `{at, exitCode, signal}`, or `null` while
 it is still running. `exitCode` is `null` when a signal ended it, and it stays `null`

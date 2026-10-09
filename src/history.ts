@@ -133,6 +133,8 @@ export interface HistoryInput {
   text: readonly TextLine[];
   scrolledRows: number;
   grid: GridDelta | null;
+  /** The screen before this delivery. Kept as the epoch's opening state. See `Epoch`. */
+  before: ScreenSnapshot;
   screen: ScreenSnapshot;
 }
 
@@ -224,7 +226,14 @@ export type HistoryLevel = 'records' | 'groups' | 'text';
 
 /** What a read of the timeline is asking for. */
 export interface HistoryReadOptions {
-  /** Where to start. Any address — token, seq, time or byte. Default: the beginning. */
+  /**
+   * Where to start. Any address — token, seq, time or byte — and the read goes
+   * forward from it.
+   *
+   * No address at all is not "the beginning": it is **the newest**, because a
+   * page is what a driver reads when it comes back and the end is the part it
+   * can still act on. See `readBack`.
+   */
   from?: HistoryPoint | null;
   /** Where to stop, same address space. Default: read on from `from`. */
   to?: HistoryPoint | null;
@@ -234,25 +243,25 @@ export interface HistoryReadOptions {
   level?: HistoryLevel;
   /** Materialize the screen at each record. Off by default — it is the expensive part. */
   screen?: boolean;
-  /** Anchor: `from`/`to` address the timeline relative to *now*. See `readBack`. */
-  anchor?: 'front' | 'back';
   /**
    * Cap on what comes back, **counted in characters and cut at a whole
-     * delivery**, so a driver that has been away can ask for "what changed since
-     * I last looked" and get the newest of it instead of the oldest.
-     *
-     * Two caps in one call is not redundancy: `limit` counts *how many*, this
-     * counts *how much*. Fifty screens of text is tens of thousands of
-     * characters, and a driver does not have a budget of "50"; it has a budget
-     * of "do not blow up my context". A count cannot express that.
-     *
-     * The cut is at a **whole `seq`**, never inside one, and that is the part
-     * that keeps this honest: a delivery is the unit the timeline records, so
-     * the answer is always "these deliveries in full, those not at all" — never
-     * a half screen the caller would read as the state. What did not fit is
-     * *counted and reported*, not silently dropped.
-     *
-   * A single delivery larger than the whole budget is still returned in full,
+   * unit**, so a driver that has been away can ask for "what changed since
+   * I last looked" and get the newest of it instead of the oldest.
+   *
+   * Two caps in one call is not redundancy: `limit` counts *how many*, this
+   * counts *how much*. Fifty screens of text is tens of thousands of
+   * characters, and a driver does not have a budget of "50"; it has a budget
+   * of "do not blow up my context". A count cannot express that.
+   *
+   * The cut is at a **whole record**, never inside one, and that is the part
+   * that keeps this honest: the answer is always "these in full, those not at
+   * all" — never a half screen the caller would read as the state. What did not
+   * fit is *counted and reported*, not silently dropped. Which record that is
+   * depends on the level: a delivery at `records` and `text`, and a **group**
+   * at `groups`, where a single unit can hold hundreds of deliveries' text and
+   * the budget therefore bounds by group rather than by delivery.
+   *
+   * A single unit larger than the whole budget is still returned in full,
    * and reported as such by `overBudget`. The alternative — truncating it —
    * would make the one thing the caller asked to see unreadable.
    *
@@ -274,6 +283,13 @@ export interface HistoryReadOptions {
  * different handling: `count` is a caller-imposed cap and the rest is simply
  * later/earlier; `budget` is the caller's own character budget, so re-reading
  * with a bigger one is the fix.
+ *
+ * The anchor is the boundary between what was returned and what was not, and
+ * which side the omitted run falls on depends on the read: a forward read
+ * leaves out what *follows* the anchor, and a back read -- the one a page with
+ * no address makes, which returns the newest -- leaves out what *precedes* it,
+ * where "precedes" is older. Nothing walks backwards on this surface, so the
+ * way to read that older run is a span up to the anchor.
  */
 export interface Omission {
   /** How many units were not returned. 0 when nothing was left out. */
@@ -295,10 +311,12 @@ export interface Omission {
   /**
    * The `seq` of `screen`, so the anchor is addressable.
    *
-   * `locate` resolves an address to the record **at or before** it, so reading
-   * from here returns the omitted deliveries — re-reading one already seen at
-   * the boundary, which is how the address space is defined rather than a
-   * special case.
+   * `locate` resolves an address to the record **at or before** it, so a read
+   * from here returns that record — re-reading one already seen at the
+   * boundary, which is how the address space is defined rather than a special
+   * case. Which deliveries it then reaches depends on the side the omission is
+   * on, as above: the run itself when the read went forward, and only the
+   * boundary followed by what the caller already had when it went back.
    */
   fromSeq: number | null;
   /**
@@ -356,6 +374,19 @@ export type HistoryReadResult =
 interface Epoch {
   info: EpochInfo;
   records: HistoryRecord[];
+  /**
+   * The screen the epoch opened from -- the state before its first record.
+   *
+   * The one frame the stream cannot reconstruct: every record stores the screen
+   * it produced, and `screenInEpoch` folds forward from a keyframe, so there is
+   * no record behind index 0 to derive a "before" from. A group that opens an
+   * epoch has nothing else to be classified against, and classifying it against
+   * its own end state is what made the projection disagree with the live path.
+   *
+   * `null` until the epoch's first record arrives; an epoch opened by a resize
+   * with no output yet has no opening state to speak of.
+   */
+  opening: ScreenSnapshot | null;
 }
 
 const DEFAULT_LIMIT = 50;
@@ -483,6 +514,11 @@ export class SessionHistory {
     // epoch is not readable on its own. A declined delta is a whole screen in
     // runs, so a keyframe is no larger -- store the state and drop the delta.
     const isAnchor = target.records.length === 0 || update.grid === null;
+
+    // The state the epoch opened from, taken from the first record's *before*.
+    // It is the frame the record at index 0 cannot supply about itself, and it
+    // is what the projection classifies the epoch's opening group against.
+    if (target.records.length === 0) target.opening = update.before;
 
     target.records.push({
       seq: update.seq,
@@ -735,33 +771,45 @@ export class SessionHistory {
    * caller unable to say what a row's shape means. A span (`to`) crosses
    * instead -- see `deliveries`, which is what a span is read through.
    *
-   * `anchor: 'back'` assembles **from the newest end** and stops at a whole
-   * `seq`, which is what a returning driver wants: of three hundred groups it
-   * has not seen, the newest twenty are the ones it can act on and the oldest
-   * two hundred and eighty are history. Reading forward would fill the budget
-   * with the part it can no longer use.
+   * A page with an address reads **forward** from it, and `limit` drops the
+   * tail. With no address it reads the **newest** instead -- a page is what a
+   * returning driver reads, and the end is the part it can still act on. There
+   * is no flag for that: an earlier `anchor: 'back'` option promised to
+   * assemble from the newest end and never did, so it was removed rather than
+   * left as a mode whose only observable effect was a wrong `next`.
    *
    * Omission is reported, and the screen at the cut is returned with it, so a
-   * gap is resumable: "280 groups with no detail, here is the screen they led
-   * up to, here are the 20 in full".
+   * gap is resumable rather than a hole: what was left out, how much of it, and
+   * the state it borders.
    */
   readBack(options: HistoryReadOptions = {}): HistoryReadResult {
     const level = options.level ?? 'records';
     const limit = options.limit ?? DEFAULT_LIMIT;
-    const anchor = options.anchor ?? 'front';
+
+    // No address means **the newest**. A page is what a driver reads when it
+    // comes back, and the part it can still act on is the end: reading forward
+    // from the beginning would fill the window with history it has already
+    // slept through and leave the recent end -- the only part it can do
+    // anything about -- as the omission. An address is a place the caller
+    // named, so the read goes forward from there; one that resolves to before
+    // anything recorded clamps to the beginning, which is where a forward read
+    // starts anyway.
+    const back = options.from === undefined || options.from === null;
     const epoch0 = this.list[0];
-    const located =
-      options.from === undefined || options.from === null ? null : this.locate(options.from);
-    const start = located ?? (epoch0 ? { epoch: epoch0, index: 0 } : null);
-    if (!start) throw new RangeError('history has no epoch');
-    const epoch = this.list[start.epoch.info.index];
+    const atStart = epoch0 ? { epoch: epoch0, index: 0 } : null;
+    const located = back ? null : this.locate(options.from ?? undefined);
+    const anchor = back ? this.lastRecord() ?? atStart : located ?? atStart;
+    if (!anchor) throw new RangeError('history has no epoch');
+    const epoch = this.list[anchor.epoch.info.index];
     if (!epoch) throw new RangeError('history has no epoch');
 
     // Everything in the window, oldest first. Bounded by `limit` alone here;
     // the character budget is applied after, because it depends on the shape
-    // the caller asked for (a screen costs far more than a line).
+    // the caller asked for (a screen costs far more than a line). `limit`
+    // bounds the window at whichever end the read is anchored to.
+    const startIndex = back ? Math.max(0, epoch.records.length - limit) : anchor.index;
     const window: HistoryRecord[] = [];
-    let index = start.index;
+    let index = startIndex;
     for (; index < epoch.records.length; index++) {
       const record = epoch.records[index];
       if (!record) break;
@@ -769,13 +817,15 @@ export class SessionHistory {
       window.push(record);
     }
 
-    const truncated = index < epoch.records.length;
+    // A back read is short at the *front* -- the records it did not reach are
+    // older than it, not newer -- where a forward read is short at the back.
+    const truncated = back ? startIndex > 0 : index < epoch.records.length;
     const stoppedAtEpochEnd = index >= epoch.records.length;
 
     // Both caps report through one `Omission`, because a caller that had to
     // check two fields to learn what it is missing would miss one of them.
     // `cutIndex` is the delivery the omission is resumed from, held as an index
-    // in the *epoch* -- `window` is a contiguous run from `start.index`, so the
+    // in the *epoch* -- `window` is a contiguous run from `startIndex`, so the
     // two differ by a number already in hand and nothing scans to find it.
     let records = window;
     let reason: Omission['reason'] = 'none';
@@ -787,40 +837,52 @@ export class SessionHistory {
       const fit = fitBudget(
         window,
         (record, i) =>
-          costOf(record, options.screen === true ? this.screenInEpoch(epoch, start.index + i) : null, level),
+          costOf(record, options.screen === true ? this.screenInEpoch(epoch, startIndex + i) : null, level),
         maxChars,
         'newest',
       );
       if (fit.dropped.length > 0 || fit.overBudget) {
         reason = 'budget';
         // The last delivery that did not fit: the state the returned window
-        // begins at, and where a further read picks the rest up.
-        cutIndex = start.index + window.length - fit.kept.length - 1;
+        // begins after, and where a further read picks the rest up.
+        cutIndex = startIndex + window.length - fit.kept.length - 1;
         overBudget = fit.overBudget;
         records = fit.kept;
       }
     }
     if (reason === 'none' && truncated) {
       reason = 'count';
-      // The last delivery returned: the state the omitted tail follows.
-      cutIndex = start.index + window.length - 1;
+      // The delivery the omitted run is resumed from: the last one this read
+      // returned when it went forward, the last one it left behind when it went
+      // back.
+      cutIndex = back ? startIndex - 1 : startIndex + window.length - 1;
     }
 
+    // Where the returned run begins -- not where the window does, since the
+    // budget drops from the front of the window and the two differ whenever it
+    // bit. Both the token and the materialized screens are indexed from here;
+    // indexing them from the window's start attached the screens of records
+    // that were not returned.
+    const returnedStart = startIndex + (window.length - records.length);
+
     // How much is missing is a count of the timeline, not of one cut: with both
-    // caps applied, the limit's tail and the budget's head are both gone.
+    // caps applied, a forward read's limit-tail and budget-head are both gone,
+    // and a back read's window-head and everything older than the window are.
     const omitted: Omission =
       reason === 'none' || cutIndex === null
         ? nothingOmitted()
         : {
-            count: epoch.records.length - (start.index + records.length),
+            count: back
+              ? returnedStart
+              : epoch.records.length - (startIndex + records.length),
             reason,
             screen: this.screenInEpoch(epoch, cutIndex) ?? null,
             fromSeq: epoch.records[cutIndex]?.seq ?? null,
             overBudget,
           };
 
-    const from = this.encode(start.epoch.info.index, start.index);
-    const next = anchor === 'back' ? null : this.resumeAt(start.epoch.info.index, index);
+    const from = this.encode(epoch.info.index, returnedStart);
+    const next = this.resumeAt(epoch.info.index, index);
 
     if (level === 'text') {
       const lines = records.flatMap((r) => r.text);
@@ -847,7 +909,7 @@ export class SessionHistory {
     const screen = options.screen === true;
     const out = screen
       ? records.map((record, i) => {
-          const at = this.screenInEpoch(epoch, start.index + i);
+          const at = this.screenInEpoch(epoch, returnedStart + i);
           return at ? { ...record, screen: at } : null;
         }).filter((r): r is HistoryRecord & { screen: ScreenSnapshot } => r !== null)
       : records.map((record) => ({ ...record, screen: undefined }));
@@ -916,10 +978,19 @@ export class SessionHistory {
 
         const after = this.screenInEpoch(epoch, i + group.length - 1);
         if (!after) continue;
-        // What the group started from: the delivery before it, or the epoch's
-        // first keyframe when the group opens the epoch.
+        // What the group started from: the delivery before it, or -- when the
+        // group opens the epoch -- the state the epoch opened from. That state
+        // cannot come from a record, because it is the frame *behind* index 0;
+        // it is kept on the epoch for exactly this read (`Epoch.opening`).
+        //
+        // Falling back to `after` here was a bug the Linux delivery granularity
+        // exposed: with nothing before it, the projection compared the group's
+        // own end state against itself, and the recorded scroll then made that
+        // non-difference read as content having moved back -- a repaint, where
+        // the live path had correctly seen an append. The one screen a stream
+        // cannot reconstruct is now stored rather than improvised.
         const beforeScreen = i > 0 ? this.screenInEpoch(epoch, i - 1) : null;
-        const before = frameFrom(beforeScreen ?? after);
+        const before = frameFrom(beforeScreen ?? epoch.opening ?? after);
         const scrolledBy = group.reduce((n, r) => n + r.scrolledRows, 0);
         const classified = classify({
           before,
@@ -1080,6 +1151,7 @@ export class SessionHistory {
         records: 0,
       },
       records: [],
+      opening: null,
     });
   }
 

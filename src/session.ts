@@ -178,6 +178,18 @@ export interface Delivery {
   scrolledRows: number;
   /** What changed on the grid, or `null` when a delta would not be smaller. */
   grid: GridDelta | null;
+  /**
+   * The screen before this delivery.
+   *
+   * Carried so the timeline can keep the state an *epoch* opened from. That
+   * state is the one screen the stream cannot reconstruct: every record stores
+   * the screen it produced (`screen`), and everything else is folded from a
+   * keyframe forward, so the frame preceding the very first record of an epoch
+   * has no record to be derived from. A group that opens an epoch is classified
+   * from exactly that frame, and without it the projection would compare the
+   * group's end state against itself -- see `HistoryStore.groups`.
+   */
+  before: ScreenSnapshot;
   /** The screen after this delivery. */
   screen: ScreenSnapshot;
 }
@@ -860,6 +872,7 @@ export class TerminalSession {
           text: facts.text,
           scrolledRows: facts.scrolledRows,
           grid,
+          before: beforeSnap,
           screen: afterSnap,
         };
         for (const listener of this.deliveryListeners) listener(delivery);

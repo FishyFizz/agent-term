@@ -58,6 +58,12 @@ async function until(predicate: () => boolean, timeoutMs = 8000): Promise<boolea
  * written as a literal: PowerShell 5.1 mangles non-ASCII characters arriving
  * on the command line, so a literal marker reaches the shell corrupted and
  * the two sides disagree for a reason unrelated to byte counting.
+ *
+ * The POSIX form spells the octets in **octal** (`\344`), not hex (`\xe4`).
+ * `\x` is a bash/jiff extension: `/bin/sh` on this platform is dash, whose
+ * `printf` passes `\xe4` through literally, so a hex escape rebuilds the
+ * string `\xe4\xbd\xa0` and the byte count measures the escape text instead of
+ * the marker. Octal escapes are the POSIX printf form and work in either shell.
  */
 function probe(marker: string): string {
   const octets = [...Buffer.from(marker, 'utf8')];
@@ -65,8 +71,8 @@ function probe(marker: string): string {
     const list = octets.join(',');
     return `$m = [Text.Encoding]::UTF8.GetString([byte[]](${list})); $b = [Text.Encoding]::UTF8.GetBytes($m); Write-Output "M:$m|B:$($b.Length)"`;
   }
-  const hex = octets.map((b) => b.toString(16).padStart(2, '0')).join('\\x');
-  return `m=$(printf '\\x${hex}'); printf 'M:%s|B:%s\\n' "$m" "$(printf '%s' "$m" | wc -c)"`;
+  const octal = octets.map((b) => b.toString(8).padStart(3, '0')).join('\\');
+  return `m=$(printf '\\${octal}'); printf 'M:%s|B:%s\\n' "$m" "$(printf '%s' "$m" | wc -c)"`;
 }
 
 test('bytesRead counts bytes, not characters', async (t) => {
@@ -86,7 +92,7 @@ test('bytesRead counts bytes, not characters', async (t) => {
 
   chunks.length = 0;
   const before = session.bytesRead;
-  session.write(`${probe(marker)}\r\n`);
+  session.write(`${probe(marker)}\r`);
 
   // Match the marker, not a bare "|B:". The shell also echoes the command
   // being typed (with ANSI colour codes interleaved), where "$m" is literal
@@ -119,9 +125,9 @@ test('data events deliver Buffers, monotonically ordered', async (t) => {
 
   await waitForPrompt(session);
 
-  session.write('echo ALPHA\r\n');
+  session.write('echo ALPHA\r');
   await until(() => Buffer.concat(chunks).toString('utf8').includes('ALPHA'));
-  session.write('echo BETA\r\n');
+  session.write('echo BETA\r');
   await until(() => Buffer.concat(chunks).toString('utf8').includes('BETA'));
 
   assert.ok(chunks.length > 0, 'received data');

@@ -78,6 +78,9 @@ async function replayIntoHistory(history: SessionHistory, trace: ReturnType<type
       text: facts.text,
       scrolledRows: facts.scrolledRows,
       grid: previous ? gridDelta(previous, snap) : null,
+      // The replay's own pre-write frame, which is what a live delivery carries
+      // as `before` too.
+      before: facts.before,
       screen: snap,
     });
     expected.set(seq, snap);

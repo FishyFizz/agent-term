@@ -98,6 +98,27 @@ test('alt screen is entered, has no scrollback, and restores on exit', async () 
   );
 });
 
+test('a buffer switch is not a scroll', async () => {
+  // The emulator fires `onScroll` when the alternate screen is entered, because
+  // the scroll position resets -- but the two buffers' positions are on
+  // different scales, so their difference is not rows moved. Counting it made
+  // every pager's first paint carry a spurious `scrolledBy`, a field a caller
+  // reads as "the content moved".
+  const s = new ScreenModel(20, 5);
+
+  const entering = await s.feed('\x1b[?1049h');
+  assert.equal(entering.scrolledRows, 0, 'the swap alone moved nothing');
+  assert.equal(s.snapshot().buffer, 'alternate');
+
+  const leaving = await s.feed('\x1b[?1049l');
+  assert.equal(leaving.scrolledRows, 0, 'and leaving it moved nothing either');
+
+  // Real scrolling still counts, so the fix is not "report zero".
+  const written = await s.feed('A1\r\nA2\r\nA3\r\nA4\r\nA5\r\nA6\r\nA7\r\n');
+  assert.ok(written.scrolledRows > 0, `content past the last row still scrolls (${written.scrolledRows})`);
+  s.dispose();
+});
+
 test('resize reflows and updates reported dimensions', async () => {
   const s = await screen(20, 5, 'hello');
   s.resize(40, 10);

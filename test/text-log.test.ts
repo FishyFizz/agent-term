@@ -45,6 +45,30 @@ test('repeated lines are kept — this is a log, not a set', async () => {
   screen.dispose();
 });
 
+test('a line wider than the grid is logged head first, and not deferred past the next', async () => {
+  // A wrapped line is completed by a linefeed on its *second* row, and the
+  // linefeed trigger reads the row above the cursor -- so it takes the tail.
+  // The head is found later, by the sweep over rows the cursor has left.
+  // Queued in trigger order the log came out `[tail, head]`: reversed against a
+  // screen that was forward-ordered, and -- when another line arrived in the
+  // same feed -- with the head pushed behind *that* line too, which is the part
+  // that made it unrecoverable rather than merely out of order.
+  const screen = new ScreenModel(10, 5);
+  const lines = await feed(screen, 'L1:aaaaaaaaaaaa\r\nM:bb\r\n');
+
+  assert.deepEqual(
+    lines.map((l) => l.text),
+    ['L1:aaaaaaa', 'aaaaa', 'M:bb'],
+    'the head is first, and the next line does not jump in front of it',
+  );
+  assert.deepEqual(
+    screen.snapshot().lines.slice(0, 3).map((l) => l.replace(/\s+$/, '')),
+    ['L1:aaaaaaa', 'aaaaa', 'M:bb'],
+    'which is the order the screen shows them in',
+  );
+  screen.dispose();
+});
+
 test('lines survive a scrollback overflow', async () => {
   // The decisive case: the buffer is deliberately far too small to hold the
   // output, so anything reading the grid loses it. This is why the trigger is a
