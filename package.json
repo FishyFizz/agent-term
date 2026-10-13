@@ -12,6 +12,7 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "smoke": "tsx scripts/smoke.ts",
+    "view": "tsx scripts/view.ts",
     "life": "tsx fixtures/life/index.ts",
     "mcp": "tsx scripts/mcp-stdio.ts",
     "mcp:http": "tsx scripts/mcp-http.ts",

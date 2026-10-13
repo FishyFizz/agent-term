@@ -77,11 +77,12 @@ networking tweak.
 
 ## The tools
 
-Ten tools, one loop: open, send, wait, read, close.
+Twelve tools, one loop: open, send, wait, read, close — and two to hand the session to a human.
 
 | Tool | What it does |
 |---|---|
 | `open_session` | Starts a hosted session (a shell by default). Returns the `sessionId` every other tool addresses. |
+| `open_view` | Exposes a live session in a window a human can watch and type into. Returns a url and a command. |
 | `resize_session` | Sets a live session's terminal size; the pty is resized, so the program inside is told. |
 | `send_input` | Writes text as if typed; `submit` presses Enter. |
 | `send_sequence` | Composes several steps — text, a paste, a named key, a raw byte — into one write. |
@@ -90,10 +91,29 @@ Ten tools, one loop: open, send, wait, read, close.
 | `wait_for_idle` | Blocks until output has been quiet. |
 | `wait_for_output` | Blocks until a pattern appears — on the screen or in the text log. |
 | `wait_for_group` | Blocks for the next act of output and returns the change with it — the wait a full-screen TUI needs. |
+| `close_view` | Detaches every human from a session's view. The session is untouched. |
 | `close_session` | Ends the session and kills its process tree. History stays readable. |
 
 The surface is deliberately small — every tool definition is context the agent pays for on
 every turn — so capabilities are added by making a call carry more, not by adding a call.
+
+## Human intervention
+
+An agent driving a terminal eventually reaches something it should not decide alone: a TUI it
+cannot read, a prompt it cannot guess, a change only a person should authorise. `open_view`
+puts the session in a window — a browser tab, or a real terminal via `npm run view <url>` — and
+the human's keystrokes go into the same pty, so what they do comes back to the agent as ordinary
+output.
+
+The agent is told that a human intervened and when, through `view` on `read_screen`. It is
+**not** told what they typed: that is visible to the extent the program echoes it and no
+further, so a password at a prompt with echo off stays between the human and the program.
+
+The procedure: open a view, say what you need, end your turn. On the next turn, read `view`.
+
+The server binds loopback and every view sits behind an unguessable token. A view hands a live
+terminal to whoever holds its url, which is the same safety posture as the rest of this server —
+it runs arbitrary commands for whoever asks.
 
 ## Documentation
 
@@ -129,6 +149,7 @@ npm run test          # the whole suite
 npm run smoke         # end-to-end against a real shell
 npm run mcp           # the MCP server over stdio
 npm run mcp:http      # the MCP server over HTTP
+npm run view <url>    # attach to a session's view in this terminal
 ```
 
 ## Non-goals

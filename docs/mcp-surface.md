@@ -100,6 +100,10 @@ watermarks, and the session state. `seq` is the number of the state shown, and t
 When nothing has arrived yet the update is `null` — explicitly *not* the same as an empty
 screen.
 
+**`view` rides along on every read**, when a view of the session has been opened: `null`
+otherwise. It is the human half of the interaction, reported as facts and nothing more — see
+[Human intervention](#human-intervention).
+
 ### `history_read`
 
 One surface over the timeline rather than a pair of tools. Paging through what happened and
@@ -219,9 +223,78 @@ the screen it ended on.
 The reason a group closed is reported, because the four do not mean the same thing: only `gap`
 says the program went quiet. A cap cut a group open while it was still writing.
 
+**`afterInput`** is whether the group's bytes sit after the last write — placement, not
+causation. `false` is the case worth acting on: the wait ended on output that was already in
+flight, so more input would be typing into something that has not read the last thing yet.
+
+It is measured against the **last** write, which makes it reliable for your own `send_input`
+(one call, one write) and weaker for a human's typing in a view: that arrives a keystroke at a
+time, so the Enter that submits the line is stamped after the group carrying the echo has
+already begun, and that group — the response — reports `false`. The wait still wakes and still
+carries the human's text; only the flag is narrower than it reads. See the known limit in
+[design.md](design.md) for the candidates.
+
 A wait that does **not** resolve still names what it ended on — the screen it hands back comes
 with the sequence number that state is filed under, so a timeout is a state you can go on to
 address rather than one you have to re-read to name.
+
+## Human intervention
+
+Two tools, for the case where the agent is not the one who should be typing.
+
+### `open_view`
+
+Exposes a live session in a window a human can watch and type into. Returns `url`, which opens
+in a browser, and `command`, which runs a terminal client in the human's own terminal — the
+human gets a real terminal window without this server having to guess which emulator is
+installed. Either client attaches; several may attach to one view.
+
+The human sees the same screen the agent is shown and their keystrokes go **into the same
+pty**, so what they do reaches the agent as ordinary output — through `read_screen`, through the
+waits, through history. Nothing about the session changes: there is still one parser, one
+screen, one timeline.
+
+The grid follows the human's window by default (`followResize`), so a full-screen program draws
+for the window it is actually in. That is a `resize_session`: it opens a new epoch and
+everything recorded before it stays readable at the old size. Turn it off and the human's window
+letterboxes instead.
+
+Calling it twice returns the same view. Refused with `not_live` once the process has exited — a
+view is for intervening, and there is nothing left to intervene in.
+
+### `close_view`
+
+Detaches every client and stops serving the view. The session is untouched. A view also ends on
+its own when the session is closed or its process exits.
+
+### What the agent is told
+
+`read_screen` reports `view`:
+
+```json
+{ "attached": 1, "lastInputAt": 1760000000123, "lastInputBytes": 4 }
+```
+
+`attached` is a real count of connected clients, so `0` means nobody is on it. `lastInputAt`
+and `lastInputBytes` are `null` before any human input — "no human has typed" and "we cannot
+say" are different facts. `view` itself is `null` when no view has been opened, rather than an
+object reporting zero: "there is no view" and "there is one with nobody on it" are not the same
+thing, and a caller reading `attached === 0` must not be told the first when the second is true.
+
+**What the human typed is not reported.** Not to the agent, and not back to the client. It is
+visible to the agent to the extent the program echoes it and no further: a password typed at a
+prompt with echo off stays between the human and the program, which is the only place either of
+them would expect it to be. What the agent gets is enough for the thing it actually needs — to
+stop assuming it is the only writer.
+
+### The procedure this is for
+
+The agent gets stuck — a TUI it cannot read, a prompt it cannot guess, a decision that is not
+its to make. It calls `open_view`, tells the human what it needs, and **ends its turn**. On the
+next turn it reads `view` off `read_screen` and sees whether a human intervened and when. There
+is no wait for a human, and there is no `atPrompt`: whether anybody is there is not observable,
+and a wait would be a judgement dressed as an observation. The fact that input arrived, and
+when, is.
 
 ## How results are shaped
 

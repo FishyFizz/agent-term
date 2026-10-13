@@ -10,6 +10,13 @@
  * tool of its own, because the mode that decides its bytes is the same kind of
  * fact a named key already reads off the screen.
  *
+ * `open_view` and `close_view` are the eleventh and twelfth, and they are the
+ * only ones not about driving: they hand the session to a human. That is a
+ * different kind of capability rather than another step of the loop, which is
+ * why it could not ride on a call that already exists -- but the shape of what
+ * it returns is the same discipline, and it deliberately reports *that* a human
+ * intervened and when, never what they typed.
+ *
  * `resize_session` is a tool rather than an argument on another call because it
  * has no other call to belong to: a resize is an act on the session, like
  * closing one, and it is the only way an agent can move the grid -- the size
@@ -44,6 +51,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { SessionHost } from './host.js';
+import { ViewServer } from './view-server.js';
 import { composeSteps, escapeBytes, KeyInputError, KEY_SUMMARY, type Composed } from './keys.js';
 import type { Segment } from './classify.js';
 import type { HistoryPoint, HistoryReadOptions, Omission } from './history.js';
@@ -207,8 +215,17 @@ function present(update: SessionUpdate) {
  * The host is injected rather than constructed here so a test can drive the
  * same surface without a stdio transport, and so the surface has no state of
  * its own beyond what the host already owns.
+ *
+ * `views` is injected for the same reason and one more: it has to be **one per
+ * process**, not one per server. `scripts/mcp-http.ts` builds a server per
+ * request -- the transport is stateless -- so a view server constructed here
+ * would be a different one on every call, each with its own port and none of
+ * them the one a human is connected to. The scripts own it and hand it in.
  */
-export function createServer(host: SessionHost = new SessionHost()): McpServer {
+export function createServer(
+  host: SessionHost = new SessionHost(),
+  views: ViewServer = new ViewServer(),
+): McpServer {
   const server = new McpServer({ name: 'agent-term', version: '0.0.0' });
 
   const session = (id: string) => host.session(id);
@@ -247,6 +264,52 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
       return {
         content: [{ type: 'text', text: opened.id }],
         structuredContent: { sessionId: opened.id, cols: opened.screen.cols, rows: opened.screen.rows, pid: opened.pty.pid },
+      };
+    },
+  );
+
+  server.registerTool(
+    'open_view',
+    {
+      title: 'Open a view of a session for a human',
+      description:
+        'Expose a live session in a window a human can watch and type into. Returns `url`, which ' +
+        'opens in a browser, and `command`, which runs a terminal client in the human\'s own ' +
+        'terminal. Either one attaches: the human sees the same screen you are shown and their ' +
+        'keystrokes go into the same pty, so what they do reaches you as ordinary output. Use it ' +
+        'when you are stuck — open a view, say what you need, end your turn — and on your next ' +
+        'turn `read_screen` reports `view`: how many humans are attached and when one last typed. ' +
+        'Calling this twice returns the same view; several clients may attach to one. Refused ' +
+        'with `not_live` once the process has exited, because a view is for intervening and there ' +
+        'is nothing left to intervene in.',
+      inputSchema: {
+        sessionId: z.string(),
+        followResize: z
+          .boolean()
+          .optional()
+          .describe(
+            'Resize the session to the human\'s window when it attaches. Default true, so a ' +
+              'full-screen program draws for the window it is actually in. It is a resize: it ' +
+              'opens a new epoch and everything before it stays readable at the old size. False ' +
+              'keeps the grid where you put it and the human\'s window letterboxes.',
+          ),
+      },
+    },
+    async ({ sessionId, followResize }) => {
+      const target = session(sessionId);
+      if (!target) return fail('no_session', `no session ${sessionId}`);
+      // The same refusal `send_input` makes, for the same reason: a view hands
+      // a live terminal to somebody, and there is no live terminal here.
+      if (!target.pty.alive) return fail('not_live', `session ${sessionId} has exited`);
+      const handle = await views.open(target, { followResize });
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `open in a browser: ${handle.url}\nor in a terminal: ${handle.command}`,
+          },
+        ],
+        structuredContent: { ...handle },
       };
     },
   );
@@ -428,6 +491,7 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
             update: null,
             bytesRead: target.pty.bytesRead,
             state,
+            view: views.facts(sessionId),
           },
         };
       }
@@ -438,7 +502,7 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
       target.noteShown(last.seq, last.io.bytesRead);
       return {
         content: [{ type: 'text', text: presentScreen(last.screen.lines).join('\n') }],
-        structuredContent: { sessionId, ...present(last), state },
+        structuredContent: { sessionId, ...present(last), state, view: views.facts(sessionId) },
       };
     },
   );
@@ -783,16 +847,40 @@ export function createServer(host: SessionHost = new SessionHost()): McpServer {
   );
 
   server.registerTool(
+    'close_view',
+    {
+      title: 'Close a session\'s view',
+      description:
+        'Detach every human from a session\'s view and stop serving it. The session itself is ' +
+        'untouched — this ends the window, not the terminal. A view also ends on its own when ' +
+        'the session is closed or its process exits. `closed: false` means no view was open.',
+      inputSchema: { sessionId: z.string() },
+    },
+    async ({ sessionId }) => {
+      if (!session(sessionId)) return fail('no_session', `no session ${sessionId}`);
+      const closed = views.close(sessionId as SessionId);
+      return {
+        content: [{ type: 'text', text: closed ? 'view closed' : 'no view was open' }],
+        structuredContent: { sessionId, closed },
+      };
+    },
+  );
+
+  server.registerTool(
     'close_session',
     {
       title: 'Close a session',
       description:
         'End a session and kill its process tree. Its history stays readable afterwards, ' +
-        'so closing is not forgetting.',
+        'so closing is not forgetting. Any view of it ends with it.',
       inputSchema: { sessionId: z.string() },
     },
     async ({ sessionId }) => {
       if (!session(sessionId)) return fail('no_session', `no session ${sessionId}`);
+      // Explicit, although the view ends by itself on disposal: the human's
+      // window is told the session is gone at the moment it happens rather
+      // than whenever the socket next notices.
+      views.close(sessionId as SessionId);
       host.close(sessionId as SessionId);
       return { content: [{ type: 'text', text: 'closed' }], structuredContent: { sessionId, closed: true } };
     },

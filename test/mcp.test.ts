@@ -40,8 +40,10 @@ test('the surface exposes the core loop', async (t) => {
   const names = tools.tools.map((tool) => tool.name).sort();
   assert.deepEqual(names, [
     'close_session',
+    'close_view',
     'history_read',
     'open_session',
+    'open_view',
     'read_screen',
     'resize_session',
     'send_input',
@@ -1100,4 +1102,56 @@ test('history says how the process finished, and a driven close is not an exit',
     level: 'text',
   })).structuredContent as { ended: unknown };
   assert.equal(after.ended, null, 'a driven close records no exit code');
+});
+
+test('a view exposes a session to a human, and a read says whether one intervened', async (t) => {
+  const { client, host, close } = await connected();
+
+  const opened = await call(client, 'open_session', { cols: 100, rows: 24 });
+  const sessionId = (opened.structuredContent as { sessionId: string }).sessionId;
+  t.after(async () => {
+    // The view first, and explicitly: ending the session ends the view, but a
+    // test that fails before it gets there would leave a loopback server
+    // bound, which holds the process open.
+    await call(client, 'close_view', { sessionId }).catch(() => {});
+    host.disposeAll();
+    return close();
+  });
+
+  // No view exists, so the fact is `null` -- not an object reporting zero
+  // clients. "There is no view" and "there is one with nobody on it" are
+  // different, and a caller reading `attached === 0` must not be told the
+  // first when the second is what is true.
+  const before = await call(client, 'read_screen', { sessionId });
+  assert.equal((before.structuredContent as { view: unknown }).view, null, 'no view, no fact');
+
+  const view = (await call(client, 'open_view', { sessionId })).structuredContent as {
+    url: string;
+    command: string;
+    port: number;
+    cols: number;
+    rows: number;
+  };
+  assert.match(view.url, /^http:\/\/127\.0\.0\.1:\d+\/v\/[0-9a-f-]+\/$/, 'loopback, and unguessable');
+  assert.ok(view.port > 0, 'the port is reported, because a human has to be told which one');
+  assert.equal(view.cols, 100, 'and the grid the session is at');
+  assert.equal(view.rows, 24);
+  assert.ok(view.command.includes(view.url), 'the command carries the url it opens');
+
+  // Asked twice, the same view: "give me a window on this session" is one
+  // question, and two views would disagree about who is attached.
+  const again = await call(client, 'open_view', { sessionId });
+  assert.equal((again.structuredContent as { url: string }).url, view.url, 'opening twice is opening once');
+
+  const read = await call(client, 'read_screen', { sessionId });
+  assert.deepEqual(
+    (read.structuredContent as { view: unknown }).view,
+    { attached: 0, lastInputAt: null, lastInputBytes: null },
+    'the view exists, nobody is on it, and no human has typed',
+  );
+
+  const closed = await call(client, 'close_view', { sessionId });
+  assert.equal((closed.structuredContent as { closed: boolean }).closed, true, 'closing a view says so');
+  const after = await call(client, 'read_screen', { sessionId });
+  assert.equal((after.structuredContent as { view: unknown }).view, null, 'and there is no fact left to report');
 });

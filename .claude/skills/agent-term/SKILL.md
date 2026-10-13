@@ -1,6 +1,6 @@
 ---
 name: agent-term
-description: Usage guide for the agent-term MCP server — how to drive an interactive terminal program through its tools (open_session, resize_session, send_input, send_sequence, wait_for_idle, wait_for_group, wait_for_output, read_screen, history_read, close_session). Use whenever you are operating a terminal session through agent-term, including black-box driving exercises where you are handed an interactive program to operate and are not told how it behaves.
+description: Usage guide for the agent-term MCP server — how to drive an interactive terminal program through its tools (open_session, resize_session, send_input, send_sequence, wait_for_idle, wait_for_group, wait_for_output, read_screen, history_read, open_view, close_view, close_session), including how to hand a session to a human when you are stuck. Use whenever you are operating a terminal session through agent-term, including black-box driving exercises where you are handed an interactive program to operate and are not told how it behaves.
 ---
 
 # Driving a terminal through agent-term
@@ -381,6 +381,14 @@ instead is two facts:**
   placement to report; `false` means the wait ended on output already in flight.
   Placement, not causation: output after input may still be unrelated to it.
 
+  **It is measured against the *last* write, so read it as per-write.** Reliable for your own
+  `send_input`, which submits a line in one write. **Not** reliable for a human typing in a
+  view: that arrives one keystroke per write, so the Enter submitting the line is stamped after
+  the group carrying the echo has already begun, and that group — the response — reports
+  `false`. The wait still wakes on the human's output and still carries their text; only this
+  flag is narrower than it reads. Known limit, with the candidates for lifting it, in
+  `docs/design.md` under "Known limit: `afterInput` is per-write".
+
 **What to actually do:**
 
 1. **Anchor on text the program prints.** `wait_for_output` on the prompt string, the result
@@ -424,6 +432,67 @@ closed after a gap at state 12; those bytes changed the grid and **completed no 
 (`text: []`, with a segment covering them). **Inference (yours):** the arrow key moved the
 selection. The server never claimed that, and could not — it saw bytes out and a repaint
 back.
+
+## Human intervention — handing the session to a person
+
+Sometimes the right move is to stop driving. A TUI you cannot read, a prompt you cannot guess,
+a change only a person should authorise, a credential only they have.
+
+**`open_view`** puts the session in a window. It returns a `url`, which opens in a browser, and
+a `command`, which runs a terminal client in the person's own terminal — hand them whichever
+suits. Either one attaches, and several people can attach to one view.
+
+What they see is the screen you are shown, and what they type goes **into the same pty**. So
+their keystrokes come back to you as ordinary output — on `read_screen`, through the waits, in
+history. There is still one parser, one screen, one timeline.
+
+By default the session's grid **follows their window**, so a full-screen program draws for the
+window they actually have. That is a resize: it opens a new epoch, and everything recorded
+before it stays readable at the old size. Pass `followResize: false` to keep the grid where you
+put it.
+
+### The procedure
+
+1. Get to the point where you are stuck, and say so — what you tried, what you need.
+2. `open_view`. Relay the `url` or the `command`.
+3. **End your turn.** Do not poll, do not wait: there is no wait for a human, and there is no
+   `atPrompt`. Whether anybody has typed is not observable — which is the same refusal the
+   server makes everywhere else.
+4. On your next turn, `read_screen` and look at `view`:
+
+```json
+{ "attached": 1, "lastInputAt": 1760000000123, "lastInputBytes": 4 }
+```
+
+`attached` is a real count of connected clients — `0` means nobody is on it. `lastInputAt` and
+`lastInputBytes` are `null` before any human input. **`view` is `null` when no view has been
+opened**, not an object reporting zero: "there is no view" and "there is one with nobody on it"
+are different facts.
+
+5. Carry on from the screen as it is now. Their input is output you did not cause, so read
+   before you type again — and prefer `wait_for_output` on something the program prints over
+   assuming where they left it.
+
+### What you are not told
+
+**Not what they typed.** Only that input happened, when, and how much. It is visible to you to
+the extent the program echoes it and no further: a password at a prompt with echo off stays
+between them and the program. If you need to know what the session now says, read the screen —
+that is the observation, and it is the one you already have.
+
+**And `afterInput` is weaker here than for your own input.** Your `send_input` submits a line in
+one write, so a group answering it sits after the watermark; a human types a keystroke at a
+time, so the Enter that submits their line is stamped after the group carrying the echo has
+begun — and that group reports `afterInput: false` even though it *is* the response. A
+`wait_for_group` still wakes on their output and still carries their text; do not read the flag
+as "they did nothing". See the known limit in `docs/design.md`.
+
+### `close_view`
+
+Detaches everyone and stops serving. The session is untouched. A view also ends by itself when
+the session is closed or its process exits. `open_view` twice returns the same view; it is
+refused with `not_live` once the process has exited, because there is nothing left to
+intervene in.
 
 ## Errors
 

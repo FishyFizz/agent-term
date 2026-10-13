@@ -34,6 +34,7 @@ import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createServer } from '../src/mcp.js';
 import { SessionHost } from '../src/host.js';
+import { ViewServer } from '../src/view-server.js';
 
 const PORT = Number(process.env.AGENT_TERM_PORT ?? 8787);
 const HOST = process.env.AGENT_TERM_HOST ?? '127.0.0.1';
@@ -43,12 +44,17 @@ const HOST = process.env.AGENT_TERM_HOST ?? '127.0.0.1';
 // cost of this loop and it is worth naming: editing `classify.ts` kills the
 // terminals you had open.
 const host = new SessionHost();
+// One view server for the process, for the reason `src/mcp.ts` gives: this
+// entry point builds an MCP server per request, so a view server built inside
+// `createServer` would be a new one with a new port every time -- and never the
+// one a human is attached to. Like the host, it outlives a request.
+const views = new ViewServer();
 const app = createMcpExpressApp({ host: HOST });
 
 app.post('/mcp', async (req, res) => {
   // A server and transport per request: stateless means nothing is carried
   // between them, and the alternative leaves connections to leak.
-  const server = createServer(host);
+  const server = createServer(host, views);
   const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
   res.on('close', () => {
     void transport.close();

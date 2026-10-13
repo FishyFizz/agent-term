@@ -99,6 +99,31 @@ Two consequences of taking this seriously:
   pauses never opens a gap, so no delivery completes for seconds at a time; idle measured from
   a delivery would call a firehose idle while it floods output.
 
+### Known limit: `afterInput` is per-write — future work
+
+That second observable fact is `afterInput`, and it compares the group's first byte against the
+watermark of the **last** write. For an agent's own `send_input` the two line up: one call
+submits a line in one write, so the group that answers it starts after. For a **viewer
+forwarding a human's typing**, they do not — a keystroke is a write, so the Enter that submits
+the line is stamped *after* the group carrying the echo has already begun, and that group, which
+*is* the response, reports `false`.
+
+Measured on a live run: a human's `echo` answered by a group of five deliveries reported
+`afterInput: false` while carrying the human's line and its output as its text. The wait woke on
+the human's output and returned their text — the flag, not the mechanism, is what is weaker.
+
+It is left as it is rather than fixed in passing, because both fixes change something real:
+
+- **Compare `toByte` instead of `fromByte`.** Keeps the case the field exists for — a group that
+  *ended* before the write — and reports `true` here. Costs the opposite: a group that merely
+  *ends* after the write now reads as a response even when most of it predates the input.
+- **Leave the model and read the field as per-write.** Free, and what the `agent-term` skill
+  tells a caller to do today: trustworthy for your own `send_input`, a hint rather than an
+  answer for a human's typing.
+
+Until one is chosen the field's contract is the narrow one. This heading and the entry in
+[README.md](README.md#known-limits-and-future-work) are the marker.
+
 ## A report says what happened, not what was meant
 
 Input is **named, not spelled**. The caller sends `{key: "down"}`; the bytes are the server's

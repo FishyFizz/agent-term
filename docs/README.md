@@ -25,6 +25,16 @@ backwards.
 | [mcp-surface.md](mcp-surface.md) | The tools an agent drives, and their contracts |
 | [testing.md](testing.md) | The corpus, the lifelike fixture, and what a test may assert |
 
+## Known limits and future work
+
+Identified, written down where the code lives, and deliberately not fixed in passing. Each
+names what is weaker than it looks, and what changing it would cost — so the next person finds
+a decision rather than a surprise.
+
+| Limit | Detail | What lifting it would take |
+|---|---|---|
+| `afterInput` is measured against the **last** write, so a viewer forwarding a human's keystrokes reports `false` on the group that answers them. | [design.md](design.md) § *Known limit: `afterInput` is per-write* | Compare the group's `toByte` instead of its `fromByte` — or read the field as per-write and leave the model alone. |
+
 ## Non-goals
 
 - **Not a command runner.** Shell semantics, command construction, and what to run remain the

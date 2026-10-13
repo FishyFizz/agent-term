@@ -52,6 +52,10 @@ the failure it prevents; read that before editing one.
 | `mcp.ts` | L3 | The MCP tool surface. |
 | `types.ts` | — | Shared option types and grid validation. |
 | `env.ts` | L3 | Environment sanitising and the default shell. |
+| `view.ts` | L3 | One session's view: what a human is shown, and what they sent. Transport-free. |
+| `view-server.ts` | L3 | The loopback server a human's client connects to: tokens, HTTP, WebSocket. |
+| `view-ansi.ts` | L3 | A screen, as the ANSI that draws it — the terminal client's renderer. |
+| `view-page.ts` | L3 | The browser client, as one HTML string. |
 
 Everything above `screen.ts` reads cells from the emulator. **Nothing above `screen.ts`
 re-parses bytes** — a second reading of the byte stream would be a second VT parser that can
@@ -285,3 +289,31 @@ Three waits are built on one skeleton, and each names only its own stopping reas
 what that means to the caller — who is the one that knows what it is driving. Every wait
 resolves on observation with a single deadline bound, never on a fixed step; termination ends
 a wait early, because waiting longer cannot change what is observable.
+
+## The viewer — the one L3 that renders
+
+A view lets a human watch a session and type into it. Everything about it is L3, which is the
+layering proving itself: **no layer below knows views exist.** `SessionView` is built entirely
+from public surface — `onDelivery`, `onResize`, `onExit`, `onDispose`, `send`, `resize`,
+`screen.snapshot()`, `screen.modes`, `state()` — and `registry.ts` and `host.ts` were not
+touched to add it.
+
+Two consequences follow, and both are load-bearing:
+
+- **It carries `ScreenSnapshot`, never bytes.** One parser, one truth. Mirroring the program's
+  raw output into a second terminal would put a second VT parser in the system, free to
+  disagree with the emulator that owns the answer. This is also why xterm.js is not used in the
+  browser client: it is a VT parser and it would have to be fed bytes.
+- **The facts about the human live here, not in `SessionState`.** `state` stays the closed set
+  of session facts; `view` rides beside it on a read. That is what keeps "a human is watching"
+  from becoming a field every layer has to know about.
+
+Its granularity is the **delivery**, not the group: a group collapses a repaint into the one act
+the agent pays for, and a human watching the same repaint wants the frames. Both come off the
+same stream; only the projection differs.
+
+Input travels the other way as bytes into the session's pty, composed through the same
+`composeSteps` call `send_sequence` uses, against the mode the program set — so a key a human
+presses is encoded for the program reading it. The terminal client forwards raw bytes instead,
+and mirrors the session's modes into its own terminal so the keyboard produces what the program
+asked for. Either way there is one write path, and one input watermark.

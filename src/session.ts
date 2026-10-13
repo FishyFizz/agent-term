@@ -384,6 +384,22 @@ export interface GroupWaitResult {
    * `false` is the case worth acting on: the wait ended on output that was
    * already in flight before the input, so sending more input would be
    * typing into something that has not read the last thing yet.
+   *
+   * **A known limit, and future work.** The watermark is the *last* write. A
+   * viewer that forwards a human's typing as it is typed sends one write per
+   * keystroke, so the Enter that submits the line is stamped after the group
+   * carrying the echo has already begun -- and that group, which *is* the
+   * response, reports `false`. An agent's own `send_input` submits a line in
+   * one write and is not affected. Measured on a live run: a human's `echo`
+   * answered by a group of five deliveries reported `false` while carrying the
+   * human's line and its output as its text.
+   *
+   * Two ways to lift it, neither taken. Compare the group's `toByte` instead of
+   * its `fromByte` -- that keeps the case this field exists for (a group that
+   * *ended* before the write) and reports `true` here, at the cost of being
+   * permissive about a group that merely *ends* after the write. Or leave the
+   * model alone and read the field as per-write, which is what the `agent-term`
+   * skill tells a caller to do today.
    */
   afterInput: boolean | null;
   /**
@@ -1437,6 +1453,11 @@ export class TerminalSession {
    * two measured counts. It says nothing about causation — output that follows
    * input may still be unrelated to it — but it is the one causal fact a byte
    * interface can state without guessing.
+   *
+   * Being arithmetic on the *last* write is what limits it: a caller that
+   * writes per keystroke gets a watermark inside the group its writing caused.
+   * `GroupWaitResult.afterInput` carries the measurement and the candidates for
+   * lifting it; this stays as it is until one of them is chosen.
    */
   private afterInput(update: SessionUpdate): boolean | null {
     const written = this.pty.bytesWritten;
